@@ -5,8 +5,8 @@
 }
 
 body {
-    background-color: #37353E;
-    color: #D3DAD9;
+    background-color: #ffffff;
+    color: #000000;
 }
 
 .container {
@@ -14,3 +14,5 @@ body {
     flex-direction: column;
     align-items: center;
 }
+
+#title, #subtitle { color: #64b5f6; }
