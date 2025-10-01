@@ -5,8 +5,8 @@
 }
 
 body {
-    background-color: #ffffff;
-    color: #000000;
+    background-color: #5465FF;
+    color: #E2FDFF;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
@@ -38,3 +38,15 @@ button {
 }
 
 #title, #subtitle { color: #64b5f6; }
+
+#dark_blue_text { color: #5465ff; }
+#mid_blue_text { color: #788bff; } 
+#light_blue_text { color: #9bb1ff; } 
+#normal_blue_text { color: #bfd7ff; }
+#white_gray_text { color: #e2fdff; }
+
+#dark_gray_text { color: #343a40; }
+#mid_gray_text { color: #495057; } 
+#light_gray_text { color: #adb5bd; } 
+#normal_gray_text { color: #dee2e6; }
+#white_gray_text { color: #f8f9fa; }
