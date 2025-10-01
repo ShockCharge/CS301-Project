@@ -9,31 +9,29 @@
     <link rel="stylesheet" href="../css/signup.css">
 </head>
 <body>
-    <div class="container">
-
+    <div class="header">
         <img src="../images/studyplanner_icon.png">
-        <h1 id="title">Study Planner</h1>
-        <p id="subtitle">Organize your class, assignment, and exam.</p><br>
+        <h1>Study Planner</h1>
+    </div>
 
-        <h3>Create your account</h3><br>
+    <div class="container">
+        <div class="item1">
+            <h3>Create your account</h3>
+            <p>Organize your class, assignment, and exam.</p>
+        </div>
 
-            <label>Email Address</label>
-            <input type="email" required>
+        <div class="item2">
+            <input type="email" placeholder="Name" required>
+            <input type="email" placeholder="Email" required>
+            <input type="text" placeholder="Institute Name" required>
+            <input type="password" placeholder="Password" required>
+            <input type="password" placeholder="Confirm Password" required>
+        </div>
 
-            <label>Institute</label>
-            <input type="text" required>
-
-            <label>Password</label>
-            <input type="password" required>
-
-            <label>Confirm Password</label>
-            <input type="password" required><br>
-
-            <button>Continue</button><br>
-
-            <p>Already have an account? Sign in</p><br>
-
-            <p>Terms of Service | Privacy Policy</p>
+        <div class="item3">
+            <button>Continue</button>
+            <p id="light_gray_text">Already have an account? <u id="normal_gray_text">Sign in</u></p>
+        </div>
     </div>
 </body>
 </html>
