@@ -1,0 +1,27 @@
+.header {
+    background-color: #5465ff;
+    margin-top: 0 !important;
+    padding: 1rem;
+}
+
+.main {
+    background-color: #788bff;
+    flex: 1;
+}
+
+.menu {
+    background-color: #343a40;
+    padding: 2rem 3rem;
+    width: fit-content;
+    list-style-type: none;
+}
+
+.menu li { margin-bottom: 1rem; }
+.menu li:last-child { margin-bottom: 0;}
+
+.footer {
+    background-color: #5465ff;
+    margin-top: 0 !important;
+    padding: 1rem;
+    text-align: center;
+}
