@@ -19,6 +19,11 @@
 .menu li { margin-bottom: 1rem; }
 .menu li:last-child { margin-bottom: 0;}
 
+.menu li a {
+    text-decoration: none;
+    color: #e2fdff;
+}
+
 .footer {
     background-color: #5465ff;
     margin-top: 0 !important;
