@@ -38,6 +38,14 @@ button {
     margin-bottom: 1rem;
 }
 
+.material-symbols-outlined {
+  font-variation-settings:
+  'FILL' 0,
+  'wght' 400,
+  'GRAD' 0,
+  'opsz' 24
+}
+
 #title, #subtitle { color: #64b5f6; }
 
 #dark_blue_text { color: #5465ff; }

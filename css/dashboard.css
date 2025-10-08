@@ -2,7 +2,12 @@
     background-color: #5465ff;
     margin-top: 0 !important;
     padding: 1rem;
+    font-size: xx-large;
+    display: flex;
+    justify-content: space-between;
 }
+
+.header span { font-size: inherit; }
 
 .main {
     background-color: #788bff;
