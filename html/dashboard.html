@@ -7,7 +7,7 @@
     <!-- Google Sans Code (Fonts) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Code:ital,wght@0,300..800;1,300..800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
 
     <!-- Google Icons (Icons) -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined"/>
@@ -26,15 +26,44 @@
     </div>
 
     <div class="main">
-        <h1>Dashboard</h1>
+        <div class="main-left">
+            <ul class="menu">
+                <li><a href="../html/dashboard.html"><span class="material-symbols-outlined">dashboard_2</span>Dashboard</a></li>
+                <li><a href="../html/schedule.html"><span class="material-symbols-outlined">calendar_clock</span>Schedule</a></li>
+                <li><a href="../html/chatbot.html"><span class="material-symbols-outlined">robot_2</span>Chatbot</a></li>
+                <li><a href="../html/activities_classes.html"><span class="material-symbols-outlined">book_2</span>Activities</a></li>
+                <li><a href="../html/settings.html"><span class="material-symbols-outlined">settings</span>Settings</a></li>
+            </ul>
+        </div>
 
-        <ul class="menu">
-            <li><a href="../html/dashboard.html"><span class="material-symbols-outlined">dashboard_2</span>Dashboard</a></li>
-            <li><a href="../html/schedule.html"><span class="material-symbols-outlined">calendar_clock</span>Schedule</a></li>
-            <li><a href="../html/chatbot.html"><span class="material-symbols-outlined">robot_2</span>Chatbot</a></li>
-            <li><a href="../html/activities_classes.html"><span class="material-symbols-outlined">book_2</span>Activities</a></li>
-            <li><a href="../html/settings.html"><span class="material-symbols-outlined">settings</span>Settings</a></li>
-        </ul>
+        <div class="main-content">
+            <div class="main-title">
+                <h1>Dashboard</h1>
+            </div>
+
+            <!-- First Row -->
+            <div class="main-inner">
+                <div class="main-center">
+                    <p>Today's Tasks</p>
+                    <button id="gray-button"><span class="material-symbols-outlined">add</span>New Task</button>
+                </div>
+                <div class="main-right">
+                    <p>Progress Overview</p>
+                    <p>This week study time: N/A</p>
+                </div>
+            </div>
+
+            <!-- Second Row -->
+            <div class="main-inner">
+                <div class="main-center">
+                    <p>Quick Action</p>
+                    <button id="gray-button">Add Task</button>
+                </div>
+                <div class="main-right">
+                    <p>Upcoming Exams</p>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div class="footer">
