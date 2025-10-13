@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Study Planner</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h1 class="sidebar-brand">Study Planner</h1>
+            </div>
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="{{ url_for('dashboard') }}" class="nav-link active">
+                        <span class="nav-icon">📊</span>
+                        <span>Dashboard</span>
+                    </a></li>
+                    <li><a href="{{ url_for('schedule') }}" class="nav-link">
+                        <span class="nav-icon">📅</span>
+                        <span>Schedule</span>
+                    </a></li>
+                    <li><a href="#" class="nav-link">
+                        <span class="nav-icon">💬</span>
+                        <span>Chatbot</span>
+                    </a></li>
+                    <li><a href="#" class="nav-link">
+                        <span class="nav-icon">📝</span>
+                        <span>Activities</span>
+                    </a></li>
+                    <li><a href="#" class="nav-link">
+                        <span class="nav-icon">⚙️</span>
+                        <span>Settings</span>
+                    </a></li>
+                </ul>
+            </nav>
+            <div class="sidebar-footer">
+                <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="header">
+                <h2 class="page-title">Dashboard</h2>
+                <div class="user-profile">
+                    <div class="user-avatar">{{ session.user[0].upper() if session.user else 'U' }}</div>
+                </div>
+            </header>
+
+            <!-- Dashboard Grid -->
+            <div class="dashboard-grid">
+                <!-- Today's Tasks Card -->
+                <div class="card tasks-card">
+                    <div class="card-header">
+                        <h3>Today's Tasks</h3>
+                    </div>
+                    <div class="card-body">
+                        <ul class="task-list" id="task-list">
+                            {% for task in tasks %}
+                                <li class="task-item">
+                                    <span class="task-name">{{ task.name }}</span>
+                                    <span class="priority-badge priority-{{ task.priority }}">{{ task.priority }}</span>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                        <button class="btn-add" id="add-task-btn">+ New Task</button>
+                    </div>
+                </div>
+
+                <!-- Progress Overview Card -->
+                <div class="card progress-card">
+                    <div class="card-header">
+                        <h3>Progress Overview</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="progress-circle-container">
+                            <div class="progress-circle" style="background: conic-gradient(#007bff 0% {{ progress }}%, #e9ecef {{ progress }}% 100%);">
+                                <div class="progress-inner">
+                                    <span class="progress-value">{{ progress }}%</span>
+                                </div>
+                            </div>
+                        </div>
+                        <p class="progress-text">This week study time: 12hrs</p>
+                    </div>
+                </div>
+
+                <!-- Quick Actions Card -->
+                <div class="card quick-actions-card">
+                    <div class="card-header">
+                        <h3>Quick Actions</h3>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-action" id="quick-add-task">Add Task</button>
+                        <button class="btn btn-action" onclick="window.location.href=('/schedule')">View Schedule</button>
+                    </div>
+                </div>
+
+                <!-- Upcoming Exams Card -->
+                <div class="card upcoming-card">
+                    <div class="card-header">
+                        <h3>Upcoming Exams</h3>
+                        <span class="card-arrow">›</span>
+                    </div>
+                    <div class="card-body">
+                        <p class="empty-state">No upcoming exams scheduled</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <footer class="footer">
+                <p>&copy; 2025 studyplanner</p>
+            </footer>
+        </main>
+    </div>
+
+    <!-- Add Task Modal -->
+    <div id="addTaskModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Add New Task</h2>
+            <form id="addTaskForm">
+                <div class="form-group">
+                    <label>Task Name</label>
+                    <input type="text" id="taskName" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label>Priority</label>
+                    <select id="taskPriority" class="form-input">
+                        <option value="low">Low</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="high">High</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn-primary">Add Task</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
+
