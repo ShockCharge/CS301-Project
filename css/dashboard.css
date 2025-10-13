@@ -73,6 +73,7 @@
     color: #e2fdff;
     display: flex;
     gap: 0.5rem;
+    align-items: center;
 }
 
 .menu span { font-size: inherit; }
