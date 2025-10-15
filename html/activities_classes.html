@@ -18,6 +18,9 @@
     <link rel="icon" href="../images/studyplanner_icon.png">
     <link rel="stylesheet" href="../css/style.css">
     <link rel="stylesheet" href="../css/dashboard.css">
+
+    <!-- JavaScripts -->
+    <script src="../javascript/submenu.js"></script>
 </head>
 <body>
     <div class="header">
@@ -31,7 +34,15 @@
                 <li><a href="../html/dashboard.html"><span class="material-symbols-outlined">dashboard_2</span>Dashboard</a></li>
                 <li><a href="../html/schedule.html"><span class="material-symbols-outlined">calendar_clock</span>Schedule</a></li>
                 <li><a href="../html/chatbot.html"><span class="material-symbols-outlined">robot_2</span>Chatbot</a></li>
-                <li><a href="../html/activities_classes.html"><span class="material-symbols-outlined">book_2</span>Activities</a></li>
+                <li class="expand-submenu">
+                    <a href="#"><span class="material-symbols-outlined">book_2</span>Activities</a>
+                    <ul class="submenu">
+                        <li><a href="../html/activities_tasks.html"><span class="material-symbols-outlined">assignment</span>Tasks</a></li>
+                        <li><a href="../html/activities_classes.html"><span class="material-symbols-outlined">school</span>Classes</a></li>
+                        <li><a href="../html/activities_exams.html"><span class="material-symbols-outlined">quiz</span>Exams</a></li>
+                        <li><a href="../html/activities_vacations.html"><span class="material-symbols-outlined">beach_access</span>Vacations</a></li>
+                    </ul>
+                </li>
                 <li><a href="../html/settings.html"><span class="material-symbols-outlined">settings</span>Settings</a></li>
             </ul>
         </div>

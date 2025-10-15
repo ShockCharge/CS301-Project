@@ -57,7 +57,7 @@
     width: fit-content;
 }
 
-.menu {
+.menu, .submenu {
     flex: 1;
     list-style-type: none;
     font-size: 1.5rem;
@@ -65,10 +65,10 @@
     margin: 0;
 }
 
-.menu li { margin-bottom: 1rem; }
-.menu li:last-child { margin-bottom: 0;}
+.menu li, .submenu li a { margin-bottom: 1rem; }
+.menu li:last-child, .submenu li:last-child { margin-bottom: 0;}
 
-.menu li a {
+.menu li a, .submenu li a {
     text-decoration: none;
     color: #e2fdff;
     display: flex;
@@ -76,7 +76,16 @@
     align-items: center;
 }
 
-.menu span { font-size: inherit; }
+.menu span, .submenu span { font-size: inherit; }
+
+.submenu { 
+    display: none;
+    margin-top: 1rem;
+    margin-left: 1.8rem;
+    font-size: 1.3rem !important;
+}
+
+.expand-submenu.active .submenu { display: block; }
 
 .footer {
     background-color: #5465ff;
