@@ -17,31 +17,36 @@ try:
     if MONGO_USER and MONGO_PASS:
         conn_str = f"mongodb+srv://{MONGO_USER}:{MONGO_PASS}@studyplanner.y4rlgjy.mongodb.net/study_planner_db?retryWrites=true&w=majority"
         client = MongoClient(conn_str, serverSelectionTimeoutMS=5000)
-        # Test connection
         client.server_info()
         db = client["study_planner_db"]
         users_collection = db["users"]
         schedules_collection = db["schedules"]
         tasks_collection = db["tasks"]
+        exams_collection = db["exams"]
+        classes_collection = db["classes"]
+        vacations_collection = db["vacations"]
         
-        # Initialize test user if database is available
         if users_collection.find_one({'email': 'test@example.com'}) is None:
             users_collection.insert_one({'email': 'test@example.com', 'password': 'password'})
         
         print("MongoDB Atlas connected successfully!")
     else:
-        # No credentials provided - run in development mode
-        print("No MongoDB credentials found. Running in development mode with sample data.")
+        print("No MongoDB credentials found. Running in development mode.")
         users_collection = None
         schedules_collection = None
         tasks_collection = None
+        exams_collection = None
+        classes_collection = None
+        vacations_collection = None
 except Exception as e:
     print(f"MongoDB connection failed: {e}")
-    print("Running in development mode with sample data.")
-    # Continue without database for development
+    print("Running in development mode.")
     users_collection = None
     schedules_collection = None
     tasks_collection = None
+    exams_collection = None
+    classes_collection = None
+    vacations_collection = None
 
 @app.route('/', methods=['GET', 'POST'])
 def login():
@@ -52,7 +57,6 @@ def login():
         if users_collection is not None:
             user = users_collection.find_one({'email': email, 'password': password})
         else:
-            # Development mode: allow test login
             user = {'email': email} if email == 'test@example.com' and password == 'password' else None
         
         if user:
@@ -91,24 +95,25 @@ def dashboard():
         for task in tasks:
             task['_id'] = str(task['_id'])
     else:
-        # Sample data for development
-        tasks = [
-            {'name': 'Math Homework', 'priority': 'high'},
-            {'name': 'Read Chapter 5', 'priority': 'medium'},
-            {'name': 'Physics Quiz Prep', 'priority': 'low'}
-        ]
+        tasks = []
     
-    # Calculate progress (sample calculation)
+    # Get user's exams
+    if exams_collection is not None:
+        exams = list(exams_collection.find({'user': session['user']}).limit(3))
+        for exam in exams:
+            exam['_id'] = str(exam['_id'])
+    else:
+        exams = []
+    
     progress = 75
     
-    return render_template('dashboard.html', progress=progress, tasks=tasks)
+    return render_template('dashboard.html', progress=progress, tasks=tasks, exams=exams)
 
 @app.route('/schedule')
 def schedule():
     if 'user' not in session:
         return redirect(url_for('login'))
     
-    # Get user's schedules
     if schedules_collection is not None:
         schedules = list(schedules_collection.find({'user': session['user']}))
         for schedule in schedules:
@@ -118,6 +123,43 @@ def schedule():
     
     return render_template('schedule.html', schedules=schedules)
 
+@app.route('/tasks')
+def tasks():
+    if 'user' not in session:
+        return redirect(url_for('login'))
+    return render_template('tasks.html')
+
+@app.route('/exams')
+def exams():
+    if 'user' not in session:
+        return redirect(url_for('login'))
+    return render_template('exams.html')
+
+@app.route('/classes')
+def classes():
+    if 'user' not in session:
+        return redirect(url_for('login'))
+    return render_template('classes.html')
+
+@app.route('/vacations')
+def vacations():
+    if 'user' not in session:
+        return redirect(url_for('login'))
+    return render_template('vacations.html')
+
+@app.route('/settings')
+def settings():
+    if 'user' not in session:
+        return redirect(url_for('login'))
+    return render_template('settings.html')
+
+@app.route('/profile')
+def profile():
+    if 'user' not in session:
+        return redirect(url_for('login'))
+    return render_template('profile.html')
+
+# API Endpoints
 @app.route('/api/schedules', methods=['GET', 'POST'])
 def api_schedules():
     if 'user' not in session:
@@ -143,7 +185,7 @@ def api_schedules():
         
         return jsonify(schedule_item), 201
     
-    else:  # GET
+    else:
         if schedules_collection is not None:
             schedules = list(schedules_collection.find({'user': session['user']}))
             for schedule in schedules:
@@ -164,6 +206,8 @@ def api_tasks():
             'user': session['user'],
             'name': data.get('name'),
             'priority': data.get('priority', 'medium'),
+            'date': data.get('date'),
+            'description': data.get('description'),
             'completed': False,
             'created_at': datetime.now()
         }
@@ -176,7 +220,7 @@ def api_tasks():
         
         return jsonify(task_item), 201
     
-    else:  # GET
+    else:
         if tasks_collection is not None:
             tasks = list(tasks_collection.find({'user': session['user']}))
             for task in tasks:
@@ -186,11 +230,115 @@ def api_tasks():
         
         return jsonify(tasks)
 
+@app.route('/api/exams', methods=['GET', 'POST'])
+def api_exams():
+    if 'user' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    if request.method == 'POST':
+        data = request.json
+        exam_item = {
+            'user': session['user'],
+            'subject': data.get('subject'),
+            'date': data.get('date'),
+            'time': data.get('time'),
+            'duration': data.get('duration'),
+            'notes': data.get('notes'),
+            'created_at': datetime.now()
+        }
+        
+        if exams_collection is not None:
+            result = exams_collection.insert_one(exam_item)
+            exam_item['_id'] = str(result.inserted_id)
+        else:
+            exam_item['_id'] = 'temp_id'
+        
+        return jsonify(exam_item), 201
+    
+    else:
+        if exams_collection is not None:
+            exams = list(exams_collection.find({'user': session['user']}))
+            for exam in exams:
+                exam['_id'] = str(exam['_id'])
+        else:
+            exams = []
+        
+        return jsonify(exams)
+
+@app.route('/api/classes', methods=['GET', 'POST'])
+def api_classes():
+    if 'user' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    if request.method == 'POST':
+        data = request.json
+        class_item = {
+            'user': session['user'],
+            'name': data.get('name'),
+            'instructor': data.get('instructor'),
+            'day': data.get('day'),
+            'time': data.get('time'),
+            'room': data.get('room'),
+            'created_at': datetime.now()
+        }
+        
+        if classes_collection is not None:
+            result = classes_collection.insert_one(class_item)
+            class_item['_id'] = str(result.inserted_id)
+        else:
+            class_item['_id'] = 'temp_id'
+        
+        return jsonify(class_item), 201
+    
+    else:
+        if classes_collection is not None:
+            classes = list(classes_collection.find({'user': session['user']}))
+            for class_item in classes:
+                class_item['_id'] = str(class_item['_id'])
+        else:
+            classes = []
+        
+        return jsonify(classes)
+
+@app.route('/api/vacations', methods=['GET', 'POST'])
+def api_vacations():
+    if 'user' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    if request.method == 'POST':
+        data = request.json
+        vacation_item = {
+            'user': session['user'],
+            'title': data.get('title'),
+            'start_date': data.get('start_date'),
+            'end_date': data.get('end_date'),
+            'description': data.get('description'),
+            'created_at': datetime.now()
+        }
+        
+        if vacations_collection is not None:
+            result = vacations_collection.insert_one(vacation_item)
+            vacation_item['_id'] = str(result.inserted_id)
+        else:
+            vacation_item['_id'] = 'temp_id'
+        
+        return jsonify(vacation_item), 201
+    
+    else:
+        if vacations_collection is not None:
+            vacations = list(vacations_collection.find({'user': session['user']}))
+            for vacation in vacations:
+                vacation['_id'] = str(vacation['_id'])
+        else:
+            vacations = []
+        
+        return jsonify(vacations)
+
 @app.route('/logout')
 def logout():
     session.pop('user', None)
     return redirect(url_for('login'))
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True, port=5000)
 
