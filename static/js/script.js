@@ -480,20 +480,29 @@ function displayTasks(tasks) {
         return;
     }
     
-    tasksGrid.innerHTML = tasks.map(task => `
-        <div class="item-card">
-            <div class="item-card-header">
-                <h4>${task.name}</h4>
-                <span class="priority-badge priority-${task.priority}">${task.priority}</span>
-            </div>
-            <div class="item-card-body">
-                <p>${task.description || 'No description'}</p>
-                <div class="item-meta">
-                    ${task.date ? `<span><i class="bi bi-calendar"></i> ${formatDateNZ(task.date)}</span>` : ''}
+    tasksGrid.innerHTML = tasks.map(task => {
+        const isCompleted = task.completed || false;
+        return `
+            <div class="item-card ${isCompleted ? 'completed' : ''}">
+                <div class="item-card-header">
+                    <div class="task-checkbox">
+                        <input type="checkbox" ${isCompleted ? 'checked' : ''} 
+                               onchange="toggleTaskComplete('${task._id}')" 
+                               id="task-${task._id}">
+                    </div>
+                    <h4 style="${isCompleted ? 'text-decoration: line-through; opacity: 0.6;' : ''}">${task.name}</h4>
+                    <span class="priority-badge priority-${task.priority}">${task.priority}</span>
+                </div>
+                <div class="item-card-body">
+                    <p style="${isCompleted ? 'opacity: 0.6;' : ''}">${task.description || 'No description'}</p>
+                    <div class="item-meta">
+                        ${task.date ? `<span><i class="bi bi-calendar"></i> ${formatDateNZ(task.date)}</span>` : ''}
+                    </div>
                 </div>
             </div>
-        </div>
-    `).join('');
+        `;
+    }).join('');
+    
 }
 
 // Exams Page Functions
@@ -772,5 +781,22 @@ window.onclick = function(event) {
             modal.style.display = 'none';
         }
     });
+}
+
+// Toggle task completion
+async function toggleTaskComplete(taskId) {
+    try {
+        const response = await fetch(`/api/tasks/${taskId}/toggle`, {
+            method: 'PUT'
+        });
+        
+        const result = await response.json();
+        if (result.success) {
+            // Reload tasks to show updated status
+            loadTasks();
+        }
+    } catch (error) {
+        console.error('Error toggling task:', error);
+    }
 }
 

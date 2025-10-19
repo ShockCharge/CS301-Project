@@ -72,13 +72,16 @@ body {
 
 .form-control {
     width: 100%;
-    padding: 14px 15px 14px 45px;
+    padding: 14px 45px 14px 45px;
     border: 2px solid #e0e0e0;
     border-radius: 10px;
     font-size: 15px;
     transition: all 0.3s;
     outline: none;
+    position: relative;
+    z-index: 1;
 }
+
 
 .form-control:focus {
     border-color: #667eea;
@@ -99,11 +102,15 @@ body {
     cursor: pointer;
     color: #999;
     font-size: 18px;
+    pointer-events: none;
+    z-index: 10;
 }
 
 .password-toggle:hover {
     color: #667eea;
+    pointer-events: auto;
 }
+
 
 .error-message {
     background: #fee;

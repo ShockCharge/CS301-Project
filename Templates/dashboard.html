@@ -72,9 +72,17 @@
         <main class="main-content">
             <!-- Header -->
             <header class="header">
-                <h2 class="page-title">Dashboard</h2>
+                <div>
+                    <h2 class="page-title">Dashboard</h2>
+                    <p style="color: #6c757d; margin-top: 5px;">Welcome back, {{ session.user_name if session.user_name else session.user }}!</p>
+                </div>
                 <div class="user-profile">
-                    <div class="user-avatar">{{ session.user[0].upper() if session.user else 'U' }}</div>
+                    <a href="{{ url_for('profile') }}" style="text-decoration: none;">
+                        <div class="user-avatar" id="header-avatar">
+                            <img id="header-avatar-img" src="" alt="" style="display: none; width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
+                            <span id="header-avatar-text">{{ session.user_name[0].upper() if session.user_name else (session.user[0].upper() if session.user else 'U') }}</span>
+                        </div>
+                    </a>
                 </div>
             </header>
 
@@ -184,6 +192,20 @@
     </div>
 
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    <script>
+        // Load profile picture in header avatar
+        window.addEventListener('DOMContentLoaded', function() {
+            const savedPic = localStorage.getItem('profilePicture');
+            const avatarImg = document.getElementById('header-avatar-img');
+            const avatarText = document.getElementById('header-avatar-text');
+            
+            if (savedPic && avatarImg && avatarText) {
+                avatarImg.src = savedPic;
+                avatarImg.style.display = 'block';
+                avatarText.style.display = 'none';
+            }
+        });
+    </script>
 </body>
 </html>
 

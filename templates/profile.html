@@ -105,11 +105,11 @@
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="first-name">First Name</label>
-                                <input type="text" id="first-name" name="first_name" class="form-control" placeholder="Enter first name">
+                                <input type="text" id="first-name" name="first_name" class="form-control" value="{{ user.first_name if user and user.first_name else '' }}" placeholder="Enter first name">
                             </div>
                             <div class="form-group">
                                 <label for="last-name">Last Name</label>
-                                <input type="text" id="last-name" name="last_name" class="form-control" placeholder="Enter last name">
+                                <input type="text" id="last-name" name="last_name" class="form-control" value="{{ user.last_name if user and user.last_name else '' }}" placeholder="Enter last name">
                             </div>
                         </div>
                         <div class="form-row">
@@ -160,7 +160,7 @@
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="institution">Institution/University</label>
-                                <input type="text" id="institution" name="institution" class="form-control" placeholder="Enter institution name">
+                                <input type="text" id="institution" name="institution" class="form-control" value="{{ user.institution if user and user.institution else '' }}" placeholder="Enter institution name">
                             </div>
                             <div class="form-group">
                                 <label for="student-id">Student ID</label>
@@ -170,7 +170,7 @@
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="major">Major/Field of Study</label>
-                                <input type="text" id="major" name="major" class="form-control" placeholder="Enter your major">
+                                <input type="text" id="major" name="major" class="form-control" value="{{ user.major if user and user.major else '' }}" placeholder="Enter your major">
                             </div>
                             <div class="form-group">
                                 <label for="year-level">Year Level</label>
@@ -317,15 +317,65 @@
         }
 
         // Personal info form
-        document.getElementById('personal-info-form').addEventListener('submit', function(e) {
+        document.getElementById('personal-info-form').addEventListener('submit', async function(e) {
             e.preventDefault();
-            alert('Personal information updated successfully!');
+            
+            const formData = new FormData(e.target);
+            const data = {};
+            formData.forEach((value, key) => {
+                data[key] = value;
+            });
+            
+            try {
+                const response = await fetch('/api/profile', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    alert('Personal information updated successfully!');
+                } else {
+                    alert('Failed to update personal information.');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred while updating your information.');
+            }
         });
 
         // Study info form
-        document.getElementById('study-info-form').addEventListener('submit', function(e) {
+        document.getElementById('study-info-form').addEventListener('submit', async function(e) {
             e.preventDefault();
-            alert('Study information updated successfully!');
+            
+            const formData = new FormData(e.target);
+            const data = {};
+            formData.forEach((value, key) => {
+                data[key] = value;
+            });
+            
+            try {
+                const response = await fetch('/api/profile', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    alert('Study information updated successfully!');
+                } else {
+                    alert('Failed to update study information.');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred while updating your information.');
+            }
         });
 
         // Change password form
