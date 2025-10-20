@@ -1,15 +1,30 @@
 import os
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify
+from flask_mail import Mail, Message
 from pymongo import MongoClient
 from dotenv import load_dotenv
-from datetime import datetime
+from datetime import datetime, timedelta
 from bson import ObjectId
+import threading
 
 app = Flask(__name__)
 app.secret_key = 'supersecretkey123'
 
 load_dotenv()
 
+# Email configuration
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+app.config['MAIL_PORT'] = 465
+app.config['MAIL_USE_SSL'] = True 
+app.config['MAIL_USE_TLS'] = False
+app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
+app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
+app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_USERNAME') 
+
+
+mail = Mail(app)
+
+# MongoDB connection
 try:
     MONGO_USER = os.environ.get("MONGO_USER", "")
     MONGO_PASS = os.environ.get("MONGO_PASS", "")
@@ -48,6 +63,118 @@ except Exception as e:
     classes_collection = None
     vacations_collection = None
 
+# Email notification function
+def send_deadline_email(user_email, user_name, deadline_date, items):
+    """Send email notification for upcoming deadlines"""
+    try:
+        # Read email template
+        template_path = os.path.join(os.path.dirname(__file__), 'templates', 'email_deadline.html')
+        with open(template_path, 'r', encoding='utf-8') as f:
+            html_template = f.read()
+        
+        # Format items as HTML list
+        items_html = ''.join([f'<li style="margin: 8px 0; color: #333;">{item}</li>' for item in items])
+        
+        # Replace placeholders
+        html_content = html_template.replace('{{USER_NAME}}', user_name)
+        html_content = html_content.replace('{{DATE}}', deadline_date)
+        html_content = html_content.replace('{{ITEMS}}', items_html)
+        
+        # Create message
+        msg = Message(
+            subject='Study Planner - Upcoming Deadlines Reminder',
+            recipients=[user_email]
+        )
+        
+        # Plain text version
+        msg.body = f"""
+Hello {user_name},
+
+This is a friendly reminder about your upcoming deadlines tomorrow ({deadline_date}):
+
+{chr(10).join(['- ' + item for item in items])}
+
+Don't forget to prepare! Good luck!
+
+Best regards,
+Study Planner Team
+        """
+        
+        # HTML version
+        msg.html = html_content
+        
+        # Send email
+        mail.send(msg)
+        print(f" Email sent to {user_email} ({len(items)} items)")
+        return True
+        
+    except Exception as e:
+        print(f" Failed to send email to {user_email}: {e}")
+        return False
+
+def check_upcoming_deadlines():
+    """Check for deadlines in the next 24 hours and send email notifications"""
+    if users_collection is None:
+        print("Skipping deadline check - no database connection")
+        return
+    
+    tomorrow = datetime.now() + timedelta(days=1)
+    tomorrow_str = tomorrow.strftime('%Y-%m-%d')
+    
+    print(f"Checking deadlines for {tomorrow_str}...")
+    
+    # Get all users
+    users = users_collection.find()
+    
+    for user in users:
+        email = user.get('email')
+        user_name = f"{user.get('first_name', '')} {user.get('last_name', '')}".strip() or email
+        
+        upcoming_items = []
+        
+        # Check tasks
+        if tasks_collection:
+            tasks = tasks_collection.find({
+                'user': email,
+                'completed': {'$ne': True},
+                'date': tomorrow_str
+            })
+            for task in tasks:
+                upcoming_items.append(f"Task: {task.get('name')} - {task.get('date')}")
+        
+        # Check exams
+        if exams_collection:
+            exams = exams_collection.find({
+                'user': email,
+                'completed': {'$ne': True},
+                'date': tomorrow_str
+            })
+            for exam in exams:
+                upcoming_items.append(f" Exam: {exam.get('subject')} - {exam.get('date')} at {exam.get('time')}")
+        
+        # Check schedules
+        if schedules_collection:
+            schedules = schedules_collection.find({
+                'user': email,
+                'completed': {'$ne': True},
+                'date': tomorrow_str
+            })
+            for schedule in schedules:
+                upcoming_items.append(f" Schedule: {schedule.get('title')} - {schedule.get('date')} at {schedule.get('time')}")
+        
+        # Send email if there are upcoming items
+        if upcoming_items and app.config['MAIL_USERNAME']:
+            send_deadline_email(email, user_name, tomorrow_str, upcoming_items)
+        elif upcoming_items:
+            print(f"  {email} has {len(upcoming_items)} upcoming items but email not configured")
+
+def start_deadline_checker():
+    """Run deadline checker every 24 hours"""
+    check_upcoming_deadlines()
+    # Schedule next check in 24 hours (86400 seconds)
+    threading.Timer(86400, start_deadline_checker).start()
+
+# Routes
 @app.route('/', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -156,8 +283,6 @@ def dashboard():
     
     return render_template('dashboard.html', progress=progress, tasks=tasks, exams=exams)
 
-
-
 @app.route('/schedule')
 def schedule():
     if 'user' not in session:
@@ -216,7 +341,7 @@ def profile():
     
     return render_template('profile.html', user=user_data)
 
-
+# API Endpoints
 @app.route('/api/schedules', methods=['GET', 'POST'])
 def api_schedules():
     if 'user' not in session:
@@ -231,6 +356,7 @@ def api_schedules():
             'time': data.get('time'),
             'duration': data.get('duration'),
             'description': data.get('description'),
+            'completed': False,
             'created_at': datetime.now()
         }
         
@@ -286,7 +412,6 @@ def api_tasks():
             tasks = []
         
         return jsonify(tasks)
-    
 
 @app.route('/api/tasks/<task_id>/toggle', methods=['PUT'])
 def toggle_task(task_id):
@@ -294,7 +419,6 @@ def toggle_task(task_id):
         return jsonify({'error': 'Not authenticated'}), 401
     
     if tasks_collection is not None:
-        from bson import ObjectId
         task = tasks_collection.find_one({'_id': ObjectId(task_id), 'user': session['user']})
         
         if task:
@@ -308,7 +432,6 @@ def toggle_task(task_id):
             return jsonify({'error': 'Task not found'}), 404
     else:
         return jsonify({'success': True, 'completed': True})
-
 
 @app.route('/api/exams', methods=['GET', 'POST'])
 def api_exams():
@@ -324,6 +447,7 @@ def api_exams():
             'time': data.get('time'),
             'duration': data.get('duration'),
             'notes': data.get('notes'),
+            'completed': False,
             'created_at': datetime.now()
         }
         
@@ -345,6 +469,26 @@ def api_exams():
         
         return jsonify(exams)
 
+@app.route('/api/exams/<exam_id>/toggle', methods=['PUT'])
+def toggle_exam(exam_id):
+    if 'user' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    if exams_collection is not None:
+        exam = exams_collection.find_one({'_id': ObjectId(exam_id), 'user': session['user']})
+        
+        if exam:
+            new_status = not exam.get('completed', False)
+            exams_collection.update_one(
+                {'_id': ObjectId(exam_id)},
+                {'$set': {'completed': new_status}}
+            )
+            return jsonify({'success': True, 'completed': new_status})
+        else:
+            return jsonify({'error': 'Exam not found'}), 404
+    else:
+        return jsonify({'success': True, 'completed': True})
+
 @app.route('/api/classes', methods=['GET', 'POST'])
 def api_classes():
     if 'user' not in session:
@@ -359,6 +503,7 @@ def api_classes():
             'day': data.get('day'),
             'time': data.get('time'),
             'room': data.get('room'),
+            'completed': False,
             'created_at': datetime.now()
         }
         
@@ -379,6 +524,46 @@ def api_classes():
             classes = []
         
         return jsonify(classes)
+
+@app.route('/api/classes/<class_id>/toggle', methods=['PUT'])
+def toggle_class(class_id):
+    if 'user' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    if classes_collection is not None:
+        class_item = classes_collection.find_one({'_id': ObjectId(class_id), 'user': session['user']})
+        
+        if class_item:
+            new_status = not class_item.get('completed', False)
+            classes_collection.update_one(
+                {'_id': ObjectId(class_id)},
+                {'$set': {'completed': new_status}}
+            )
+            return jsonify({'success': True, 'completed': new_status})
+        else:
+            return jsonify({'error': 'Class not found'}), 404
+    else:
+        return jsonify({'success': True, 'completed': True})
+
+@app.route('/api/schedules/<schedule_id>/toggle', methods=['PUT'])
+def toggle_schedule(schedule_id):
+    if 'user' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    if schedules_collection is not None:
+        schedule = schedules_collection.find_one({'_id': ObjectId(schedule_id), 'user': session['user']})
+        
+        if schedule:
+            new_status = not schedule.get('completed', False)
+            schedules_collection.update_one(
+                {'_id': ObjectId(schedule_id)},
+                {'$set': {'completed': new_status}}
+            )
+            return jsonify({'success': True, 'completed': new_status})
+        else:
+            return jsonify({'error': 'Schedule not found'}), 404
+    else:
+        return jsonify({'success': True, 'completed': True})
 
 @app.route('/api/vacations', methods=['GET', 'POST'])
 def api_vacations():
@@ -422,7 +607,7 @@ def update_profile():
     data = request.json
     update_data = {}
     
-   
+    # Personal information
     if 'first_name' in data:
         update_data['first_name'] = data['first_name']
     if 'last_name' in data:
@@ -436,7 +621,7 @@ def update_profile():
     if 'address' in data:
         update_data['address'] = data['address']
     
-    
+    # Study information
     if 'institution' in data:
         update_data['institution'] = data['institution']
     if 'student_id' in data:
@@ -465,6 +650,15 @@ def update_profile():
 def logout():
     session.pop('user', None)
     return redirect(url_for('login'))
+
+# Start deadline checker when app starts
+if users_collection is not None and app.config['MAIL_USERNAME']:
+    print("Email notifications enabled - deadline checker will start in 10 seconds")
+    threading.Timer(10, start_deadline_checker).start()
+elif users_collection is not None:
+    print(" Email notifications disabled - MAIL_USERNAME not configured in .env")
+else:
+    print("Email notifications disabled - no database connection")
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
