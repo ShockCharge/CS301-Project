@@ -160,6 +160,29 @@
                     </div>
                 </div>
             </div>
+                    <!-- Outdated Tasks -->
+                    {% if outdated_items %}
+                    <div class="card full-width-card outdated-card">
+                        <div class="card-header">
+                            <h3>Outdated Tasks and Deadlines ({{ outdated_items | length }})</h3>
+                            <!-- You may want to implement a route to handle this in the future -->
+                            <button class="btn-action btn-clear-outdated" id="clear-outdated-btn" disabled>Clear All Outdated</button>
+                        </div>
+                        <div class="card-body">
+                            <ul class="task-list">
+                                {% for item in outdated_items %}
+                                <li class="task-item outdated-item">
+                                    <span class="task-name">{{ item.get('name', item.get('title', item.get('subject', 'Activity'))) }}</span>
+                                    <span class="schedule-time">Due: {{ item.get('date', item.get('start_date', 'N/A')) }}</span>
+                                    <span class="priority-badge outdated-badge">OUTDATED</span>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                    {% endif %}
+    
+        
 
             <!-- Footer -->
             <footer class="footer">

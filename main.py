@@ -68,7 +68,7 @@ def send_deadline_email(user_email, user_name, deadline_date, items):
     """Send email notification for upcoming deadlines"""
     try:
         # Read email template
-        template_path = os.path.join(os.path.dirname(__file__), 'templates', 'email_deadline.html')
+        template_path = os.path.join(os.path.dirname(__file__), 'templates', 'email_template.html')
         with open(template_path, 'r', encoding='utf-8') as f:
             html_template = f.read()
         
@@ -133,7 +133,7 @@ def check_upcoming_deadlines():
         upcoming_items = []
         
         # Check tasks
-        if tasks_collection:
+        if tasks_collection is not None:
             tasks = tasks_collection.find({
                 'user': email,
                 'completed': {'$ne': True},
@@ -173,6 +173,34 @@ def start_deadline_checker():
     check_upcoming_deadlines()
     # Schedule next check in 24 hours (86400 seconds)
     threading.Timer(86400, start_deadline_checker).start()
+
+def get_task_status(date_str):
+    """
+    Determine the status of a task/exam/schedule based on its date.
+    
+    Args:
+        date_str: Date string in format 'YYYY-MM-DD'
+    
+    Returns:
+        'outdated' if the date is in the past
+        'current' if the date is today or in the future
+    """
+    if not date_str:
+        return 'current'  # If no date, consider it current
+    
+    try:
+        # Parse the date string
+        task_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        today = datetime.now().date()
+        
+        # Compare dates
+        if task_date < today:
+            return 'outdated'
+        else:
+            return 'current'
+    except (ValueError, TypeError):
+        # If date parsing fails, consider it current to avoid hiding items
+        return 'current'
 
 # Routes
 @app.route('/', methods=['GET', 'POST'])
@@ -234,33 +262,87 @@ def dashboard():
     if 'user' not in session:
         return redirect(url_for('login'))
     
-    # Get user's tasks
+    # Get user's activities
     if tasks_collection is not None:
-        tasks = list(tasks_collection.find({'user': session['user']}).limit(5))
-        for task in tasks:
+        # Initialize lists for categorized activities
+        outdated_tasks = []
+        outdated_exams = []
+        outdated_schedules = []
+        outdated_classes = []
+        outdated_vacations = []
+        
+        # 1. Process Tasks
+        all_tasks = list(tasks_collection.find({'user': session['user']}))
+        tasks_for_display = []
+        for task in all_tasks:
             task['_id'] = str(task['_id'])
+            status = get_task_status(task.get('date'))
+            if status == 'outdated':
+                outdated_tasks.append(task)
+            else:
+                # Only display non-outdated tasks on dashboard
+                tasks_for_display.append(task)
+        
+        # Limit to 5 for the dashboard card (as per original logic)
+        tasks_for_display = tasks_for_display[:5]
+        
+        # 2. Process Exams
+        all_exams = list(exams_collection.find({'user': session['user']}))
+        exams_for_display = []
+        for exam in all_exams:
+            exam['_id'] = str(exam['_id'])
+            status = get_task_status(exam.get('date'))
+            if status == 'outdated':
+                outdated_exams.append(exam)
+            else:
+                # Only display non-outdated exams on dashboard
+                exams_for_display.append(exam)
+            
+        # Limit to 3 for the dashboard card (as per original logic)
+        exams_for_display = exams_for_display[:3]
+                
+        # 3. Process Schedules
+        all_schedules = list(schedules_collection.find({'user': session['user']}))
+        for schedule in all_schedules:
+            schedule['_id'] = str(schedule['_id'])
+            status = get_task_status(schedule.get('date'))
+            if status == 'outdated':
+                outdated_schedules.append(schedule)
+                
+        # 4. Process Classes
+        all_classes = list(classes_collection.find({'user': session['user']}))
+        for class_item in all_classes:
+            # Assuming classes have a 'date' field to check for outdated status
+            if class_item.get('date') and get_task_status(class_item.get('date')) == 'outdated':
+                outdated_classes.append(class_item)
+                
+        # 5. Process Vacations
+        all_vacations = list(vacations_collection.find({'user': session['user']}))
+        for vacation in all_vacations:
+            # Assuming vacations have a 'start_date' field to check for outdated status
+            if vacation.get('start_date') and get_task_status(vacation.get('start_date')) == 'outdated':
+                outdated_vacations.append(vacation)
+        
+        # Combine all outdated items for the dedicated box
+        outdated_items = outdated_tasks + outdated_exams + outdated_schedules + outdated_classes + outdated_vacations
         
         # Calculate progress from ALL activities
         total_items = 0
         completed_items = 0
         
         # Count tasks
-        all_tasks = list(tasks_collection.find({'user': session['user']}))
         total_items += len(all_tasks)
         completed_items += len([t for t in all_tasks if t.get('completed', False)])
         
         # Count exams
-        all_exams = list(exams_collection.find({'user': session['user']}))
         total_items += len(all_exams)
         completed_items += len([e for e in all_exams if e.get('completed', False)])
         
         # Count classes
-        all_classes = list(classes_collection.find({'user': session['user']}))
         total_items += len(all_classes)
         completed_items += len([c for c in all_classes if c.get('completed', False)])
         
         # Count schedules
-        all_schedules = list(schedules_collection.find({'user': session['user']}))
         total_items += len(all_schedules)
         completed_items += len([s for s in all_schedules if s.get('completed', False)])
         
@@ -270,18 +352,13 @@ def dashboard():
         else:
             progress = 0
     else:
-        tasks = []
+        tasks_for_display = []
+        exams_for_display = []
+        outdated_items = []
         progress = 0
     
-    # Get user's exams
-    if exams_collection is not None:
-        exams = list(exams_collection.find({'user': session['user']}).limit(3))
-        for exam in exams:
-            exam['_id'] = str(exam['_id'])
-    else:
-        exams = []
-    
-    return render_template('dashboard.html', progress=progress, tasks=tasks, exams=exams)
+    return render_template('dashboard.html', progress=progress, tasks=tasks_for_display, exams=exams_for_display, outdated_items=outdated_items)
+
 
 @app.route('/schedule')
 def schedule():
@@ -289,37 +366,103 @@ def schedule():
         return redirect(url_for('login'))
     
     if schedules_collection is not None:
-        schedules = list(schedules_collection.find({'user': session['user']}))
-        for schedule in schedules:
-            schedule['_id'] = str(schedule['_id'])
+        all_schedules = list(schedules_collection.find({'user': session['user']}).sort('date', 1))
+        
+        # Filter out outdated schedules
+        schedules = []
+        for sched in all_schedules:
+            if get_task_status(sched.get('date')) != 'outdated':
+                sched['_id'] = str(sched['_id'])
+                schedules.append(sched)
     else:
         schedules = []
     
     return render_template('schedule.html', schedules=schedules)
 
+
 @app.route('/tasks')
 def tasks():
     if 'user' not in session:
         return redirect(url_for('login'))
-    return render_template('tasks.html')
+    
+    if tasks_collection is not None:
+        all_tasks = list(tasks_collection.find({'user': session['user']}).sort('date', 1))
+        
+        # Filter out outdated tasks
+        tasks_list = []
+        for task in all_tasks:
+            if get_task_status(task.get('date')) != 'outdated':
+                task['_id'] = str(task['_id'])
+                tasks_list.append(task)
+    else:
+        tasks_list = []
+        
+    return render_template('tasks.html', tasks=tasks_list)
+
 
 @app.route('/exams')
 def exams():
     if 'user' not in session:
         return redirect(url_for('login'))
-    return render_template('exams.html')
+    
+    if exams_collection is not None:
+        all_exams = list(exams_collection.find({'user': session['user']}).sort('date', 1))
+        
+        # Filter out outdated exams
+        exams_list = []
+        for exam in all_exams:
+            if get_task_status(exam.get('date')) != 'outdated':
+                exam['_id'] = str(exam['_id'])
+                exams_list.append(exam)
+    else:
+        exams_list = []
+        
+    return render_template('exams.html', exams=exams_list)
+
 
 @app.route('/classes')
 def classes():
     if 'user' not in session:
         return redirect(url_for('login'))
-    return render_template('classes.html')
+    
+    if classes_collection is not None:
+        all_classes = list(classes_collection.find({'user': session['user']}).sort('date', 1))
+        
+        # Filter out outdated classes
+        classes_list = []
+        for class_item in all_classes:
+            # Only filter if the class has a date field
+            if class_item.get('date') and get_task_status(class_item.get('date')) == 'outdated':
+                continue
+            class_item['_id'] = str(class_item['_id'])
+            classes_list.append(class_item)
+    else:
+        classes_list = []
+        
+    return render_template('classes.html', classes=classes_list)
+
 
 @app.route('/vacations')
 def vacations():
     if 'user' not in session:
         return redirect(url_for('login'))
-    return render_template('vacations.html')
+    
+    if vacations_collection is not None:
+        all_vacations = list(vacations_collection.find({'user': session['user']}).sort('start_date', 1))
+        
+        # Filter out outdated vacations (based on start_date)
+        vacations_list = []
+        for vacation in all_vacations:
+            # Only filter if the vacation has a start_date field
+            if vacation.get('start_date') and get_task_status(vacation.get('start_date')) == 'outdated':
+                continue
+            vacation['_id'] = str(vacation['_id'])
+            vacations_list.append(vacation)
+    else:
+        vacations_list = []
+        
+    return render_template('vacations.html', vacations=vacations_list)
+
 
 @app.route('/settings')
 def settings():
@@ -661,5 +804,6 @@ else:
     print("Email notifications disabled - no database connection")
 
 if __name__ == '__main__':
+    
+    threading.Thread(target=start_deadline_checker, daemon=True).start()
     app.run(debug=True, port=5000)
-
