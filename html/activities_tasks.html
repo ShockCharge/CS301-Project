@@ -12,7 +12,7 @@
     <!-- Google Icons (Icons) -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined"/>
 
-    <!-- Website Title -->
+    <!-- Page Title -->
     <title>Study Planner | Activities</title>
 
     <!-- Bootstrap -->
@@ -24,17 +24,18 @@
     <link rel="stylesheet" href="../css/style.css">
     <link rel="stylesheet" href="../css/dashboard.css">
 
-    <!-- JavaScripts -->
+    <!-- JavaScript -->
     <script src="../javascript/submenu.js"></script>
 </head>
 <body>
-    <div class="header">
-        <h3>Study Planner</h3>
-        <span class="material-symbols-outlined">account_circle</span>
-    </div>
+    <header class="header px-4 py-3">
+        <h3 class="m-0">Study Planner</h3>
+        <span class="material-symbols-outlined fs-1">account_circle</span>
+    </header>
 
-    <div class="main">
-        <div class="main-left">
+    <div class="main flex-column flex-md-row">
+        
+        <nav class="main-left p-3">
             <ul class="menu">
                 <li><a href="../html/dashboard.html"><span class="material-symbols-outlined">dashboard_2</span>Dashboard</a></li>
                 <li><a href="../html/schedule.html"><span class="material-symbols-outlined">calendar_clock</span>Schedule</a></li>
@@ -50,21 +51,24 @@
                 </li>
                 <li><a href="../html/settings.html"><span class="material-symbols-outlined">settings</span>Settings</a></li>
             </ul>
-        </div>
+        </nav>
 
-        <div class="main-content">
+        <main class="main-content container-fluid py-4">
             <div class="main-title">
                 <h1>Tasks</h1>
             </div>
-
-            <div class="main-inner">
-                <div class="main-center">
-                </div>
+            
+            <div class="row g-3">
+                <div class="col-12">
+                    <div class="main-center p-4 h-100">
+                        <!-- Classes content goes here -->
+                    </div>
                 </div>
             </div>
-        </div>
+        </main>
+    </div>
 
-    <div class="footer">
+    <div class="footer mt-auto py-3">
         <p>@ 2025 Study Planner</p>
     </div>
 </body>

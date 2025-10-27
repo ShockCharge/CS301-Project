@@ -1,3 +1,13 @@
+@media (max-width: 768px) {
+    .main {
+        flex-direction: column;
+    }
+    .main-left {
+        width: 100%;
+        text-align: center;
+    }
+}
+
 .header {
     background-color: #5465ff;
     margin-top: 0 !important;
@@ -5,6 +15,7 @@
     font-size: 2rem;
     display: flex;
     justify-content: space-between;
+    align-items: center;
 }
 
 .header span { font-size: inherit; }
@@ -102,6 +113,8 @@
     border-radius: 30px;
     padding: 0.5rem;
     gap: 0.5rem;
+    align-items: center;
+    justify-content: center;
 }
 
 #gray-button span { 
