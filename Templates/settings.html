@@ -24,10 +24,6 @@
                         <i class="bi bi-calendar3"></i>
                         <span>Schedule</span>
                     </a></li>
-                    <li><a href="#" class="nav-link">
-                        <i class="bi bi-chat-dots"></i>
-                        <span>Chatbot</span>
-                    </a></li>
                     <li>
                         <a href="#" class="nav-link" id="activities-toggle">
                             <i class="bi bi-list-task"></i>
@@ -35,13 +31,28 @@
                             <i class="bi bi-chevron-down submenu-arrow"></i>
                         </a>
                         <ul class="submenu" id="activities-submenu">
-                            <li><a href="{{ url_for('tasks') }}">Tasks</a></li>
-                            <li><a href="{{ url_for('exams') }}">Exams</a></li>
-                            <li><a href="{{ url_for('classes') }}">Classes</a></li>
-                            <li><a href="{{ url_for('vacations') }}">Vacations</a></li>
+                            <li><a href="{{ url_for('tasks') }}" class="nav-link">
+                                <i class="bi bi-check-square"></i>
+                                <span>Tasks</span>
+                            </a></li>
+                            <li><a href="{{ url_for('exams') }}" class="nav-link">
+                                <i class="bi bi-book"></i>
+                                <span>Exams</span>
+                            </a></li>
+                            <li><a href="{{ url_for('classes') }}" class="nav-link">
+                                <i class="bi bi-mortarboard"></i>
+                                <span>Classes</span>
+                            </a></li>
+                            <li><a href="{{ url_for('vacations') }}" class="nav-link">
+                                <i class="bi bi-airplane"></i>
+                                <span>Vacations</span>
+                            </a></li>
                         </ul>
                     </li>
-                    
+                    <li><a href="#" class="nav-link">
+                        <i class="bi bi-chat-dots"></i>
+                        <span>Chatbot</span>
+                    </a></li>
                     <li><a href="{{ url_for('settings') }}" class="nav-link active">
                         <i class="bi bi-gear"></i>
                         <span>Settings</span>

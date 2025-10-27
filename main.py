@@ -1,6 +1,7 @@
 import os
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 from flask_mail import Mail, Message
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from pymongo import MongoClient
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
@@ -14,15 +15,24 @@ load_dotenv()
 
 # Email configuration
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
-app.config['MAIL_PORT'] = 465
-app.config['MAIL_USE_SSL'] = True 
-app.config['MAIL_USE_TLS'] = False
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_SSL'] = False
+app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
 app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
 app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_USERNAME') 
 
 
 mail = Mail(app)
+
+# Timezone configuration with fallback
+try:
+    NZ_TZ = ZoneInfo("Pacific/Auckland")
+except ZoneInfoNotFoundError:
+    print("Warning: 'Pacific/Auckland' timezone not found. Falling back to UTC.")
+    print("Please install tzdata: pip install tzdata")
+    NZ_TZ = ZoneInfo("UTC")
+
 
 # MongoDB connection
 try:
@@ -40,9 +50,6 @@ try:
         exams_collection = db["exams"]
         classes_collection = db["classes"]
         vacations_collection = db["vacations"]
-        
-        if users_collection.find_one({'email': 'test@example.com'}) is None:
-            users_collection.insert_one({'email': 'test@example.com', 'password': 'password'})
         
         print("MongoDB Atlas connected successfully!")
     else:
@@ -118,7 +125,10 @@ def check_upcoming_deadlines():
         print("Skipping deadline check - no database connection")
         return
     
-    tomorrow = datetime.now() + timedelta(days=1)
+    nz_tz = ZoneInfo("Pacific/Auckland")
+    now_nz = datetime.now(nz_tz)
+    
+    tomorrow = now_nz() + timedelta(days=1)
     tomorrow_str = tomorrow.strftime('%Y-%m-%d')
     
     print(f"Checking deadlines for {tomorrow_str}...")
@@ -186,23 +196,24 @@ def get_task_status(date_str):
         'current' if the date is today or in the future
     """
     if not date_str:
-        return 'current'  # If no date, consider it current
+        return 'current'  
     
     try:
-        # Parse the date string
-        task_date = datetime.strptime(date_str, '%Y-%m-%d').date()
-        today = datetime.now().date()
         
-        # Compare dates
+        task_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        today = datetime.now(NZ_TZ).date()
+
+        
+        
         if task_date < today:
             return 'outdated'
         else:
             return 'current'
     except (ValueError, TypeError):
-        # If date parsing fails, consider it current to avoid hiding items
+        
         return 'current'
 
-# Routes
+
 @app.route('/', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -283,10 +294,10 @@ def dashboard():
                 # Only display non-outdated tasks on dashboard
                 tasks_for_display.append(task)
         
-        # Limit to 5 for the dashboard card (as per original logic)
+        
         tasks_for_display = tasks_for_display[:5]
         
-        # 2. Process Exams
+      
         all_exams = list(exams_collection.find({'user': session['user']}))
         exams_for_display = []
         for exam in all_exams:
@@ -298,10 +309,10 @@ def dashboard():
                 # Only display non-outdated exams on dashboard
                 exams_for_display.append(exam)
             
-        # Limit to 3 for the dashboard card (as per original logic)
+        
         exams_for_display = exams_for_display[:3]
                 
-        # 3. Process Schedules
+       
         all_schedules = list(schedules_collection.find({'user': session['user']}))
         for schedule in all_schedules:
             schedule['_id'] = str(schedule['_id'])
@@ -309,24 +320,21 @@ def dashboard():
             if status == 'outdated':
                 outdated_schedules.append(schedule)
                 
-        # 4. Process Classes
+        
         all_classes = list(classes_collection.find({'user': session['user']}))
         for class_item in all_classes:
-            # Assuming classes have a 'date' field to check for outdated status
+           
             if class_item.get('date') and get_task_status(class_item.get('date')) == 'outdated':
                 outdated_classes.append(class_item)
                 
-        # 5. Process Vacations
+      
         all_vacations = list(vacations_collection.find({'user': session['user']}))
         for vacation in all_vacations:
-            # Assuming vacations have a 'start_date' field to check for outdated status
             if vacation.get('start_date') and get_task_status(vacation.get('start_date')) == 'outdated':
                 outdated_vacations.append(vacation)
         
-        # Combine all outdated items for the dedicated box
         outdated_items = outdated_tasks + outdated_exams + outdated_schedules + outdated_classes + outdated_vacations
         
-        # Calculate progress from ALL activities
         total_items = 0
         completed_items = 0
         
