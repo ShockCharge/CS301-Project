@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot - Study Planner</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <div class="sidebar">
+        <button id="toggle-sidebar">☰ Menu</button>
+        <ul id="sidebar-menu">
+            <li><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+            <li><a href="{{ url_for('schedule') }}">Schedule</a></li>
+            <li><a href="{{ url_for('chatbot') }}">Chatbot</a></li>
+            <li><a href="{{ url_for('activities_tasks') }}">Activities - Tasks</a></li>
+            <li><a href="{{ url_for('activities_exams') }}">Activities - Exams</a></li>
+            <li><a href="{{ url_for('activities_classes') }}">Activities - Classes</a></li>
+            <li><a href="{{ url_for('activities_vacations') }}">Activities - Vacations</a></li>
+            <li><a href="{{ url_for('settings') }}">Settings</a></li>
+            <li><a href="{{ url_for('login') }}">Logout</a></li>
+        </ul>
+    </div>
+    <div class="container">
+        <div class="header">
+            <h1 id="title">Study Planner</h1>
+            <button id="theme-toggle">Toggle Dark Mode</button>
+        </div>
+        <div class="item1">
+            <h2 id="subtitle">AI Chatbot</h2>
+            <p>Context-aware chatbot coming soon (n8n integration). <span class="chatbot-icon">🤖</span></p>
+        </div>
+    </div>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

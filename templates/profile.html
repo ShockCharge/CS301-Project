@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile - Study Planner</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h1 class="sidebar-brand">Study Planner</h1>
+            </div>
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="{{ url_for('dashboard') }}" class="nav-link">
+                        <i class="bi bi-grid"></i>
+                        <span>Dashboard</span>
+                    </a></li>
+                    <li><a href="{{ url_for('schedule') }}" class="nav-link">
+                        <i class="bi bi-calendar3"></i>
+                        <span>Schedule</span>
+                    </a></li>
+                    <li>
+                        <a href="#" class="nav-link" id="activities-toggle">
+                            <i class="bi bi-list-task"></i>
+                            <span>Activities</span>
+                            <i class="bi bi-chevron-down submenu-arrow"></i>
+                        </a>
+                        <ul class="submenu" id="activities-submenu">
+                            <li><a href="{{ url_for('tasks') }}" class="nav-link">
+                                <i class="bi bi-check-square"></i>
+                                <span>Tasks</span>
+                            </a></li>
+                            <li><a href="{{ url_for('exams') }}" class="nav-link">
+                                <i class="bi bi-book"></i>
+                                <span>Exams</span>
+                            </a></li>
+                            <li><a href="{{ url_for('classes') }}" class="nav-link">
+                                <i class="bi bi-mortarboard"></i>
+                                <span>Classes</span>
+                            </a></li>
+                            <li><a href="{{ url_for('vacations') }}" class="nav-link">
+                                <i class="bi bi-airplane"></i>
+                                <span>Vacations</span>
+                            </a></li>
+                        </ul>
+                    </li>
+                    <li><a href="#" class="nav-link">
+                        <i class="bi bi-chat-dots"></i>
+                        <span>Chatbot</span>
+                    </a></li>
+                    <li><a href="{{ url_for('settings') }}" class="nav-link">
+                        <i class="bi bi-gear"></i>
+                        <span>Settings</span>
+                    </a></li>
+                    <li><a href="{{ url_for('profile') }}" class="nav-link active">
+                        <i class="bi bi-person-circle"></i>
+                        <span>Profile</span>
+                    </a></li>
+                </ul>
+            </nav>
+            <div class="sidebar-footer">
+                <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="header">
+                <h2 class="page-title">My Profile</h2>
+            </header>
+
+            <div class="profile-page">
+                <!-- Profile Picture Section -->
+                <div class="profile-section">
+                    <h3 class="section-title">Profile Picture</h3>
+                    <div class="profile-picture-container">
+                        <div class="profile-picture-wrapper">
+                            <img id="profile-pic" src="{{ url_for('static', filename='css/images/studyplanner_icon.png') }}" alt="Profile Picture" class="profile-picture">
+                            <label for="profile-upload" class="upload-overlay">
+                                <i class="bi bi-camera"></i>
+                                <span>Change Photo</span>
+                            </label>
+                            <input type="file" id="profile-upload" accept="image/*" style="display: none;">
+                        </div>
+                        <div class="profile-picture-actions">
+                            <button class="btn btn-primary" onclick="document.getElementById('profile-upload').click()">
+                                <i class="bi bi-upload"></i> Upload New Photo
+                            </button>
+                            <button class="btn btn-secondary" onclick="removeProfilePicture()">
+                                <i class="bi bi-trash"></i> Remove Photo
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Personal Information Section -->
+                <div class="profile-section">
+                    <h3 class="section-title">Personal Information</h3>
+                    <form id="personal-info-form" class="profile-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="first-name">First Name</label>
+                                <input type="text" id="first-name" name="first_name" class="form-control" value="{{ user.first_name if user and user.first_name else '' }}" placeholder="Enter first name">
+                            </div>
+                            <div class="form-group">
+                                <label for="last-name">Last Name</label>
+                                <input type="text" id="last-name" name="last_name" class="form-control" value="{{ user.last_name if user and user.last_name else '' }}" placeholder="Enter last name">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="email">Email Address</label>
+                                <input type="email" id="email" name="email" class="form-control" value="{{ session.user if session.user else '' }}" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label for="phone">Phone Number</label>
+                                <input type="tel" id="phone" name="phone" class="form-control" placeholder="Enter phone number">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="date-of-birth">Date of Birth</label>
+                                <input type="date" id="date-of-birth" name="date_of_birth" class="form-control">
+                            </div>
+                            <div class="form-group">
+                                <label for="gender">Gender</label>
+                                <select id="gender" name="gender" class="form-control">
+                                    <option value="">Select gender</option>
+                                    <option value="male">Male</option>
+                                    <option value="female">Female</option>
+                                    <option value="other">Other</option>
+                                    <option value="prefer-not-to-say">Prefer not to say</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="address">Address</label>
+                            <textarea id="address" name="address" class="form-control" rows="2" placeholder="Enter your address"></textarea>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save"></i> Save Changes
+                            </button>
+                            <button type="reset" class="btn btn-secondary">
+                                <i class="bi bi-x-circle"></i> Cancel
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Study Information Section -->
+                <div class="profile-section">
+                    <h3 class="section-title">Study Information</h3>
+                    <form id="study-info-form" class="profile-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="institution">Institution/University</label>
+                                <input type="text" id="institution" name="institution" class="form-control" value="{{ user.institution if user and user.institution else '' }}" placeholder="Enter institution name">
+                            </div>
+                            <div class="form-group">
+                                <label for="student-id">Student ID</label>
+                                <input type="text" id="student-id" name="student_id" class="form-control" placeholder="Enter student ID">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="major">Major/Field of Study</label>
+                                <input type="text" id="major" name="major" class="form-control" value="{{ user.major if user and user.major else '' }}" placeholder="Enter your major">
+                            </div>
+                            <div class="form-group">
+                                <label for="year-level">Year Level</label>
+                                <select id="year-level" name="year_level" class="form-control">
+                                    <option value="">Select year level</option>
+                                    <option value="1">Year 1</option>
+                                    <option value="2">Year 2</option>
+                                    <option value="3">Year 3</option>
+                                    <option value="4">Year 4</option>
+                                    <option value="5">Year 5+</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="daily-study-goal">Daily Study Goal (hours)</label>
+                                <input type="number" id="daily-study-goal" name="daily_study_goal" class="form-control" min="0" max="24" step="0.5" placeholder="e.g., 4">
+                            </div>
+                            <div class="form-group">
+                                <label for="preferred-study-time">Preferred Study Time</label>
+                                <select id="preferred-study-time" name="preferred_study_time" class="form-control">
+                                    <option value="">Select time</option>
+                                    <option value="morning">Morning (6AM - 12PM)</option>
+                                    <option value="afternoon">Afternoon (12PM - 6PM)</option>
+                                    <option value="evening">Evening (6PM - 12AM)</option>
+                                    <option value="night">Night (12AM - 6AM)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save"></i> Save Study Info
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Change Password Section -->
+                <div class="profile-section">
+                    <h3 class="section-title">Change Password</h3>
+                    <form id="change-password-form" class="profile-form">
+                        <div class="form-group">
+                            <label for="current-password">Current Password</label>
+                            <input type="password" id="current-password" name="current_password" class="form-control" placeholder="Enter current password" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="new-password">New Password</label>
+                            <input type="password" id="new-password" name="new_password" class="form-control" placeholder="Enter new password" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="confirm-new-password">Confirm New Password</label>
+                            <input type="password" id="confirm-new-password" name="confirm_new_password" class="form-control" placeholder="Confirm new password" required>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-key"></i> Update Password
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Account Statistics Section -->
+                <div class="profile-section">
+                    <h3 class="section-title">Account Statistics</h3>
+                    <div class="stats-grid-profile">
+                        <div class="stat-box">
+                            <i class="bi bi-clock-history stat-icon"></i>
+                            <div class="stat-content">
+                                <h4>Total Study Time</h4>
+                                <p class="stat-value">142 hours</p>
+                            </div>
+                        </div>
+                        <div class="stat-box">
+                            <i class="bi bi-check-circle stat-icon"></i>
+                            <div class="stat-content">
+                                <h4>Completed Tasks</h4>
+                                <p class="stat-value">18 / 24</p>
+                            </div>
+                        </div>
+                        <div class="stat-box">
+                            <i class="bi bi-calendar-event stat-icon"></i>
+                            <div class="stat-content">
+                                <h4>Upcoming Exams</h4>
+                                <p class="stat-value">5</p>
+                            </div>
+                        </div>
+                        <div class="stat-box">
+                            <i class="bi bi-fire stat-icon"></i>
+                            <div class="stat-content">
+                                <h4>Current Streak</h4>
+                                <p class="stat-value">7 days</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Delete Account Section -->
+                <div class="profile-section danger-zone">
+                    <h3 class="section-title">Danger Zone</h3>
+                    <div class="danger-content">
+                        <p>Once you delete your account, there is no going back. Please be certain.</p>
+                        <button class="btn btn-danger" onclick="confirmDeleteAccount()">
+                            <i class="bi bi-exclamation-triangle"></i> Delete Account
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    <script>
+        // Load saved profile picture on page load
+        window.addEventListener('DOMContentLoaded', function() {
+            const savedPic = localStorage.getItem('profilePicture');
+            if (savedPic) {
+                document.getElementById('profile-pic').src = savedPic;
+            }
+        });
+
+        // Profile picture preview and save
+        document.getElementById('profile-upload').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const imageData = e.target.result;
+                    document.getElementById('profile-pic').src = imageData;
+                    // Save to localStorage
+                    localStorage.setItem('profilePicture', imageData);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Remove profile picture
+        function removeProfilePicture() {
+            if (confirm('Are you sure you want to remove your profile picture?')) {
+                document.getElementById('profile-pic').src = "{{ url_for('static', filename='css/images/studyplanner_icon.png') }}";
+                document.getElementById('profile-upload').value = '';
+                // Remove from localStorage
+                localStorage.removeItem('profilePicture');
+            }
+        }
+
+        // Personal info form
+        document.getElementById('personal-info-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const data = {};
+            formData.forEach((value, key) => {
+                data[key] = value;
+            });
+            
+            try {
+                const response = await fetch('/api/profile', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    alert('Personal information updated successfully!');
+                } else {
+                    alert('Failed to update personal information.');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred while updating your information.');
+            }
+        });
+
+        // Study info form
+        document.getElementById('study-info-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const data = {};
+            formData.forEach((value, key) => {
+                data[key] = value;
+            });
+            
+            try {
+                const response = await fetch('/api/profile', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    alert('Study information updated successfully!');
+                } else {
+                    alert('Failed to update study information.');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred while updating your information.');
+            }
+        });
+
+        // Change password form
+        document.getElementById('change-password-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const newPassword = document.getElementById('new-password').value;
+            const confirmPassword = document.getElementById('confirm-new-password').value;
+            
+            if (newPassword !== confirmPassword) {
+                alert('New passwords do not match!');
+                return;
+            }
+            
+            alert('Password updated successfully!');
+            e.target.reset();
+        });
+
+        // Delete account
+        function confirmDeleteAccount() {
+            if (confirm('Are you absolutely sure you want to delete your account? This action cannot be undone.')) {
+                if (confirm('This will permanently delete all your data. Continue?')) {
+                    alert('Account deletion requested. You will be logged out.');
+                    window.location.href = "{{ url_for('logout') }}";
+                }
+            }
+        }
+    </script>
+</body>
+</html>

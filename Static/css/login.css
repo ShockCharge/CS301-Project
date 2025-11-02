@@ -1,0 +1,25 @@
+.item2 input {
+    background-color: #9BB1FF;
+    color: #BFD7FF;
+    outline: transparent;
+    border: transparent;
+    border-radius: 15px;
+    padding: 0.5rem;
+}
+
+.item2 input::placeholder {
+    color: #BFD7FF;
+}
+
+.item3 button {
+    background-color: #ADB5BD;
+    color: #343A40;
+    outline: transparent;
+    border: transparent;
+    border-radius: 15px;
+    padding: 0.5rem;
+}
+
+.item3 input::placeholder {
+    color: #343A40;
+}

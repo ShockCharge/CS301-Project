@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exams - Study Planner</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h1 class="sidebar-brand">Study Planner</h1>
+            </div>
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="{{ url_for('dashboard') }}" class="nav-link">
+                        <i class="bi bi-grid"></i>
+                        <span>Dashboard</span>
+                    </a></li>
+                    <li><a href="{{ url_for('schedule') }}" class="nav-link">
+                        <i class="bi bi-calendar3"></i>
+                        <span>Schedule</span>
+                    </a></li>
+                    <li>
+                        <a href="#" class="nav-link active" id="activities-toggle">
+                            <i class="bi bi-list-task"></i>
+                            <span>Activities</span>
+                            <i class="bi bi-chevron-down submenu-arrow"></i>
+                        </a>
+                        <ul class="submenu active" id="activities-submenu">
+                            <li><a href="{{ url_for('tasks') }}" class="nav-link">
+                                <i class="bi bi-check-square"></i>
+                                <span>Tasks</span>
+                            </a></li>
+                            <li><a href="{{ url_for('exams') }}" class="nav-link active">
+                                <i class="bi bi-book"></i>
+                                <span>Exams</span>
+                            </a></li>
+                            <li><a href="{{ url_for('classes') }}" class="nav-link">
+                                <i class="bi bi-mortarboard"></i>
+                                <span>Classes</span>
+                            </a></li>
+                            <li><a href="{{ url_for('vacations') }}" class="nav-link">
+                                <i class="bi bi-airplane"></i>
+                                <span>Vacations</span>
+                            </a></li>
+                        </ul>
+                    </li>
+                    <li><a href="#" class="nav-link">
+                        <i class="bi bi-chat-dots"></i>
+                        <span>Chatbot</span>
+                    </a></li>
+                    <li><a href="{{ url_for('settings') }}" class="nav-link">
+                        <i class="bi bi-gear"></i>
+                        <span>Settings</span>
+                    </a></li>
+                    <li><a href="{{ url_for('profile') }}" class="nav-link">
+                        <i class="bi bi-person-circle"></i>
+                        <span>Profile</span>
+                    </a></li>
+                </ul>
+            </nav>
+            <div class="sidebar-footer">
+                <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="header">
+                <h2 class="page-title">Exams</h2>
+                <div class="user-profile">
+                    <a href="{{ url_for('profile') }}" style="text-decoration: none;">
+                        <div class="user-avatar" id="header-avatar">
+                            <img id="header-avatar-img" src="" alt="" style="display: none; width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
+                            <span id="header-avatar-text">{{ session.user_name[0].upper() if session.user_name else (session.user[0].upper() if session.user else 'U') }}</span>
+                        </div>
+                    </a>
+                </div>
+            </header>
+
+            <!-- Exams Container -->
+            <div class="page-container">
+                <div class="page-header">
+                    <h3>Upcoming Exams</h3>
+                    <button class="btn-add-schedule" id="add-exam-page-btn">+ Add Exam</button>
+                </div>
+
+                <div class="items-grid" id="exams-grid">
+                    <!-- Exams will be loaded here -->
+                    <p class="empty-state">No exams scheduled. Click "Add Exam" to create one.</p>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <footer class="footer">
+                <p>&copy; 2025 Study Planner</p>
+            </footer>
+        </main>
+    </div>
+
+    <!-- Add Exam Modal -->
+    <div id="addExamModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Add Exam</h2>
+            <form id="addExamForm">
+                <div class="form-group">
+                    <label>Subject</label>
+                    <input type="text" id="examSubject" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label>Date</label>
+                    <input type="date" id="examDate" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label>Time</label>
+                    <input type="time" id="examTime" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label>Duration (minutes)</label>
+                    <input type="number" id="examDuration" class="form-input" value="60">
+                </div>
+                <div class="form-group">
+                    <label>Notes</label>
+                    <textarea id="examNotes" class="form-input" rows="3"></textarea>
+                </div>
+                <button type="submit" class="btn-primary">Add Exam</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
+
