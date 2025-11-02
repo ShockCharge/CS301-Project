@@ -166,7 +166,7 @@
                         <div class="card-header">
                             <h3>Outdated Tasks and Deadlines ({{ outdated_items | length }})</h3>
                             <!-- You may want to implement a route to handle this in the future -->
-                            <button class="btn-action btn-clear-outdated" id="clear-outdated-btn" disabled>Clear All Outdated</button>
+                            <button class="btn-action btn-clear-outdated" id="clear-outdated-btn">Clear All Outdated</button>
                         </div>
                         <div class="card-body">
                             <ul class="task-list">
@@ -228,6 +228,28 @@
                 avatarText.style.display = 'none';
             }
         });
+        document.getElementById('clear-outdated-btn')?.addEventListener('click', async function() {
+            if (!confirm('Are you sure you want to delete all outdated items? This cannot be undone.')) {
+                return;
+            }
+            try {
+                const response = await fetch('/api/clear-outdated', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'}
+                 });
+                 const result = await response.json();
+                 if (result.success) {
+                    alert(`Successfully deleted ${result.deleted_count} outdated item(s).`);
+                    location.reload();
+                 } else {
+                    alert('Failed to clear outdated items: ' + (result.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to clear outdated items');
+            }
+        });
+
     </script>
 </body>
 </html>
