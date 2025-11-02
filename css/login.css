@@ -21,3 +21,5 @@
     align-items: center;
     justify-content: center;
 }
+
+#normal_gray_text a { color: #dee2e6; text-decoration: none; }
