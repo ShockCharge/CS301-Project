@@ -125,10 +125,8 @@ def check_upcoming_deadlines():
         print("Skipping deadline check - no database connection")
         return
     
-    nz_tz = ZoneInfo("Pacific/Auckland")
-    now_nz = datetime.now(nz_tz)
-    
-    tomorrow = now_nz() + timedelta(days=1)
+    now_nz = datetime.now(NZ_TZ)  # Use the global NZ_TZ here
+    tomorrow = now_nz + timedelta(days=1)
     tomorrow_str = tomorrow.strftime('%Y-%m-%d')
     
     print(f"Checking deadlines for {tomorrow_str}...")
@@ -212,6 +210,15 @@ def get_task_status(date_str):
     except (ValueError, TypeError):
         
         return 'current'
+    
+@app.route('/test_email')
+def test_email():
+    try:
+        msg = Message(subject="Test Email", recipients=["1bikramp@gmail.com"], body="This is a test.")
+        mail.send(msg)
+        return "Email sent!"
+    except Exception as e:
+        return f"Failed: {str(e)}"
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -366,7 +373,63 @@ def dashboard():
         progress = 0
     
     return render_template('dashboard.html', progress=progress, tasks=tasks_for_display, exams=exams_for_display, outdated_items=outdated_items)
-
+@app.route('/api/clear-outdated', methods=['POST'])
+def clear_outdated():
+    if 'user' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    
+    try:
+        NZ_TZ = ZoneInfo("Pacific/Auckland")
+    except:
+        NZ_TZ = ZoneInfo("UTC")
+    
+    today = datetime.now(NZ_TZ).date()
+    deleted_count = 0
+    
+    # Delete outdated tasks
+    if tasks_collection is not None:
+        result = tasks_collection.delete_many({
+            'user': session['user'],
+            'date': {'$lt': today.strftime('%Y-%m-%d')}
+        })
+        deleted_count += result.deleted_count
+    
+    # Delete outdated exams
+    if exams_collection is not None:
+        result = exams_collection.delete_many({
+            'user': session['user'],
+            'date': {'$lt': today.strftime('%Y-%m-%d')}
+        })
+        deleted_count += result.deleted_count
+    
+    # Delete outdated schedules
+    if schedules_collection is not None:
+        result = schedules_collection.delete_many({
+            'user': session['user'],
+            'date': {'$lt': today.strftime('%Y-%m-%d')}
+        })
+        deleted_count += result.deleted_count
+    
+    # Delete outdated classes (if they have dates)
+    if classes_collection is not None:
+        result = classes_collection.delete_many({
+            'user': session['user'],
+            'date': {'$exists': True, '$lt': today.strftime('%Y-%m-%d')}
+        })
+        deleted_count += result.deleted_count
+    
+    # Delete outdated vacations
+    if vacations_collection is not None:
+        result = vacations_collection.delete_many({
+            'user': session['user'],
+            'start_date': {'$lt': today.strftime('%Y-%m-%d')}
+        })
+        deleted_count += result.deleted_count
+    
+    return jsonify({'success': True, 'deleted_count': deleted_count})
 
 @app.route('/schedule')
 def schedule():

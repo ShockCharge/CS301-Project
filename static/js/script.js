@@ -388,12 +388,12 @@ function loadSchedules() {
         .catch(error => console.error('Error loading schedules:', error));
 }
 
-function displaySchedules(schedules) {
-    const scheduleList = document.getElementById('schedule-list-items');
+function displayScheduleList(schedules) {
+    const scheduleList = document.getElementById('schedule-list');
     if (!scheduleList) return;
     
     if (schedules.length === 0) {
-        scheduleList.innerHTML = '<p class="empty-state">No schedules yet</p>';
+        scheduleList.innerHTML = '<p class="empty-state">No schedules for this period.</p>';
         return;
     }
     
@@ -404,6 +404,14 @@ function displaySchedules(schedules) {
                 <span class="schedule-time">${formatDateNZ(schedule.date)} ${formatTimeNZ(schedule.time)}</span>
             </div>
             <p class="schedule-description">${schedule.description || ''}</p>
+            <div class="item-actions">
+                <button class="btn-action btn-edit" onclick="editSchedule('${schedule._id}')">
+                    <i class="bi bi-pencil"></i> Edit
+                </button>
+                <button class="btn-action btn-delete" onclick="deleteSchedule('${schedule._id}')">
+                    <i class="bi bi-trash"></i> Delete
+                </button>
+            </div>
         </div>
     `).join('');
 }
