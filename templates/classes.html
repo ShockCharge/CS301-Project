@@ -138,6 +138,45 @@
             </form>
         </div>
     </div>
+
+    <!-- Edit Class Modal -->
+    <div id="editClassModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="document.getElementById('editClassModal').style.display='none'">&times;</span>
+            <h2>Edit Class</h2>
+            <form id="editClassForm">
+                <input type="hidden" id="editClassId">
+                <div class="form-group">
+                    <label>Class Name</label>
+                    <input type="text" id="editClassName" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label>Instructor</label>
+                    <input type="text" id="editClassInstructor" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label>Day</label>
+                    <select id="editClassDay" class="form-input">
+                        <option value="Monday">Monday</option>
+                        <option value="Tuesday">Tuesday</option>
+                        <option value="Wednesday">Wednesday</option>
+                        <option value="Thursday">Thursday</option>
+                        <option value="Friday">Friday</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Time</label>
+                    <input type="time" id="editClassTime" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label>Room</label>
+                    <input type="text" id="editClassRoom" class="form-input">
+                </div>
+                <button type="submit" class="btn-primary">Update Class</button>
+            </form>
+        </div>
+    </div>
+
     <!-- Custom Delete Confirmation Modal -->
 <div class="custom-modal-overlay" id="deleteConfirmModal">
     <div class="custom-modal">

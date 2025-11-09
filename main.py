@@ -860,6 +860,214 @@ def update_profile():
     else:
         return jsonify({'success': True, 'message': 'Profile updated (dev mode)'})
 
+# DELETE and UPDATE endpoints for Tasks
+@app.route('/api/tasks/<task_id>', methods=['DELETE'])
+def delete_task(task_id):
+    if 'user' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    if tasks_collection is not None:
+        result = tasks_collection.delete_one({'_id': ObjectId(task_id), 'user': session['user']})
+        if result.deleted_count > 0:
+            return jsonify({'success': True, 'message': 'Task deleted successfully'})
+        else:
+            return jsonify({'error': 'Task not found'}), 404
+    else:
+        return jsonify({'success': True, 'message': 'Task deleted (dev mode)'})
+
+@app.route('/api/tasks/<task_id>', methods=['PUT'])
+def update_task(task_id):
+    if 'user' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    data = request.json
+    update_data = {
+        'name': data.get('name'),
+        'priority': data.get('priority', 'medium'),
+        'date': data.get('date'),
+        'description': data.get('description'),
+        'updated_at': datetime.now()
+    }
+    
+    if tasks_collection is not None:
+        result = tasks_collection.update_one(
+            {'_id': ObjectId(task_id), 'user': session['user']},
+            {'$set': update_data}
+        )
+        if result.matched_count > 0:
+            return jsonify({'success': True, 'message': 'Task updated successfully'})
+        else:
+            return jsonify({'error': 'Task not found'}), 404
+    else:
+        return jsonify({'success': True, 'message': 'Task updated (dev mode)'})
+
+# DELETE and UPDATE endpoints for Exams
+@app.route('/api/exams/<exam_id>', methods=['DELETE'])
+def delete_exam(exam_id):
+    if 'user' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    if exams_collection is not None:
+        result = exams_collection.delete_one({'_id': ObjectId(exam_id), 'user': session['user']})
+        if result.deleted_count > 0:
+            return jsonify({'success': True, 'message': 'Exam deleted successfully'})
+        else:
+            return jsonify({'error': 'Exam not found'}), 404
+    else:
+        return jsonify({'success': True, 'message': 'Exam deleted (dev mode)'})
+
+@app.route('/api/exams/<exam_id>', methods=['PUT'])
+def update_exam(exam_id):
+    if 'user' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    data = request.json
+    update_data = {
+        'subject': data.get('subject'),
+        'date': data.get('date'),
+        'time': data.get('time'),
+        'duration': data.get('duration'),
+        'notes': data.get('notes'),
+        'updated_at': datetime.now()
+    }
+    
+    if exams_collection is not None:
+        result = exams_collection.update_one(
+            {'_id': ObjectId(exam_id), 'user': session['user']},
+            {'$set': update_data}
+        )
+        if result.matched_count > 0:
+            return jsonify({'success': True, 'message': 'Exam updated successfully'})
+        else:
+            return jsonify({'error': 'Exam not found'}), 404
+    else:
+        return jsonify({'success': True, 'message': 'Exam updated (dev mode)'})
+
+# DELETE and UPDATE endpoints for Classes
+@app.route('/api/classes/<class_id>', methods=['DELETE'])
+def delete_class(class_id):
+    if 'user' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    if classes_collection is not None:
+        result = classes_collection.delete_one({'_id': ObjectId(class_id), 'user': session['user']})
+        if result.deleted_count > 0:
+            return jsonify({'success': True, 'message': 'Class deleted successfully'})
+        else:
+            return jsonify({'error': 'Class not found'}), 404
+    else:
+        return jsonify({'success': True, 'message': 'Class deleted (dev mode)'})
+
+@app.route('/api/classes/<class_id>', methods=['PUT'])
+def update_class(class_id):
+    if 'user' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    data = request.json
+    update_data = {
+        'name': data.get('name'),
+        'instructor': data.get('instructor'),
+        'day': data.get('day'),
+        'time': data.get('time'),
+        'room': data.get('room'),
+        'updated_at': datetime.now()
+    }
+    
+    if classes_collection is not None:
+        result = classes_collection.update_one(
+            {'_id': ObjectId(class_id), 'user': session['user']},
+            {'$set': update_data}
+        )
+        if result.matched_count > 0:
+            return jsonify({'success': True, 'message': 'Class updated successfully'})
+        else:
+            return jsonify({'error': 'Class not found'}), 404
+    else:
+        return jsonify({'success': True, 'message': 'Class updated (dev mode)'})
+
+# DELETE and UPDATE endpoints for Schedules
+@app.route('/api/schedules/<schedule_id>', methods=['DELETE'])
+def delete_schedule(schedule_id):
+    if 'user' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    if schedules_collection is not None:
+        result = schedules_collection.delete_one({'_id': ObjectId(schedule_id), 'user': session['user']})
+        if result.deleted_count > 0:
+            return jsonify({'success': True, 'message': 'Schedule deleted successfully'})
+        else:
+            return jsonify({'error': 'Schedule not found'}), 404
+    else:
+        return jsonify({'success': True, 'message': 'Schedule deleted (dev mode)'})
+
+@app.route('/api/schedules/<schedule_id>', methods=['PUT'])
+def update_schedule(schedule_id):
+    if 'user' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    data = request.json
+    update_data = {
+        'title': data.get('title'),
+        'date': data.get('date'),
+        'time': data.get('time'),
+        'duration': data.get('duration'),
+        'description': data.get('description'),
+        'updated_at': datetime.now()
+    }
+    
+    if schedules_collection is not None:
+        result = schedules_collection.update_one(
+            {'_id': ObjectId(schedule_id), 'user': session['user']},
+            {'$set': update_data}
+        )
+        if result.matched_count > 0:
+            return jsonify({'success': True, 'message': 'Schedule updated successfully'})
+        else:
+            return jsonify({'error': 'Schedule not found'}), 404
+    else:
+        return jsonify({'success': True, 'message': 'Schedule updated (dev mode)'})
+
+# DELETE and UPDATE endpoints for Vacations
+@app.route('/api/vacations/<vacation_id>', methods=['DELETE'])
+def delete_vacation(vacation_id):
+    if 'user' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    if vacations_collection is not None:
+        result = vacations_collection.delete_one({'_id': ObjectId(vacation_id), 'user': session['user']})
+        if result.deleted_count > 0:
+            return jsonify({'success': True, 'message': 'Vacation deleted successfully'})
+        else:
+            return jsonify({'error': 'Vacation not found'}), 404
+    else:
+        return jsonify({'success': True, 'message': 'Vacation deleted (dev mode)'})
+
+@app.route('/api/vacations/<vacation_id>', methods=['PUT'])
+def update_vacation(vacation_id):
+    if 'user' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    data = request.json
+    update_data = {
+        'title': data.get('title'),
+        'start_date': data.get('start_date'),
+        'end_date': data.get('end_date'),
+        'description': data.get('description'),
+        'updated_at': datetime.now()
+    }
+    
+    if vacations_collection is not None:
+        result = vacations_collection.update_one(
+            {'_id': ObjectId(vacation_id), 'user': session['user']},
+            {'$set': update_data}
+        )
+        if result.matched_count > 0:
+            return jsonify({'success': True, 'message': 'Vacation updated successfully'})
+        else:
+            return jsonify({'error': 'Vacation not found'}), 404
+    else:
+        return jsonify({'success': True, 'message': 'Vacation updated (dev mode)'})
+
 @app.route('/logout')
 def logout():
     session.pop('user', None)

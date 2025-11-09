@@ -134,6 +134,38 @@
         </div>
     </div>
 
+    <!-- Edit Exam Modal -->
+    <div id="editExamModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="document.getElementById('editExamModal').style.display='none'">&times;</span>
+            <h2>Edit Exam</h2>
+            <form id="editExamForm">
+                <input type="hidden" id="editExamId">
+                <div class="form-group">
+                    <label>Subject</label>
+                    <input type="text" id="editExamSubject" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label>Date</label>
+                    <input type="date" id="editExamDate" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label>Time</label>
+                    <input type="time" id="editExamTime" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label>Duration (minutes)</label>
+                    <input type="number" id="editExamDuration" class="form-input" value="60">
+                </div>
+                <div class="form-group">
+                    <label>Notes</label>
+                    <textarea id="editExamNotes" class="form-input" rows="3"></textarea>
+                </div>
+                <button type="submit" class="btn-primary">Update Exam</button>
+            </form>
+        </div>
+    </div>
+
     <!-- Custom Delete Confirmation Modal -->
 <div class="custom-modal-overlay" id="deleteConfirmModal">
     <div class="custom-modal">

@@ -129,6 +129,57 @@
         </div>
     </div>
 
+    <!-- Edit Vacation Modal -->
+    <div id="editVacationModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="document.getElementById('editVacationModal').style.display='none'">&times;</span>
+            <h2>Edit Vacation</h2>
+            <form id="editVacationForm">
+                <input type="hidden" id="editVacationId">
+                <div class="form-group">
+                    <label>Title</label>
+                    <input type="text" id="editVacationTitle" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label>Start Date</label>
+                    <input type="date" id="editVacationStart" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label>End Date</label>
+                    <input type="date" id="editVacationEnd" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea id="editVacationDescription" class="form-input" rows="3"></textarea>
+                </div>
+                <button type="submit" class="btn-primary">Update Vacation</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Custom Delete Confirmation Modal -->
+<div class="custom-modal-overlay" id="deleteConfirmModal">
+    <div class="custom-modal">
+        <div class="custom-modal-header delete">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <div>
+                <div class="custom-modal-title">Confirm Delete</div>
+            </div>
+        </div>
+        <div class="custom-modal-body">
+            <p id="deleteConfirmMessage">Are you sure you want to delete this item? This action cannot be undone.</p>
+        </div>
+        <div class="custom-modal-actions">
+            <button class="custom-modal-btn custom-modal-btn-cancel" onclick="closeDeleteModal()">
+                Cancel
+            </button>
+            <button class="custom-modal-btn custom-modal-btn-confirm" id="confirmDeleteBtn">
+                Delete
+            </button>
+        </div>
+    </div>
+</div>
+
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </body>
 </html>

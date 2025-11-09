@@ -703,6 +703,14 @@ function displayClasses(classes) {
                     <span><i class="bi bi-clock"></i> ${formatTimeNZ(classItem.time)}</span>
                     ${classItem.room ? `<span><i class="bi bi-door-open"></i> ${classItem.room}</span>` : ''}
                 </div>
+                <div class="item-actions">
+                    <button class="btn-action btn-edit" onclick="editClass('${classItem._id}')">
+                        <i class="bi bi-pencil"></i> Edit
+                    </button>
+                    <button class="btn-action btn-delete" onclick="deleteClass('${classItem._id}')">
+                        <i class="bi bi-trash"></i> Delete
+                    </button>
+                </div>
             </div>
         </div>
     `).join('');
@@ -791,6 +799,14 @@ function displayVacations(vacations) {
                     <span><i class="bi bi-calendar-check"></i> ${formatDateNZ(vacation.start_date)}</span>
                     <span><i class="bi bi-calendar-x"></i> ${formatDateNZ(vacation.end_date)}</span>
                 </div>
+                <div class="item-actions">
+                    <button class="btn-action btn-edit" onclick="editVacation('${vacation._id}')">
+                        <i class="bi bi-pencil"></i> Edit
+                    </button>
+                    <button class="btn-action btn-delete" onclick="deleteVacation('${vacation._id}')">
+                        <i class="bi bi-trash"></i> Delete
+                    </button>
+                </div>
             </div>
         </div>
     `).join('');
@@ -822,5 +838,461 @@ async function toggleTaskComplete(taskId) {
         console.error('Error toggling task:', error);
     }
 }
+// Global variable to store delete callback
+let deleteCallback = null;
 
+function closeDeleteModal() {
+    document.getElementById('deleteConfirmModal').classList.remove('active');
+    deleteCallback = null;
+}
 
+function showDeleteModal(message, callback) {
+    document.getElementById('deleteConfirmMessage').textContent = message;
+    document.getElementById('deleteConfirmModal').classList.add('active');
+    deleteCallback = callback;
+}
+
+// Setup delete confirm button (add this in DOMContentLoaded)
+document.addEventListener('DOMContentLoaded', function() {
+    const confirmBtn = document.getElementById('confirmDeleteBtn');
+    if (confirmBtn) {
+        confirmBtn.onclick = function() {
+            if (deleteCallback) {
+                deleteCallback();
+            }
+            closeDeleteModal();
+        };
+    }
+    
+    // Close modal when clicking outside
+    document.getElementById('deleteConfirmModal')?.addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeDeleteModal();
+        }
+    });
+});
+
+// Updated delete functions
+async function deleteTask(taskId) {
+    showDeleteModal('Are you sure you want to delete this task? This action cannot be undone.', async function() {
+        try {
+            const response = await fetch(`/api/tasks/${taskId}`, { 
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            const result = await response.json();
+            
+            if (result.success) {
+                showSuccessToast('Task deleted successfully!');
+                loadTasks();
+            } else {
+                showErrorToast('Failed to delete task');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            showErrorToast('Failed to delete task');
+        }
+    });
+}
+
+async function deleteExam(examId) {
+    showDeleteModal('Are you sure you want to delete this exam? This action cannot be undone.', async function() {
+        try {
+            const response = await fetch(`/api/exams/${examId}`, { 
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            const result = await response.json();
+            
+            if (result.success) {
+                showSuccessToast('Exam deleted successfully!');
+                loadExams();
+            } else {
+                showErrorToast('Failed to delete exam');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            showErrorToast('Failed to delete exam');
+        }
+    });
+}
+
+async function deleteClass(classId) {
+    showDeleteModal('Are you sure you want to delete this class? This action cannot be undone.', async function() {
+        try {
+            const response = await fetch(`/api/classes/${classId}`, { 
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            const result = await response.json();
+            
+            if (result.success) {
+                showSuccessToast('Class deleted successfully!');
+                loadClasses();
+            } else {
+                showErrorToast('Failed to delete class');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            showErrorToast('Failed to delete class');
+        }
+    });
+}
+
+async function deleteSchedule(scheduleId) {
+    showDeleteModal('Are you sure you want to delete this schedule? This action cannot be undone.', async function() {
+        try {
+            const response = await fetch(`/api/schedules/${scheduleId}`, { 
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            const result = await response.json();
+            
+            if (result.success) {
+                showSuccessToast('Schedule deleted successfully!');
+                loadSchedules();
+            } else {
+                showErrorToast('Failed to delete schedule');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            showErrorToast('Failed to delete schedule');
+        }
+    });
+}
+
+async function deleteVacation(vacationId) {
+    showDeleteModal('Are you sure you want to delete this vacation? This action cannot be undone.', async function() {
+        try {
+            const response = await fetch(`/api/vacations/${vacationId}`, { 
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            const result = await response.json();
+            
+            if (result.success) {
+                showSuccessToast('Vacation deleted successfully!');
+                loadVacations();
+            } else {
+                showErrorToast('Failed to delete vacation');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            showErrorToast('Failed to delete vacation');
+        }
+    });
+}
+
+function showSuccessToast(message) {
+    showToast(message, 'success');
+}
+
+function showErrorToast(message) {
+    showToast(message, 'error');
+}
+
+function showToast(message, type) {
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.innerHTML = `
+        <i class="bi bi-${type === 'success' ? 'check-circle-fill' : 'exclamation-circle-fill'}"></i>
+        <span>${message}</span>
+    `;
+    
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.style.animation = 'toastSlideOut 0.3s ease-out';
+        setTimeout(() => {
+            document.body.removeChild(toast);
+        }, 300);
+    }, 3000);
+}
+
+function editTask(taskId) {
+    fetch(`/api/tasks`)
+        .then(response => response.json())
+        .then(tasks => {
+            const task = tasks.find(t => t._id === taskId);
+            if (task) {
+                document.getElementById('editTaskId').value = task._id;
+                document.getElementById('editTaskName').value = task.name;
+                document.getElementById('editTaskPriority').value = task.priority || 'medium';
+                document.getElementById('editTaskDate').value = task.date || '';
+                document.getElementById('editTaskDescription').value = task.description || '';
+                document.getElementById('editTaskModal').style.display = 'block';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showErrorToast('Failed to load task data');
+        });
+}
+
+function editExam(examId) {
+    fetch(`/api/exams`)
+        .then(response => response.json())
+        .then(exams => {
+            const exam = exams.find(e => e._id === examId);
+            if (exam) {
+                document.getElementById('editExamId').value = exam._id;
+                document.getElementById('editExamSubject').value = exam.subject;
+                document.getElementById('editExamDate').value = exam.date || '';
+                document.getElementById('editExamTime').value = exam.time || '';
+                document.getElementById('editExamDuration').value = exam.duration || '';
+                document.getElementById('editExamNotes').value = exam.notes || '';
+                document.getElementById('editExamModal').style.display = 'block';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showErrorToast('Failed to load exam data');
+        });
+}
+
+function editClass(classId) {
+    fetch(`/api/classes`)
+        .then(response => response.json())
+        .then(classes => {
+            const classItem = classes.find(c => c._id === classId);
+            if (classItem) {
+                document.getElementById('editClassId').value = classItem._id;
+                document.getElementById('editClassName').value = classItem.name;
+                document.getElementById('editClassInstructor').value = classItem.instructor || '';
+                document.getElementById('editClassDay').value = classItem.day || '';
+                document.getElementById('editClassTime').value = classItem.time || '';
+                document.getElementById('editClassRoom').value = classItem.room || '';
+                document.getElementById('editClassModal').style.display = 'block';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showErrorToast('Failed to load class data');
+        });
+}
+
+function editSchedule(scheduleId) {
+    fetch(`/api/schedules`)
+        .then(response => response.json())
+        .then(schedules => {
+            const schedule = schedules.find(s => s._id === scheduleId);
+            if (schedule) {
+                document.getElementById('editScheduleId').value = schedule._id;
+                document.getElementById('editScheduleTitle').value = schedule.title;
+                document.getElementById('editScheduleDate').value = schedule.date || '';
+                document.getElementById('editScheduleTime').value = schedule.time || '';
+                document.getElementById('editScheduleDuration').value = schedule.duration || '';
+                document.getElementById('editScheduleDescription').value = schedule.description || '';
+                document.getElementById('editScheduleModal').style.display = 'block';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showErrorToast('Failed to load schedule data');
+        });
+}
+
+function editVacation(vacationId) {
+    fetch(`/api/vacations`)
+        .then(response => response.json())
+        .then(vacations => {
+            const vacation = vacations.find(v => v._id === vacationId);
+            if (vacation) {
+                document.getElementById('editVacationId').value = vacation._id;
+                document.getElementById('editVacationTitle').value = vacation.title;
+                document.getElementById('editVacationStart').value = vacation.start_date || '';
+                document.getElementById('editVacationEnd').value = vacation.end_date || '';
+                document.getElementById('editVacationDescription').value = vacation.description || '';
+                document.getElementById('editVacationModal').style.display = 'block';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showErrorToast('Failed to load vacation data');
+        });
+}
+
+// Edit form submission handlers - ADD THIS TO THE END OF script.js
+
+// Edit Task Form Handler
+const editTaskForm = document.getElementById('editTaskForm');
+if (editTaskForm) {
+    editTaskForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const taskId = document.getElementById('editTaskId').value;
+        const taskData = {
+            name: document.getElementById('editTaskName').value,
+            priority: document.getElementById('editTaskPriority').value,
+            date: document.getElementById('editTaskDate').value,
+            description: document.getElementById('editTaskDescription').value
+        };
+        
+        try {
+            const response = await fetch(`/api/tasks/${taskId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(taskData)
+            });
+            
+            const result = await response.json();
+            if (result.success) {
+                showSuccessToast('Task updated successfully!');
+                document.getElementById('editTaskModal').style.display = 'none';
+                loadTasks();
+            } else {
+                showErrorToast('Failed to update task');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            showErrorToast('Failed to update task');
+        }
+    });
+}
+
+// Edit Exam Form Handler
+const editExamForm = document.getElementById('editExamForm');
+if (editExamForm) {
+    editExamForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const examId = document.getElementById('editExamId').value;
+        const examData = {
+            subject: document.getElementById('editExamSubject').value,
+            date: document.getElementById('editExamDate').value,
+            time: document.getElementById('editExamTime').value,
+            duration: document.getElementById('editExamDuration').value,
+            notes: document.getElementById('editExamNotes').value
+        };
+        
+        try {
+            const response = await fetch(`/api/exams/${examId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(examData)
+            });
+            
+            const result = await response.json();
+            if (result.success) {
+                showSuccessToast('Exam updated successfully!');
+                document.getElementById('editExamModal').style.display = 'none';
+                loadExams();
+            } else {
+                showErrorToast('Failed to update exam');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            showErrorToast('Failed to update exam');
+        }
+    });
+}
+
+// Edit Class Form Handler
+const editClassForm = document.getElementById('editClassForm');
+if (editClassForm) {
+    editClassForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const classId = document.getElementById('editClassId').value;
+        const classData = {
+            name: document.getElementById('editClassName').value,
+            instructor: document.getElementById('editClassInstructor').value,
+            day: document.getElementById('editClassDay').value,
+            time: document.getElementById('editClassTime').value,
+            room: document.getElementById('editClassRoom').value
+        };
+        
+        try {
+            const response = await fetch(`/api/classes/${classId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(classData)
+            });
+            
+            const result = await response.json();
+            if (result.success) {
+                showSuccessToast('Class updated successfully!');
+                document.getElementById('editClassModal').style.display = 'none';
+                loadClasses();
+            } else {
+                showErrorToast('Failed to update class');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            showErrorToast('Failed to update class');
+        }
+    });
+}
+
+// Edit Schedule Form Handler
+const editScheduleForm = document.getElementById('editScheduleForm');
+if (editScheduleForm) {
+    editScheduleForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const scheduleId = document.getElementById('editScheduleId').value;
+        const scheduleData = {
+            title: document.getElementById('editScheduleTitle').value,
+            date: document.getElementById('editScheduleDate').value,
+            time: document.getElementById('editScheduleTime').value,
+            duration: document.getElementById('editScheduleDuration').value,
+            description: document.getElementById('editScheduleDescription').value
+        };
+        
+        try {
+            const response = await fetch(`/api/schedules/${scheduleId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(scheduleData)
+            });
+            
+            const result = await response.json();
+            if (result.success) {
+                showSuccessToast('Schedule updated successfully!');
+                document.getElementById('editScheduleModal').style.display = 'none';
+                loadSchedules();
+            } else {
+                showErrorToast('Failed to update schedule');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            showErrorToast('Failed to update schedule');
+        }
+    });
+}
+
+// Edit Vacation Form Handler
+const editVacationForm = document.getElementById('editVacationForm');
+if (editVacationForm) {
+    editVacationForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const vacationId = document.getElementById('editVacationId').value;
+        const vacationData = {
+            title: document.getElementById('editVacationTitle').value,
+            start_date: document.getElementById('editVacationStart').value,
+            end_date: document.getElementById('editVacationEnd').value,
+            description: document.getElementById('editVacationDescription').value
+        };
+        
+        try {
+            const response = await fetch(`/api/vacations/${vacationId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(vacationData)
+            });
+            
+            const result = await response.json();
+            if (result.success) {
+                showSuccessToast('Vacation updated successfully!');
+                document.getElementById('editVacationModal').style.display = 'none';
+                loadVacations();
+            } else {
+                showErrorToast('Failed to update vacation');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            showErrorToast('Failed to update vacation');
+        }
+    });
+}
