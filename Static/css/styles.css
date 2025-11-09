@@ -1353,3 +1353,170 @@ body {
 .btn-delete:hover {
     background: #c0392b;
 }
+
+/* Toast Notifications */
+.toast {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 16px 24px;
+    border-radius: 8px;
+    color: white;
+    font-size: 15px;
+    font-weight: 500;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 10000;
+    animation: toastSlideIn 0.3s ease-out;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.toast.success {
+    background: #28a745;
+}
+
+.toast.error {
+    background: #e74c3c;
+}
+
+@keyframes toastSlideIn {
+    from {
+        transform: translateX(400px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes toastSlideOut {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(400px);
+        opacity: 0;
+    }
+}
+/* Custom Delete Confirmation Modal */
+.custom-modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 9999;
+    justify-content: center;
+    align-items: center;
+}
+
+.custom-modal-overlay.active {
+    display: flex;
+}
+
+.custom-modal {
+    background: white;
+    border-radius: 12px;
+    padding: 30px;
+    max-width: 450px;
+    width: 90%;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+    from {
+        transform: translateY(-50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.custom-modal-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.custom-modal-header i {
+    font-size: 48px;
+    margin-right: 15px;
+}
+
+.custom-modal-header.delete i {
+    color: #e74c3c;
+}
+
+.custom-modal-header.edit i {
+    color: #4a90e2;
+}
+
+.custom-modal-title {
+    font-size: 24px;
+    font-weight: 600;
+    color: #333;
+}
+
+.custom-modal-body {
+    margin-bottom: 25px;
+    color: #666;
+    font-size: 16px;
+    line-height: 1.5;
+}
+
+.custom-modal-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+.custom-modal-btn {
+    padding: 10px 24px;
+    border: none;
+    border-radius: 6px;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.custom-modal-btn-cancel {
+    background: #e0e0e0;
+    color: #333;
+}
+
+.custom-modal-btn-cancel:hover {
+    background: #d0d0d0;
+}
+
+.custom-modal-btn-confirm {
+    background: #e74c3c;
+    color: white;
+}
+
+.custom-modal-btn-confirm:hover {
+    background: #c0392b;
+}
+
+.custom-modal-btn-primary {
+    background: #4a90e2;
+    color: white;
+}
+
+.custom-modal-btn-primary:hover {
+    background: #357abd;
+}
+
+/* Make buttons clickable */
+.btn-action {
+    z-index: 10;
+    position: relative;
+}
