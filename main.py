@@ -7,13 +7,19 @@ from dotenv import load_dotenv
 from datetime import datetime, timedelta
 from bson import ObjectId
 import threading
+from openai import OpenAI
+
+
+load_dotenv()
+
+openai_api_key = os.environ.get("OPENAI_API_KEY")
+client = OpenAI(api_key="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")
 
 app = Flask(__name__)
 app.secret_key = 'supersecretkey123'
 
-load_dotenv()
-
 # Email configuration
+
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_SSL'] = False
@@ -451,6 +457,14 @@ def schedule():
     return render_template('schedule.html', schedules=schedules)
 
 
+@app.route('/chatbot')
+def chatbot():
+    """Render the chatbot page"""
+    if 'user' not in session:
+        return redirect(url_for('login'))
+    return render_template('chatbot.html')
+
+
 @app.route('/tasks')
 def tasks():
     if 'user' not in session:
@@ -591,6 +605,99 @@ def api_schedules():
             schedules = []
         
         return jsonify(schedules)
+    
+@app.route('/api/chat', methods=['POST'])
+def chat():
+    """Handle chat messages and return AI responses"""
+    if 'user' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+
+    data = request.json
+    user_message = data.get('message')
+
+    if not user_message:
+        return jsonify({'error': 'No message provided'}), 400
+
+    # Gather user's current data for context
+    user_tasks = list(tasks_collection.find({'user': session['user']}))
+    user_exams = list(exams_collection.find({'user': session['user']}))
+    user_classes = list(classes_collection.find({'user': session['user']}))
+    user_schedules = list(schedules_collection.find({'user': session['user']}))
+
+    # Convert MongoDB ObjectId to string for JSON serialization
+    for task in user_tasks:
+        task['_id'] = str(task['_id'])
+    for exam in user_exams:
+        exam['_id'] = str(exam['_id'])
+    for cls in user_classes:
+        cls['_id'] = str(cls['_id'])
+    for schedule in user_schedules:
+        schedule['_id'] = str(schedule['_id'])
+
+    # Create a comprehensive system prompt with user context
+    system_prompt = f"""
+You are a friendly and helpful AI study assistant integrated into the Study Planner application.
+Your goal is to help the user manage their academic life effectively.
+
+Here is the user's current data:
+
+**Tasks ({len(user_tasks)} total):**
+{user_tasks if user_tasks else "No tasks yet"}
+
+**Exams ({len(user_exams)} total):**
+{user_exams if user_exams else "No exams scheduled"}
+
+**Classes ({len(user_classes)} total):**
+{user_classes if user_classes else "No classes added"}
+
+**Schedule Items ({len(user_schedules)} total):**
+{user_schedules if user_schedules else "No schedule items"}
+
+Based on this data, you can:
+1. Answer questions about their tasks, exams, classes, and schedule
+2. Help them prioritize their work
+3. Provide study tips and time management advice
+4. Offer motivation and encouragement
+5. Help break down large tasks into smaller steps
+6. Suggest study schedules based on their workload
+
+Example questions you can answer:
+- "What are my most important tasks?"
+- "When is my next exam?"
+- "Do I have anything due tomorrow?"
+- "How should I prepare for my upcoming exam?"
+- "I'm feeling overwhelmed, can you help?"
+
+Keep your responses:
+- Concise and to the point
+- Helpful and actionable
+- Encouraging and positive
+- Based on the actual data provided above
+
+If the user asks you to add, edit, or delete items, politely inform them that they need to use the respective pages in the application (Tasks, Exams, Classes, etc.) as you can only provide information and advice.
+"""
+
+    try:
+        # Call OpenAI API
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",  # Using the cost-effective model
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_message}
+            ],
+            temperature=0.7,  # Balanced creativity and consistency
+            max_tokens=500    # Limit response length
+        )
+        
+        ai_response = response.choices[0].message.content
+        return jsonify({'response': ai_response})
+
+    except Exception as e:
+        print(f"OpenAI API Error: {e}")
+        return jsonify({'error': 'Failed to get response from AI assistant. Please try again.'})
+
+
+
 
 @app.route('/api/tasks', methods=['GET', 'POST'])
 def api_tasks():
