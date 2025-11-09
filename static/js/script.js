@@ -506,11 +506,18 @@ function displayTasks(tasks) {
                     <div class="item-meta">
                         ${task.date ? `<span><i class="bi bi-calendar"></i> ${formatDateNZ(task.date)}</span>` : ''}
                     </div>
+                    <div class="item-actions">
+                        <button class="btn-action btn-edit" onclick="editTask('${task._id}')">
+                            <i class="bi bi-pencil"></i> Edit
+                        </button>
+                        <button class="btn-action btn-delete" onclick="deleteTask('${task._id}')">
+                            <i class="bi bi-trash"></i> Delete
+                        </button>
+                    </div>
                 </div>
             </div>
         `;
     }).join('');
-    
 }
 
 // Exams Page Functions
@@ -597,6 +604,14 @@ function displayExams(exams) {
                     <span><i class="bi bi-calendar"></i> ${formatDateNZ(exam.date)}</span>
                     <span><i class="bi bi-clock"></i> ${formatTimeNZ(exam.time)}</span>
                     <span><i class="bi bi-hourglass"></i> ${exam.duration} min</span>
+                </div>
+                <div class="item-actions">
+                    <button class="btn-action btn-edit" onclick="editExam('${exam._id}')">
+                        <i class="bi bi-pencil"></i> Edit
+                    </button>
+                    <button class="btn-action btn-delete" onclick="deleteExam('${exam._id}')">
+                        <i class="bi bi-trash"></i> Delete
+                    </button>
                 </div>
             </div>
         </div>
@@ -807,4 +822,5 @@ async function toggleTaskComplete(taskId) {
         console.error('Error toggling task:', error);
     }
 }
+
 
