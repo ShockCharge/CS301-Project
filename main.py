@@ -13,7 +13,9 @@ from openai import OpenAI
 load_dotenv()
 
 openai_api_key = os.environ.get("OPENAI_API_KEY")
-client = OpenAI(api_key="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")
+if not openai_api_key:
+    raise ValueError("OPENAI_API_KEY not found in environment variables")
+openai_client = OpenAI(api_key=openai_api_key)
 
 app = Flask(__name__)
 app.secret_key = 'supersecretkey123'
@@ -47,9 +49,9 @@ try:
     
     if MONGO_USER and MONGO_PASS:
         conn_str = f"mongodb+srv://{MONGO_USER}:{MONGO_PASS}@studyplanner.y4rlgjy.mongodb.net/study_planner_db?retryWrites=true&w=majority"
-        client = MongoClient(conn_str, serverSelectionTimeoutMS=5000)
-        client.server_info()
-        db = client["study_planner_db"]
+        mongo_client = MongoClient(conn_str, serverSelectionTimeoutMS=5000)
+        mongo_client.server_info()
+        db = mongo_client["study_planner_db"]
         users_collection = db["users"]
         schedules_collection = db["schedules"]
         tasks_collection = db["tasks"]
@@ -562,12 +564,48 @@ def profile():
     
     # Get user data from database
     user_data = None
+    stats = {
+        'total_study_time': 0,
+        'completed_tasks': 0,
+        'total_tasks': 0,
+        'upcoming_exams': 0,
+        'current_streak': 0
+    }
+    
     if users_collection is not None:
         user_data = users_collection.find_one({'email': session['user']})
         if user_data:
             user_data['_id'] = str(user_data['_id'])
+        
+        # Calculate real statistics
+        if tasks_collection is not None:
+            stats['total_tasks'] = tasks_collection.count_documents({'user': session['user']})
+            stats['completed_tasks'] = tasks_collection.count_documents({
+                'user': session['user'], 
+                'completed': True
+            })
+        
+        if exams_collection is not None:
+            today = datetime.now(NZ_TZ).strftime('%Y-%m-%d')
+            stats['upcoming_exams'] = exams_collection.count_documents({
+                'user': session['user'],
+                'date': {'$gte': today},
+                'completed': {'$ne': True}
+            })
+        
+        # Calculate study time from completed tasks/classes with duration
+        if tasks_collection is not None:
+            completed_tasks = tasks_collection.find({
+                'user': session['user'],
+                'completed': True,
+                'duration': {'$exists': True}
+            })
+            for task in completed_tasks:
+                stats['total_study_time'] += task.get('duration', 0)
+                # TODO: Calculate total_study_time and current_streak
+        
     
-    return render_template('profile.html', user=user_data)
+    return render_template('profile.html', user=user_data, stats=stats)
 
 # API Endpoints
 @app.route('/api/schedules', methods=['GET', 'POST'])
@@ -679,7 +717,7 @@ If the user asks you to add, edit, or delete items, politely inform them that th
 
     try:
         # Call OpenAI API
-        response = client.chat.completions.create(
+        response = mongo_client.chat.completions.create(
             model="gpt-3.5-turbo",  # Using the cost-effective model
             messages=[
                 {"role": "system", "content": system_prompt},
