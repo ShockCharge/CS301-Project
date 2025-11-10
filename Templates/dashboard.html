@@ -284,7 +284,67 @@ header {
 </head>
 
 <body>
-<div class="app-container">
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h1 class="sidebar-brand">Study Planner</h1>
+            </div>
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="{{ url_for('dashboard') }}" class="nav-link active">
+                        <i class="bi bi-grid"></i>
+                        <span>Dashboard</span>
+                    </a></li>
+                    <li><a href="{{ url_for('schedule') }}" class="nav-link">
+                        <i class="bi bi-calendar3"></i>
+                        <span>Schedule</span>
+                    </a></li>
+                    
+                    <li>
+                        <a href="#" class="nav-link" id="activities-toggle">
+                            <i class="bi bi-list-task"></i>
+                            <span>Activities</span>
+                            <i class="bi bi-chevron-down submenu-arrow"></i>
+                        </a>
+                        <ul class="submenu" id="activities-submenu">
+                            <li><a href="{{ url_for('tasks') }}" class="nav-link">
+                                <i class="bi bi-check-square"></i>
+                                <span>Tasks</span>
+                            </a></li>
+                            <li><a href="{{ url_for('exams') }}" class="nav-link">
+                                <i class="bi bi-book"></i>
+                                <span>Exams</span>
+                            </a></li>
+                            <li><a href="{{ url_for('classes') }}" class="nav-link">
+                                <i class="bi bi-mortarboard"></i>
+                                <span>Classes</span>
+                            </a></li>
+                            <li><a href="{{ url_for('vacations') }}" class="nav-link">
+                                <i class="bi bi-airplane"></i>
+                                <span>Vacations</span>
+                            </a></li>
+                        </ul>
+                    </li>
+                    <li><a href="{{ url_for('chatbot') }}" class="nav-link">
+                        <i class="bi bi-chat-dots"></i>
+                        <span>Chatbot</span> 
+                    </a></li>
+                  
+                    <li><a href="{{ url_for('settings') }}" class="nav-link">
+                        <i class="bi bi-gear"></i>
+                        <span>Settings</span>
+                    </a></li>
+                    <li><a href="{{ url_for('profile') }}" class="nav-link">
+                        <i class="bi bi-person-circle"></i>
+                        <span>Profile</span>
+                    </a></li>
+                </ul>
+            </nav>
+            <div class="sidebar-footer">
+                <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+            </div>
+        </aside>
 
     <!-- Sidebar -->
     <aside class="sidebar">
