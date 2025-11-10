@@ -716,8 +716,11 @@ If the user asks you to add, edit, or delete items, politely inform them that th
 """
 
     try:
+        if not openai_client:
+            return jsonify({'error': 'AI assistant is not configured.'})
+        
         # Call OpenAI API
-        response = mongo_client.chat.completions.create(
+        response = openai_client.chat.completions.create(
             model="gpt-3.5-turbo",  # Using the cost-effective model
             messages=[
                 {"role": "system", "content": system_prompt},
