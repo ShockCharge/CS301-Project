@@ -161,8 +161,9 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ message: message })
                 });
-
+               
                 const data = await response.json();
+                
                 if (data.error) {
                     addMessage(data.error, 'bot');
                 } else {

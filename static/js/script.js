@@ -388,30 +388,57 @@ function loadSchedules() {
         .catch(error => console.error('Error loading schedules:', error));
 }
 
-function displayScheduleList(schedules) {
-    const scheduleList = document.getElementById('schedule-list');
-    if (!scheduleList) return;
-    
-    if (schedules.length === 0) {
-        scheduleList.innerHTML = '<p class="empty-state">No schedules for this period.</p>';
+function displaySchedules(schedules) {
+    const scheduleListItems = document.getElementById('schedule-list-items');
+    if (!scheduleListItems) {
+        console.error('schedule-list-items element not found');
         return;
     }
     
-    scheduleList.innerHTML = schedules.map(schedule => `
-        <div class="schedule-item">
+    if (schedules.length === 0) {
+        scheduleListItems.innerHTML = `
+            <div class="empty-state">
+                <i class="bi bi-calendar-x" style="font-size: 48px; color: #ccc;"></i>
+                <p>No scheduled items yet</p>
+                <p style="font-size: 14px; color: #999;">Click "Add Schedule" to create your first schedule item</p>
+            </div>
+        `;
+        return;
+    }
+    
+    scheduleListItems.innerHTML = schedules.map(schedule => `
+        <div class="schedule-item" data-id="${schedule._id}">
             <div class="schedule-item-header">
-                <h4>${schedule.title}</h4>
-                <span class="schedule-time">${formatDateNZ(schedule.date)} ${formatTimeNZ(schedule.time)}</span>
+                <div class="schedule-item-info">
+                    <h4 class="schedule-title">${schedule.title}</h4>
+                    <div class="schedule-meta">
+                        <span class="schedule-date">
+                            <i class="bi bi-calendar3"></i> ${schedule.date}
+                        </span>
+                        <span class="schedule-time">
+                            <i class="bi bi-clock"></i> ${schedule.time}
+                        </span>
+                        ${schedule.duration ? `
+                        <span class="schedule-duration">
+                            <i class="bi bi-hourglass-split"></i> ${schedule.duration} min
+                        </span>
+                        ` : ''}
+                    </div>
+                </div>
+                <div class="schedule-actions">
+                    <button class="btn-icon btn-edit" onclick="editSchedule('${schedule._id}')" title="Edit">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn-icon btn-delete" onclick="deleteSchedule('${schedule._id}')" title="Delete">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
             </div>
-            <p class="schedule-description">${schedule.description || ''}</p>
-            <div class="item-actions">
-                <button class="btn-action btn-edit" onclick="editSchedule('${schedule._id}')">
-                    <i class="bi bi-pencil"></i> Edit
-                </button>
-                <button class="btn-action btn-delete" onclick="deleteSchedule('${schedule._id}')">
-                    <i class="bi bi-trash"></i> Delete
-                </button>
+            ${schedule.description ? `
+            <div class="schedule-description">
+                <p>${schedule.description}</p>
             </div>
+            ` : ''}
         </div>
     `).join('');
 }

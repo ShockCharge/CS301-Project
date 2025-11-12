@@ -87,7 +87,6 @@ def send_deadline_email(user_email, user_name, deadline_date, items):
         with open(template_path, 'r', encoding='utf-8') as f:
             html_template = f.read()
         
-        # Format items as HTML list
         items_html = ''.join([f'<li style="margin: 8px 0; color: #333;">{item}</li>' for item in items])
         
         # Replace placeholders
@@ -101,7 +100,6 @@ def send_deadline_email(user_email, user_name, deadline_date, items):
             recipients=[user_email]
         )
         
-        # Plain text version
         msg.body = f"""
 Hello {user_name},
 
@@ -115,10 +113,10 @@ Best regards,
 Study Planner Team
         """
         
-        # HTML version
+        
         msg.html = html_content
         
-        # Send email
+        
         mail.send(msg)
         print(f" Email sent to {user_email} ({len(items)} items)")
         return True
@@ -133,13 +131,12 @@ def check_upcoming_deadlines():
         print("Skipping deadline check - no database connection")
         return
     
-    now_nz = datetime.now(NZ_TZ)  # Use the global NZ_TZ here
+    now_nz = datetime.now(NZ_TZ)  
     tomorrow = now_nz + timedelta(days=1)
     tomorrow_str = tomorrow.strftime('%Y-%m-%d')
     
     print(f"Checking deadlines for {tomorrow_str}...")
     
-    # Get all users
     users = users_collection.find()
     
     for user in users:
@@ -288,16 +285,15 @@ def dashboard():
     if 'user' not in session:
         return redirect(url_for('login'))
     
-    # Get user's activities
     if tasks_collection is not None:
-        # Initialize lists for categorized activities
+       
         outdated_tasks = []
         outdated_exams = []
         outdated_schedules = []
         outdated_classes = []
         outdated_vacations = []
         
-        # 1. Process Tasks
+       
         all_tasks = list(tasks_collection.find({'user': session['user']}))
         tasks_for_display = []
         for task in all_tasks:
@@ -306,7 +302,7 @@ def dashboard():
             if status == 'outdated':
                 outdated_tasks.append(task)
             else:
-                # Only display non-outdated tasks on dashboard
+                
                 tasks_for_display.append(task)
         
         
@@ -321,7 +317,7 @@ def dashboard():
             if status == 'outdated':
                 outdated_exams.append(exam)
             else:
-                # Only display non-outdated exams on dashboard
+              
                 exams_for_display.append(exam)
             
         
@@ -384,7 +380,7 @@ def dashboard():
 @app.route('/api/clear-outdated', methods=['POST'])
 def clear_outdated():
     if 'user' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
+        return jsonify({'error': 'Not authenticated'})
     
     from datetime import datetime
     from zoneinfo import ZoneInfo
@@ -447,7 +443,7 @@ def schedule():
     if schedules_collection is not None:
         all_schedules = list(schedules_collection.find({'user': session['user']}).sort('date', 1))
         
-        # Filter out outdated schedules
+        
         schedules = []
         for sched in all_schedules:
             if get_task_status(sched.get('date')) != 'outdated':
@@ -518,7 +514,6 @@ def classes():
         # Filter out outdated classes
         classes_list = []
         for class_item in all_classes:
-            # Only filter if the class has a date field
             if class_item.get('date') and get_task_status(class_item.get('date')) == 'outdated':
                 continue
             class_item['_id'] = str(class_item['_id'])
@@ -540,7 +535,7 @@ def vacations():
         # Filter out outdated vacations (based on start_date)
         vacations_list = []
         for vacation in all_vacations:
-            # Only filter if the vacation has a start_date field
+        
             if vacation.get('start_date') and get_task_status(vacation.get('start_date')) == 'outdated':
                 continue
             vacation['_id'] = str(vacation['_id'])
@@ -562,7 +557,6 @@ def profile():
     if 'user' not in session:
         return redirect(url_for('login'))
     
-    # Get user data from database
     user_data = None
     stats = {
         'total_study_time': 0,
@@ -577,7 +571,6 @@ def profile():
         if user_data:
             user_data['_id'] = str(user_data['_id'])
         
-        # Calculate real statistics
         if tasks_collection is not None:
             stats['total_tasks'] = tasks_collection.count_documents({'user': session['user']})
             stats['completed_tasks'] = tasks_collection.count_documents({
@@ -593,7 +586,6 @@ def profile():
                 'completed': {'$ne': True}
             })
         
-        # Calculate study time from completed tasks/classes with duration
         if tasks_collection is not None:
             completed_tasks = tasks_collection.find({
                 'user': session['user'],
@@ -607,11 +599,11 @@ def profile():
     
     return render_template('profile.html', user=user_data, stats=stats)
 
-# API Endpoints
+
 @app.route('/api/schedules', methods=['GET', 'POST'])
 def api_schedules():
     if 'user' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
+        return jsonify({'error': 'Not authenticated'})
     
     if request.method == 'POST':
         data = request.json
@@ -648,21 +640,30 @@ def api_schedules():
 def chat():
     """Handle chat messages and return AI responses"""
     if 'user' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
+        return jsonify({'error': 'Not authenticated'})
 
     data = request.json
     user_message = data.get('message')
 
     if not user_message:
-        return jsonify({'error': 'No message provided'}), 400
+        return jsonify({'error': 'No message provided'})
 
-    # Gather user's current data for context
-    user_tasks = list(tasks_collection.find({'user': session['user']}))
-    user_exams = list(exams_collection.find({'user': session['user']}))
-    user_classes = list(classes_collection.find({'user': session['user']}))
-    user_schedules = list(schedules_collection.find({'user': session['user']}))
+    
+    user_tasks = []
+    user_exams = []
+    user_classes = []
+    user_schedules = []
 
-    # Convert MongoDB ObjectId to string for JSON serialization
+    if tasks_collection is not None:
+        user_tasks = list(tasks_collection.find({'user': session['user']}))
+    if exams_collection is not None:
+        user_exams = list(exams_collection.find({'user': session['user']}))
+    if classes_collection is not None:
+        user_classes = list(classes_collection.find({'user': session['user']}))
+    if schedules_collection is not None:
+        user_schedules = list(schedules_collection.find({'user': session['user']}))
+
+  
     for task in user_tasks:
         task['_id'] = str(task['_id'])
     for exam in user_exams:
@@ -672,7 +673,7 @@ def chat():
     for schedule in user_schedules:
         schedule['_id'] = str(schedule['_id'])
 
-    # Create a comprehensive system prompt with user context
+    # Created a comprehensive system prompt with user 
     system_prompt = f"""
 You are a friendly and helpful AI study assistant integrated into the Study Planner application.
 Your goal is to help the user manage their academic life effectively.
@@ -699,13 +700,6 @@ Based on this data, you can:
 5. Help break down large tasks into smaller steps
 6. Suggest study schedules based on their workload
 
-Example questions you can answer:
-- "What are my most important tasks?"
-- "When is my next exam?"
-- "Do I have anything due tomorrow?"
-- "How should I prepare for my upcoming exam?"
-- "I'm feeling overwhelmed, can you help?"
-
 Keep your responses:
 - Concise and to the point
 - Helpful and actionable
@@ -716,18 +710,19 @@ If the user asks you to add, edit, or delete items, politely inform them that th
 """
 
     try:
+        # Check if OpenAI client is initialized
         if not openai_client:
-            return jsonify({'error': 'AI assistant is not configured.'})
+            return jsonify({'error': 'AI assistant is not configured. Please check API key.'}), 503
         
         # Call OpenAI API
         response = openai_client.chat.completions.create(
-            model="gpt-3.5-turbo",  # Using the cost-effective model
+            model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_message}
             ],
-            temperature=0.7,  # Balanced creativity and consistency
-            max_tokens=500    # Limit response length
+            temperature=0.7,
+            max_tokens=500
         )
         
         ai_response = response.choices[0].message.content
@@ -735,8 +730,14 @@ If the user asks you to add, edit, or delete items, politely inform them that th
 
     except Exception as e:
         print(f"OpenAI API Error: {e}")
-        return jsonify({'error': 'Failed to get response from AI assistant. Please try again.'})
-
+        import traceback
+        traceback.print_exc()
+        
+        # Check if it's a quota error
+        if "429" in str(e) or "quota" in str(e).lower():
+            return jsonify({'error': 'OpenAI API quota exceeded. Please add credits to your OpenAI account or use a different API key.'})
+        
+        return jsonify({'error': f'Failed to get response from AI assistant: {str(e)}'})
 
 
 
@@ -778,7 +779,7 @@ def api_tasks():
 @app.route('/api/tasks/<task_id>/toggle', methods=['PUT'])
 def toggle_task(task_id):
     if 'user' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
+        return jsonify({'error': 'Not authenticated'})
     
     if tasks_collection is not None:
         task = tasks_collection.find_one({'_id': ObjectId(task_id), 'user': session['user']})
@@ -791,14 +792,14 @@ def toggle_task(task_id):
             )
             return jsonify({'success': True, 'completed': new_status})
         else:
-            return jsonify({'error': 'Task not found'}), 404
+            return jsonify({'error': 'Task not found'})
     else:
         return jsonify({'success': True, 'completed': True})
 
 @app.route('/api/exams', methods=['GET', 'POST'])
 def api_exams():
     if 'user' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
+        return jsonify({'error': 'Not authenticated'})
     
     if request.method == 'POST':
         data = request.json
@@ -834,7 +835,7 @@ def api_exams():
 @app.route('/api/exams/<exam_id>/toggle', methods=['PUT'])
 def toggle_exam(exam_id):
     if 'user' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
+        return jsonify({'error': 'Not authenticated'})
     
     if exams_collection is not None:
         exam = exams_collection.find_one({'_id': ObjectId(exam_id), 'user': session['user']})
@@ -847,15 +848,15 @@ def toggle_exam(exam_id):
             )
             return jsonify({'success': True, 'completed': new_status})
         else:
-            return jsonify({'error': 'Exam not found'}), 404
+            return jsonify({'error': 'Exam not found'})
     else:
         return jsonify({'success': True, 'completed': True})
 
 @app.route('/api/classes', methods=['GET', 'POST'])
 def api_classes():
     if 'user' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
-    
+        return jsonify({'error': 'Not authenticated'})
+
     if request.method == 'POST':
         data = request.json
         class_item = {
@@ -875,7 +876,7 @@ def api_classes():
         else:
             class_item['_id'] = 'temp_id'
         
-        return jsonify(class_item), 201
+        return jsonify(class_item)
     
     else:
         if classes_collection is not None:
@@ -890,7 +891,7 @@ def api_classes():
 @app.route('/api/classes/<class_id>/toggle', methods=['PUT'])
 def toggle_class(class_id):
     if 'user' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
+        return jsonify({'error': 'Not authenticated'})
     
     if classes_collection is not None:
         class_item = classes_collection.find_one({'_id': ObjectId(class_id), 'user': session['user']})
@@ -903,14 +904,14 @@ def toggle_class(class_id):
             )
             return jsonify({'success': True, 'completed': new_status})
         else:
-            return jsonify({'error': 'Class not found'}), 404
+            return jsonify({'error': 'Class not found'})
     else:
         return jsonify({'success': True, 'completed': True})
 
 @app.route('/api/schedules/<schedule_id>/toggle', methods=['PUT'])
 def toggle_schedule(schedule_id):
     if 'user' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
+        return jsonify({'error': 'Not authenticated'})
     
     if schedules_collection is not None:
         schedule = schedules_collection.find_one({'_id': ObjectId(schedule_id), 'user': session['user']})
@@ -923,14 +924,14 @@ def toggle_schedule(schedule_id):
             )
             return jsonify({'success': True, 'completed': new_status})
         else:
-            return jsonify({'error': 'Schedule not found'}), 404
+            return jsonify({'error': 'Schedule not found'})
     else:
         return jsonify({'success': True, 'completed': True})
 
 @app.route('/api/vacations', methods=['GET', 'POST'])
 def api_vacations():
     if 'user' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
+        return jsonify({'error': 'Not authenticated'})
     
     if request.method == 'POST':
         data = request.json
@@ -949,7 +950,7 @@ def api_vacations():
         else:
             vacation_item['_id'] = 'temp_id'
         
-        return jsonify(vacation_item), 201
+        return jsonify(vacation_item)
     
     else:
         if vacations_collection is not None:
@@ -964,7 +965,7 @@ def api_vacations():
 @app.route('/api/profile', methods=['PUT'])
 def update_profile():
     if 'user' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
+        return jsonify({'error': 'Not authenticated'})
     
     data = request.json
     update_data = {}
@@ -1012,21 +1013,21 @@ def update_profile():
 @app.route('/api/tasks/<task_id>', methods=['DELETE'])
 def delete_task(task_id):
     if 'user' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
+        return jsonify({'error': 'Not authenticated'})
     
     if tasks_collection is not None:
         result = tasks_collection.delete_one({'_id': ObjectId(task_id), 'user': session['user']})
         if result.deleted_count > 0:
             return jsonify({'success': True, 'message': 'Task deleted successfully'})
         else:
-            return jsonify({'error': 'Task not found'}), 404
+            return jsonify({'error': 'Task not found'})
     else:
         return jsonify({'success': True, 'message': 'Task deleted (dev mode)'})
 
 @app.route('/api/tasks/<task_id>', methods=['PUT'])
 def update_task(task_id):
     if 'user' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
+        return jsonify({'error': 'Not authenticated'})
     
     data = request.json
     update_data = {
@@ -1045,7 +1046,7 @@ def update_task(task_id):
         if result.matched_count > 0:
             return jsonify({'success': True, 'message': 'Task updated successfully'})
         else:
-            return jsonify({'error': 'Task not found'}), 404
+            return jsonify({'error': 'Task not found'})
     else:
         return jsonify({'success': True, 'message': 'Task updated (dev mode)'})
 
@@ -1053,21 +1054,21 @@ def update_task(task_id):
 @app.route('/api/exams/<exam_id>', methods=['DELETE'])
 def delete_exam(exam_id):
     if 'user' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
+        return jsonify({'error': 'Not authenticated'})
     
     if exams_collection is not None:
         result = exams_collection.delete_one({'_id': ObjectId(exam_id), 'user': session['user']})
         if result.deleted_count > 0:
             return jsonify({'success': True, 'message': 'Exam deleted successfully'})
         else:
-            return jsonify({'error': 'Exam not found'}), 404
+            return jsonify({'error': 'Exam not found'})
     else:
         return jsonify({'success': True, 'message': 'Exam deleted (dev mode)'})
 
 @app.route('/api/exams/<exam_id>', methods=['PUT'])
 def update_exam(exam_id):
     if 'user' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
+        return jsonify({'error': 'Not authenticated'})
     
     data = request.json
     update_data = {
@@ -1087,7 +1088,7 @@ def update_exam(exam_id):
         if result.matched_count > 0:
             return jsonify({'success': True, 'message': 'Exam updated successfully'})
         else:
-            return jsonify({'error': 'Exam not found'}), 404
+            return jsonify({'error': 'Exam not found'})
     else:
         return jsonify({'success': True, 'message': 'Exam updated (dev mode)'})
 
@@ -1095,21 +1096,21 @@ def update_exam(exam_id):
 @app.route('/api/classes/<class_id>', methods=['DELETE'])
 def delete_class(class_id):
     if 'user' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
+        return jsonify({'error': 'Not authenticated'})
     
     if classes_collection is not None:
         result = classes_collection.delete_one({'_id': ObjectId(class_id), 'user': session['user']})
         if result.deleted_count > 0:
             return jsonify({'success': True, 'message': 'Class deleted successfully'})
         else:
-            return jsonify({'error': 'Class not found'}), 404
+            return jsonify({'error': 'Class not found'})
     else:
         return jsonify({'success': True, 'message': 'Class deleted (dev mode)'})
 
 @app.route('/api/classes/<class_id>', methods=['PUT'])
 def update_class(class_id):
     if 'user' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
+        return jsonify({'error': 'Not authenticated'})
     
     data = request.json
     update_data = {
@@ -1129,7 +1130,7 @@ def update_class(class_id):
         if result.matched_count > 0:
             return jsonify({'success': True, 'message': 'Class updated successfully'})
         else:
-            return jsonify({'error': 'Class not found'}), 404
+            return jsonify({'error': 'Class not found'})
     else:
         return jsonify({'success': True, 'message': 'Class updated (dev mode)'})
 
@@ -1137,21 +1138,21 @@ def update_class(class_id):
 @app.route('/api/schedules/<schedule_id>', methods=['DELETE'])
 def delete_schedule(schedule_id):
     if 'user' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
+        return jsonify({'error': 'Not authenticated'})
     
     if schedules_collection is not None:
         result = schedules_collection.delete_one({'_id': ObjectId(schedule_id), 'user': session['user']})
         if result.deleted_count > 0:
             return jsonify({'success': True, 'message': 'Schedule deleted successfully'})
         else:
-            return jsonify({'error': 'Schedule not found'}), 404
+            return jsonify({'error': 'Schedule not found'})
     else:
         return jsonify({'success': True, 'message': 'Schedule deleted (dev mode)'})
 
 @app.route('/api/schedules/<schedule_id>', methods=['PUT'])
 def update_schedule(schedule_id):
     if 'user' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
+        return jsonify({'error': 'Not authenticated'})
     
     data = request.json
     update_data = {
@@ -1171,7 +1172,7 @@ def update_schedule(schedule_id):
         if result.matched_count > 0:
             return jsonify({'success': True, 'message': 'Schedule updated successfully'})
         else:
-            return jsonify({'error': 'Schedule not found'}), 404
+            return jsonify({'error': 'Schedule not found'})
     else:
         return jsonify({'success': True, 'message': 'Schedule updated (dev mode)'})
 
@@ -1179,21 +1180,21 @@ def update_schedule(schedule_id):
 @app.route('/api/vacations/<vacation_id>', methods=['DELETE'])
 def delete_vacation(vacation_id):
     if 'user' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
+        return jsonify({'error': 'Not authenticated'})
     
     if vacations_collection is not None:
         result = vacations_collection.delete_one({'_id': ObjectId(vacation_id), 'user': session['user']})
         if result.deleted_count > 0:
             return jsonify({'success': True, 'message': 'Vacation deleted successfully'})
         else:
-            return jsonify({'error': 'Vacation not found'}), 404
+            return jsonify({'error': 'Vacation not found'})
     else:
         return jsonify({'success': True, 'message': 'Vacation deleted (dev mode)'})
 
 @app.route('/api/vacations/<vacation_id>', methods=['PUT'])
 def update_vacation(vacation_id):
     if 'user' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
+        return jsonify({'error': 'Not authenticated'})
     
     data = request.json
     update_data = {
@@ -1212,7 +1213,7 @@ def update_vacation(vacation_id):
         if result.matched_count > 0:
             return jsonify({'success': True, 'message': 'Vacation updated successfully'})
         else:
-            return jsonify({'error': 'Vacation not found'}), 404
+            return jsonify({'error': 'Vacation not found'})
     else:
         return jsonify({'success': True, 'message': 'Vacation updated (dev mode)'})
 
