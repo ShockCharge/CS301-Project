@@ -17,7 +17,9 @@ if not openai_api_key:
     raise ValueError("OPENAI_API_KEY not found in environment variables")
 openai_client = OpenAI(api_key=openai_api_key)
 
-app = Flask(__name__)
+application = Flask(__name__)
+app = application
+
 app.secret_key = 'supersecretkey123'
 
 # Email configuration
@@ -156,7 +158,7 @@ def check_upcoming_deadlines():
                 upcoming_items.append(f"Task: {task.get('name')} - {task.get('date')}")
         
         # Check exams
-        if exams_collection:
+        if exams_collection is not None:
             exams = exams_collection.find({
                 'user': email,
                 'completed': {'$ne': True},
@@ -166,7 +168,7 @@ def check_upcoming_deadlines():
                 upcoming_items.append(f" Exam: {exam.get('subject')} - {exam.get('date')} at {exam.get('time')}")
         
         # Check schedules
-        if schedules_collection:
+        if schedules_collection is not None:
             schedules = schedules_collection.find({
                 'user': email,
                 'completed': {'$ne': True},
