@@ -1,4 +1,5 @@
 import os
+import requests
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 from flask_mail import Mail, Message
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -7,18 +8,19 @@ from dotenv import load_dotenv
 from datetime import datetime, timedelta
 from bson import ObjectId
 import threading
-from openai import OpenAI
+import PyPDF2
 
 
 load_dotenv()
 
-openai_api_key = os.environ.get("OPENAI_API_KEY")
-if not openai_api_key:
-    raise ValueError("OPENAI_API_KEY not found in environment variables")
-openai_client = OpenAI(api_key=openai_api_key)
 
-application = Flask(__name__)
-app = application
+OLLAMA_API_URL = "http://localhost:11434/api/chat"
+OLLAMA_MODEL = "llama3"
+
+
+app = Flask(__name__)
+application = app
+
 
 app.secret_key = 'supersecretkey123'
 
@@ -639,107 +641,7 @@ def api_schedules():
         return jsonify(schedules)
     
 @app.route('/api/chat', methods=['POST'])
-def chat():
-    """Handle chat messages and return AI responses"""
-    if 'user' not in session:
-        return jsonify({'error': 'Not authenticated'})
 
-    data = request.json
-    user_message = data.get('message')
-
-    if not user_message:
-        return jsonify({'error': 'No message provided'})
-
-    
-    user_tasks = []
-    user_exams = []
-    user_classes = []
-    user_schedules = []
-
-    if tasks_collection is not None:
-        user_tasks = list(tasks_collection.find({'user': session['user']}))
-    if exams_collection is not None:
-        user_exams = list(exams_collection.find({'user': session['user']}))
-    if classes_collection is not None:
-        user_classes = list(classes_collection.find({'user': session['user']}))
-    if schedules_collection is not None:
-        user_schedules = list(schedules_collection.find({'user': session['user']}))
-
-  
-    for task in user_tasks:
-        task['_id'] = str(task['_id'])
-    for exam in user_exams:
-        exam['_id'] = str(exam['_id'])
-    for cls in user_classes:
-        cls['_id'] = str(cls['_id'])
-    for schedule in user_schedules:
-        schedule['_id'] = str(schedule['_id'])
-
-    # Created a comprehensive system prompt with user 
-    system_prompt = f"""
-You are a friendly and helpful AI study assistant integrated into the Study Planner application.
-Your goal is to help the user manage their academic life effectively.
-
-Here is the user's current data:
-
-**Tasks ({len(user_tasks)} total):**
-{user_tasks if user_tasks else "No tasks yet"}
-
-**Exams ({len(user_exams)} total):**
-{user_exams if user_exams else "No exams scheduled"}
-
-**Classes ({len(user_classes)} total):**
-{user_classes if user_classes else "No classes added"}
-
-**Schedule Items ({len(user_schedules)} total):**
-{user_schedules if user_schedules else "No schedule items"}
-
-Based on this data, you can:
-1. Answer questions about their tasks, exams, classes, and schedule
-2. Help them prioritize their work
-3. Provide study tips and time management advice
-4. Offer motivation and encouragement
-5. Help break down large tasks into smaller steps
-6. Suggest study schedules based on their workload
-
-Keep your responses:
-- Concise and to the point
-- Helpful and actionable
-- Encouraging and positive
-- Based on the actual data provided above
-
-If the user asks you to add, edit, or delete items, politely inform them that they need to use the respective pages in the application (Tasks, Exams, Classes, etc.) as you can only provide information and advice.
-"""
-
-    try:
-        # Check if OpenAI client is initialized
-        if not openai_client:
-            return jsonify({'error': 'AI assistant is not configured. Please check API key.'}), 503
-        
-        # Call OpenAI API
-        response = openai_client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_message}
-            ],
-            temperature=0.7,
-            max_tokens=500
-        )
-        
-        ai_response = response.choices[0].message.content
-        return jsonify({'response': ai_response})
-
-    except Exception as e:
-        print(f"OpenAI API Error: {e}")
-        import traceback
-        traceback.print_exc()
-        
-        # Check if it's a quota error
-        if "429" in str(e) or "quota" in str(e).lower():
-            return jsonify({'error': 'OpenAI API quota exceeded. Please add credits to your OpenAI account or use a different API key.'})
-        
-        return jsonify({'error': f'Failed to get response from AI assistant: {str(e)}'})
 
 
 
