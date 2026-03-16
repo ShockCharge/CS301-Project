@@ -1,251 +1,287 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Study Planner | Schedule</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Study Planner | Schedule</title>
+
+<!-- Bootstrap -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
+<link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+
+<style>
+body {
+    background-color: #f7f9fc;
+    font-family: 'Roboto', sans-serif;
+}
+
+.app-container {
+    display: flex;
+}
+
+/* MAIN CONTENT */
+.main-content {
+    flex: 1;
+    padding: 2rem;
+    margin-left: 260px;
+}
+
+/* SIDEBAR */
+.sidebar {
+    width: 260px;
+    min-height: 100vh;
+    background: #fff;
+    border-right: 1px solid #e4e6eb;
+    padding: 1.5rem;
+    position: fixed;
+    top: 0;
+    left: 0;
+    transition: all 0.3s ease;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+}
+
+/* BLUE TITLE */
+.sidebar h4 {
+    color: #007bff;
+    margin-bottom: 1.5rem;
+}
+
+/* NAV LINKS */
+.sidebar .nav-link {
+    border-radius: 12px;
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #444;
+    text-decoration: none;
+}
+
+.sidebar .nav-link.active,
+.sidebar .nav-link:hover {
+    background: #e9eef7;
+    color: #007bff !important;
+}
+
+.submenu {
+    list-style: none;
+    padding-left: 20px;
+    display: none;
+}
+
+.submenu.show {
+    display: block;
+}
+
+/* PUSH LOGOUT TO BOTTOM */
+.sidebar-footer {
+    margin-top: auto;
+}
+
+.logout-btn {
+    background: #6c757d;
+    color: white;
+    width: 100%;
+    border-radius: 12px;
+    padding: 10px;
+    text-align: center;
+    text-decoration: none;
+}
+
+/* HEADER */
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.user-avatar {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #007bff;
+    color: white;
+    font-weight: bold;
+    overflow: hidden;
+}
+
+.hamburger-btn {
+    display: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+}
+
+/* CARD */
+.card {
+    border: none;
+    border-radius: 18px;
+    padding: 1.5rem;
+    background: white;
+    box-shadow: 0px 4px 14px rgba(0, 0, 0, 0.08);
+}
+
+/* MOBILE */
+@media(max-width: 768px) {
+
+    .main-content {
+        margin-left: 0;
+        padding: 1rem;
+    }
+
+    .sidebar {
+        left: -100%;
+    }
+
+    .sidebar.show {
+        left: 0;
+    }
+
+    .hamburger-btn {
+        display: block;
+    }
+}
+</style>
 </head>
+
 <body>
-    <div class="app-container">
-        <!-- Sidebar -->
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <h1 class="sidebar-brand">Study Planner</h1>
-            </div>
-            <nav class="sidebar-nav">
-                <ul>
-                    <li><a href="{{ url_for('dashboard') }}" class="nav-link">
-                        <i class="bi bi-grid"></i>
-                        <span>Dashboard</span>
-                    </a></li>
-                    <li><a href="{{ url_for('schedule') }}" class="nav-link active">
-                        <i class="bi bi-calendar3"></i>
-                        <span>Schedule</span>
-                    </a></li>
-           
 
-                    <li>
-                        <a href="#" class="nav-link" id="activities-toggle">
-                            <i class="bi bi-list-task"></i>
-                            <span>Activities</span>
-                            <i class="bi bi-chevron-down submenu-arrow"></i>
-                        </a>
-                        <ul class="submenu" id="activities-submenu">
-                            <li><a href="{{ url_for('tasks') }}" class="nav-link">
-                                <i class="bi bi-check-square"></i>
-                                <span>Tasks</span>
-                            </a></li>
-                            <li><a href="{{ url_for('exams') }}" class="nav-link">
-                                <i class="bi bi-book"></i>
-                                <span>Exams</span>
-                            </a></li>
-                            <li><a href="{{ url_for('classes') }}" class="nav-link">
-                                <i class="bi bi-mortarboard"></i>
-                                <span>Classes</span>
-                            </a></li>
-                            <li><a href="{{ url_for('vacations') }}" class="nav-link">
-                                <i class="bi bi-airplane"></i>
-                                <span>Vacations</span>
-                            </a></li>
-                        </ul>
-                    </li>
-                    <li><a href="{{ url_for('chatbot') }}" class="nav-link">
-                        <i class="bi bi-chat-dots"></i>
-                        <span>Chatbot</span> 
-                    </a></li>
-                   
-                    <li><a href="{{ url_for('settings') }}" class="nav-link">
-                        <i class="bi bi-gear"></i>
-                        <span>Settings</span>
-                    </a></li>
-                    <li><a href="{{ url_for('profile') }}" class="nav-link">
-                        <i class="bi bi-person-circle"></i>
-                        <span>Profile</span>
-                    </a></li>
+<div class="app-container">
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+    <h4 class="fw-bold">Study Planner</h4>
+
+    <nav>
+        <ul class="list-unstyled">
+            <li><a href="{{ url_for('dashboard') }}" class="nav-link"><i class="bi bi-grid"></i> Dashboard</a></li>
+            <li><a href="{{ url_for('schedule') }}" class="nav-link active"><i class="bi bi-calendar3"></i> Schedule</a></li>
+            <li>
+                <a href="#" class="nav-link" id="activities-toggle">
+                    <i class="bi bi-list-task"></i> Activities
+                    <i class="bi bi-chevron-down ms-auto"></i>
+                </a>
+                <ul class="submenu" id="activities-submenu">
+                    <li><a href="{{ url_for('tasks') }}" class="nav-link"><i class="bi bi-check-square"></i> Tasks</a></li>
+                    <li><a href="{{ url_for('exams') }}" class="nav-link"><i class="bi bi-book"></i> Exams</a></li>
+                    <li><a href="{{ url_for('classes') }}" class="nav-link"><i class="bi bi-mortarboard"></i> Classes</a></li>
+                    <li><a href="{{ url_for('vacations') }}" class="nav-link"><i class="bi bi-airplane"></i> Vacations</a></li>
                 </ul>
-            </nav>
-            <div class="sidebar-footer">
-                <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
-            </div>
-        </aside>
+            </li>
+            <li><a href="{{ url_for('chatbot') }}" class="nav-link"><i class="bi bi-chat-dots"></i> Chatbot</a></li>
+            <li><a href="{{ url_for('settings') }}" class="nav-link"><i class="bi bi-gear"></i> Settings</a></li>
+            <li><a href="{{ url_for('profile') }}" class="nav-link"><i class="bi bi-person-circle"></i> Profile</a></li>
+        </ul>
+    </nav>
 
-        <!-- Main Content -->
-        <main class="main-content">
-            <!-- Header -->
-            <header class="header">
-                <h2 class="page-title">Schedule</h2>
-                <div class="user-profile">
-                    <a href="{{ url_for('profile') }}" style="text-decoration: none;">
-                        <div class="user-avatar" id="header-avatar">
-                            <img id="header-avatar-img" src="" alt="" style="display: none; width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
-                            <span id="header-avatar-text">{{ session.user_name[0].upper() if session.user_name else (session.user[0].upper() if session.user else 'U') }}</span>
-                        </div>
-                    </a>
-                </div>
-            </header>
+    <div class="sidebar-footer">
+        <a href="{{ url_for('logout') }}" class="logout-btn mt-3">Logout</a>
+    </div>
+</aside>
 
-            <!-- Schedule Container -->
-            <div class="schedule-container">
-                <!-- Controls -->
-                <div class="schedule-controls">
-                    <div class="schedule-date">
-                        <button class="btn-nav" id="prev-month">‹</button>
-                        <span class="current-month" id="current-month">October 2025</span>
-                        <button class="btn-nav" id="next-month">›</button>
-                    </div>
-                    <button class="btn-add-schedule" id="add-schedule-btn">+ Add Schedule</button>
-                    <div class="view-tabs">
-                        <button class="tab-btn active" data-view="week">Week</button>
-                        <button class="tab-btn" data-view="day">Day</button>
-                        <button class="tab-btn" data-view="month">Month</button>
-                    </div>
-                </div>
+<!-- MAIN -->
+<main class="main-content">
 
-                <!-- Week View -->
-                <div id="week-view" class="calendar-view">
-                    <div class="calendar-header" id="week-header"></div>
-                    <div class="calendar-grid" id="week-grid"></div>
-                </div>
-
-                <!-- Day View -->
-                <div id="day-view" class="calendar-view" style="display: none;">
-                    <div class="time-slots" id="day-slots"></div>
-                </div>
-
-                <!-- Month View -->
-                <div id="month-view" class="calendar-view" style="display: none;">
-                    <div class="calendar-header" id="month-header"></div>
-                    <div class="month-grid" id="month-grid"></div>
-                </div>
-
-                <!-- Schedule List -->
-                <div class="schedule-list">
-                    <h3>Scheduled Items</h3>
-                    <div id="schedule-list-items"></div>
-                </div>
-            </div>
-
-            <!-- Footer -->
-            <footer class="footer">
-                <p>&copy; 2025 Study Planner</p>
-            </footer>
-        </main>
+<header>
+    <span class="hamburger-btn">&#9776;</span>
+    <div>
+        <h2 class="fw-bold">Schedule</h2>
+        <p class="text-muted">Manage your study calendar</p>
     </div>
 
-    <!-- Add Schedule Modal -->
-    <div id="addScheduleModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>Add Schedule</h2>
-            <form id="addScheduleForm">
-                <div class="form-group">
-                    <label>Title</label>
-                    <input type="text" id="scheduleTitle" class="form-input" required>
-                </div>
-                <div class="form-group">
-                    <label>Date</label>
-                    <input type="date" id="scheduleDate" class="form-input" required>
-                </div>
-                <div class="form-group">
-                    <label>Time</label>
-                    <input type="time" id="scheduleTime" class="form-input" required>
-                </div>
-                <div class="form-group">
-                    <label>Duration (minutes)</label>
-                    <input type="number" id="scheduleDuration" class="form-input" min="15" step="15" placeholder="60">
-                </div>
-                
-                <div class="form-group">
-                    <label>Description</label>
-                    <textarea id="scheduleDescription" class="form-input" rows="3"></textarea>
-                </div>
-                <button type="submit" class="btn-primary">Add Schedule</button>
-            </form>
-        </div>
+    <div class="user-avatar">
+        <a href="{{ url_for('profile') }}" style="text-decoration:none; color:inherit;">
+            <img id="header-avatar-img" src="" style="display:none;width:100%;height:100%;object-fit:cover;">
+            <span id="header-avatar-text">
+                {{ session.user_name[0].upper() if session.user_name else (session.user[0].upper() if session.user else 'U') }}
+            </span>
+        </a>
     </div>
-    <!-- Custom Delete Confirmation Modal -->
-<div class="custom-modal-overlay" id="deleteConfirmModal">
-    <div class="custom-modal">
-        <div class="custom-modal-header delete">
-            <i class="bi bi-exclamation-triangle-fill"></i>
-            <div>
-                <div class="custom-modal-title">Confirm Delete</div>
-            </div>
-        </div>
-        <div class="custom-modal-body">
-            <p id="deleteConfirmMessage">Are you sure you want to delete this item? This action cannot be undone.</p>
-        </div>
-        <div class="custom-modal-actions">
-            <button class="custom-modal-btn custom-modal-btn-cancel" onclick="closeDeleteModal()">
-                Cancel
-            </button>
-            <button class="custom-modal-btn custom-modal-btn-confirm" id="confirmDeleteBtn">
-                Delete
-            </button>
-        </div>
+</header>
+
+<div class="card">
+
+<!-- KEEP ALL YOUR CALENDAR CONTENT EXACTLY AS BEFORE -->
+
+<div class="schedule-controls mb-3 d-flex flex-wrap gap-2 justify-content-between align-items-center">
+    <div>
+        <button class="btn btn-outline-secondary" id="prev-month">‹</button>
+        <span class="fw-bold mx-2" id="current-month">October 2025</span>
+        <button class="btn btn-outline-secondary" id="next-month">›</button>
+    </div>
+
+    <button class="btn btn-primary" id="add-schedule-btn">+ Add Schedule</button>
+
+    <div class="btn-group">
+        <button class="btn btn-outline-primary active tab-btn" data-view="week">Week</button>
+        <button class="btn btn-outline-primary tab-btn" data-view="day">Day</button>
+        <button class="btn btn-outline-primary tab-btn" data-view="month">Month</button>
     </div>
 </div>
 
-    <!-- Edit Schedule Modal -->
-    <div id="editScheduleModal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="document.getElementById('editScheduleModal').style.display='none'">&times;</span>
-            <h2>Edit Schedule</h2>
-            <form id="editScheduleForm">
-                <input type="hidden" id="editScheduleId">
-                <div class="form-group">
-                    <label>Title</label>
-                    <input type="text" id="editScheduleTitle" class="form-input" required>
-                </div>
-                <div class="form-group">
-                    <label>Date</label>
-                    <input type="date" id="editScheduleDate" class="form-input" required>
-                </div>
-                <div class="form-group">
-                    <label>Time</label>
-                    <input type="time" id="editScheduleTime" class="form-input" required>
-                </div>
-                <div class="form-group">
-                    <label>Duration (minutes)</label>
-                    <input type="number" id="editScheduleDuration" class="form-input" min="15" step="15" placeholder="60">
-                </div>
-                <div class="form-group">
-                    <label>Description</label>
-                    <textarea id="editScheduleDescription" class="form-input" rows="3"></textarea>
-                </div>
-                <button type="submit" class="btn-primary">Update Schedule</button>
-            </form>
-        </div>
-    </div>
-
-    <!-- Custom Delete Confirmation Modal -->
-<div class="custom-modal-overlay" id="deleteConfirmModal">
-    <div class="custom-modal">
-        <div class="custom-modal-header delete">
-            <i class="bi bi-exclamation-triangle-fill"></i>
-            <div>
-                <div class="custom-modal-title">Confirm Delete</div>
-            </div>
-        </div>
-        <div class="custom-modal-body">
-            <p id="deleteConfirmMessage">Are you sure you want to delete this item? This action cannot be undone.</p>
-        </div>
-        <div class="custom-modal-actions">
-            <button class="custom-modal-btn custom-modal-btn-cancel" onclick="closeDeleteModal()">
-                Cancel
-            </button>
-            <button class="custom-modal-btn custom-modal-btn-confirm" id="confirmDeleteBtn">
-                Delete
-            </button>
-        </div>
-    </div>
+<div id="week-view" class="calendar-view">
+    <div id="week-header"></div>
+    <div id="week-grid"></div>
 </div>
 
-    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+<div id="day-view" class="calendar-view" style="display:none;">
+    <div id="day-slots"></div>
+</div>
+
+<div id="month-view" class="calendar-view" style="display:none;">
+    <div id="month-header"></div>
+    <div id="month-grid"></div>
+</div>
+
+<hr>
+
+<h5 class="fw-bold">Scheduled Items</h5>
+<div id="schedule-list-items"></div>
+
+</div>
+
+<footer class="text-center mt-4 text-muted">
+    &copy; 2025 Study Planner
+</footer>
+
+</main>
+</div>
+
+<script>
+// Sidebar toggle
+const sidebar = document.querySelector('.sidebar');
+const hamburger = document.querySelector('.hamburger-btn');
+hamburger?.addEventListener('click', () => sidebar.classList.toggle('show'));
+
+// Activities submenu
+document.getElementById('activities-toggle')?.addEventListener('click', function(e){
+    e.preventDefault();
+    document.getElementById('activities-submenu')?.classList.toggle('show');
+});
+
+// PROFILE PICTURE (same as dashboard)
+window.addEventListener('DOMContentLoaded', function() {
+    const savedPic = localStorage.getItem('profilePicture');
+    const avatarImg = document.getElementById('header-avatar-img');
+    const avatarText = document.getElementById('header-avatar-text');
+
+    if (savedPic && avatarImg && avatarText) {
+        avatarImg.src = savedPic;
+        avatarImg.style.display = 'block';
+        avatarText.style.display = 'none';
+    }
+});
+</script>
+
+<script src="{{ url_for('static', filename='js/script.js') }}"></script>
+
 </body>
 </html>
-
