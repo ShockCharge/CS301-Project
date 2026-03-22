@@ -266,37 +266,80 @@ header {
         display: block;
     }
 }
+
+.modal.fade .modal-dialog {
+    transform: translateY(30px);
+    transition: all 0.3s ease;
+}
+
+.modal.show .modal-dialog {
+    transform: translateY(0);
+}
 </style>
 </head>
 
 <body>
     <div class="app-container">
-    <!-- Sidebar -->
-    <aside class="sidebar">
-        <h4 class="fw-bold">Study Planner</h4>
-        <nav class="sidebar-nav">
-            <ul class="list-unstyled">
-                <li><a href="{{ url_for('dashboard') }}" class="nav-link active"><i class="bi bi-grid"></i> Dashboard</a></li>
-                <li><a href="{{ url_for('schedule') }}" class="nav-link"><i class="bi bi-calendar3"></i> Schedule</a></li>
-                <li>
-                    <a href="#" class="nav-link" id="activities-toggle">
-                        <i class="bi bi-list-task"></i> Activities <i class="bi bi-chevron-down submenu-arrow"></i>
-                    </a>
-                    <ul class="submenu" id="activities-submenu">
-                        <li><a href="{{ url_for('tasks') }}" class="nav-link"><i class="bi bi-check-square"></i> Tasks</a></li>
-                        <li><a href="{{ url_for('exams') }}" class="nav-link"><i class="bi bi-book"></i> Exams</a></li>
-                        <li><a href="{{ url_for('classes') }}" class="nav-link"><i class="bi bi-mortarboard"></i> Classes</a></li>
-                        <li><a href="{{ url_for('vacations') }}" class="nav-link"><i class="bi bi-airplane"></i> Vacations</a></li>
-                    </ul>
-                </li>
-                <li><a href="{{ url_for('chatbot') }}" class="nav-link"><i class="bi bi-chat-dots"></i><span>Chatbot</span> </a></li>
-                <li><a href="{{ url_for('profile') }}" class="nav-link"><i class="bi bi-person-circle"></i> Profile</a></li>
-                <li><a href="{{ url_for('settings') }}" class="nav-link"><i class="bi bi-gear"></i> Settings</a></li>
-            </ul>
-        </nav>
-        <a href="{{ url_for('logout') }}" class="logout-btn mt-3">Logout</a>
-    </aside>
-
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h1 class="sidebar-brand">Study Planner</h1>
+            </div>
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="{{ url_for('dashboard') }}" class="nav-link active">
+                        <i class="bi bi-grid"></i>
+                        <span>Dashboard</span>
+                    </a></li>
+                    <li><a href="{{ url_for('schedule') }}" class="nav-link">
+                        <i class="bi bi-calendar3"></i>
+                        <span>Schedule</span>
+                    </a></li>
+                    
+                    <li>
+                        <a href="#" class="nav-link" id="activities-toggle">
+                            <i class="bi bi-list-task"></i>
+                            <span>Activities</span>
+                            <i class="bi bi-chevron-down submenu-arrow"></i>
+                        </a>
+                        <ul class="submenu" id="activities-submenu">
+                            <li><a href="{{ url_for('tasks') }}" class="nav-link">
+                                <i class="bi bi-check-square"></i>
+                                <span>Tasks</span>
+                            </a></li>
+                            <li><a href="{{ url_for('exams') }}" class="nav-link">
+                                <i class="bi bi-book"></i>
+                                <span>Exams</span>
+                            </a></li>
+                            <li><a href="{{ url_for('classes') }}" class="nav-link">
+                                <i class="bi bi-mortarboard"></i>
+                                <span>Classes</span>
+                            </a></li>
+                            <li><a href="{{ url_for('vacations') }}" class="nav-link">
+                                <i class="bi bi-airplane"></i>
+                                <span>Vacations</span>
+                            </a></li>
+                        </ul>
+                    </li>
+                    <li><a href="{{ url_for('chatbot') }}" class="nav-link">
+                        <i class="bi bi-chat-dots"></i>
+                        <span>Chatbot</span> 
+                    </a></li>
+                  
+                    <li><a href="{{ url_for('settings') }}" class="nav-link">
+                        <i class="bi bi-gear"></i>
+                        <span>Settings</span>
+                    </a></li>
+                    <li><a href="{{ url_for('profile') }}" class="nav-link">
+                        <i class="bi bi-person-circle"></i>
+                        <span>Profile</span>
+                    </a></li>
+                </ul>
+            </nav>
+            <div class="sidebar-footer">
+                <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+            </div>
+        </aside>
     <!-- Main Content -->
     <main class="main-content">
         <header>
@@ -357,7 +400,48 @@ header {
                     <button class="btn-action" onclick="window.location.href='/exams'">View Exams</button>
                 </div>
             </div>
+        <!-- AI Task Suggestions Card -->
+<!-- AI Task Suggestions -->
+<div class="card mt-4 p-3">
+    <h5>🤖 AI Task Suggestions</h5>
+    <button class="btn btn-primary w-100" onclick="openSuggestionModal()">Get Suggestions</button>
+</div>
 
+<!-- AI Study Plan -->
+<div class="card mt-4 p-3">
+    <h5>📅 AI Weekly Study Plan</h5>
+    <button class="btn btn-success w-100" onclick="openPlanModal()">Generate Plan</button>
+</div>
+
+<!-- AI Modal - FIXED -->
+<div class="modal fade" id="aiModal" tabindex="-1" data-bs-backdrop="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content rounded-4 shadow-lg">
+      
+      <div class="modal-header border-0">
+        <h5 class="modal-title fw-bold" id="aiModalTitle">AI Study Coach</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <div class="modal-body">
+        <input type="text" id="subjectInput" 
+               class="form-control mb-3" 
+               placeholder="Optional: Enter subject (e.g. Mathematics, Programming, Biology)">
+
+        <div id="aiModalContent" 
+             style="min-height: 300px; max-height: 450px; overflow-y: auto; 
+                    background:#f8f9fa; padding:18px; border-radius:10px; white-space:pre-wrap;">
+        </div>
+      </div>
+
+      <div class="modal-footer border-0">
+        <button class="btn btn-outline-primary" onclick="downloadAI()">📥 Download Result</button>
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+
+    </div>
+  </div>
+</div>
             <!-- Upcoming Exams -->
             <div class="card">
                 <div class="card-header"><h5 class="fw-bold">Upcoming Exams</h5></div>
@@ -400,48 +484,114 @@ header {
         <footer class="text-center mt-3 text-muted">&copy; 2025 Study Planner</footer>
     </main>
 </div>
-
 <script>
-// Sidebar toggle for mobile
-const sidebar = document.querySelector('.sidebar');
-const hamburger = document.querySelector('.hamburger-btn');
-hamburger?.addEventListener('click', () => sidebar.classList.toggle('show'));
+    let aiModal;
+    let currentAIText = "";
 
-// Activities submenu toggle
-const toggleBtn = document.getElementById('activities-toggle');
-const submenu = document.getElementById('activities-submenu');
-toggleBtn?.addEventListener('click', (e) => {
-    e.preventDefault(); // Prevent scrolling to top
-    submenu.classList.toggle('show');
-});
+    document.addEventListener("DOMContentLoaded", () => {
+        aiModal = new bootstrap.Modal(document.getElementById('aiModal'), {
+            backdrop: 'true',
+            keyboard: true
+        });
+    });
 
-// Profile picture
-window.addEventListener('DOMContentLoaded', function() {
-    const savedPic = localStorage.getItem('profilePicture');
-    const avatarImg = document.getElementById('header-avatar-img');
-    const avatarText = document.getElementById('header-avatar-text');
-    if (savedPic && avatarImg && avatarText) {
-        avatarImg.src = savedPic;
-        avatarImg.style.display = 'block';
-        avatarText.style.display = 'none';
+    // Show modal with loading
+    function showAIModal(title) {
+        document.getElementById("aiModalTitle").innerText = title;
+        document.getElementById("aiModalContent").innerHTML = `
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary mb-3" role="status"></div>
+                <p class="text-muted mb-0">Thinking... Please wait while your AI coach prepares the response.</p>
+            </div>`;
+        
+        aiModal.show();
     }
 
-    // Progress circle
-    const progress = parseInt('{{ progress }}') || 0;
-    const circle = document.getElementById('progress-circle');
-    circle.style.background = `conic-gradient(#007bff ${progress}%, #e9ecef ${progress}% 100%)`;
-});
-
-// Clear outdated items
-document.getElementById('clear-outdated-btn')?.addEventListener('click', async function() {
-    if (!confirm('Are you sure you want to delete all outdated items?')) return;
+    // New function to fetch AI response asynchronously
+    async function fetchAIResponse(endpoint, title) {
     try {
-        const res = await fetch('/api/clear-outdated',{method:'POST', headers:{'Content-Type':'application/json'}});
-        const result = await res.json();
-        if(result.success){ alert(`Deleted ${result.deleted_count} items.`); location.reload();}
-        else alert('Failed to clear outdated items');
-    } catch(e){ console.error(e); alert('Failed to clear outdated items');}
-});
+        const res = await fetch(endpoint);
+        const data = await res.json();
+
+        if (!data.task_id) {
+            throw new Error(data.error || "No task ID received");
+        }
+
+        const taskId = data.task_id;
+
+        let attempts = 0;
+        let maxAttempts = 30; // ~30 seconds max wait
+
+        while (attempts < maxAttempts) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            const statusRes = await fetch(`/api/ai-task-status/${taskId}`);
+            const result = await statusRes.json();
+
+            // ✅ Handle all states properly
+            if (result.state === "SUCCESS") {
+                currentAIText =
+                    result.result?.suggestions ||
+                    result.result?.plan ||
+                    "No response received.";
+
+                document.getElementById("aiModalContent").innerText = currentAIText;
+                return;
+            }
+
+            if (result.state === "FAILURE") {
+                throw new Error(result.status || "AI failed");
+            }
+
+            // ⏳ still processing (PENDING / STARTED)
+            document.getElementById("aiModalContent").innerHTML = `
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary mb-3"></div>
+                    <p>Still working... (${attempts + 1}s)</p>
+                </div>
+            `;
+
+            attempts++;
+        }
+
+        // timeout case
+        throw new Error("AI is taking too long. Try again.");
+
+    } catch (err) {
+        console.error(err);
+        document.getElementById("aiModalContent").innerHTML =
+            `<span class="text-danger">${err.message}</span>`;
+    }
+}
+    
+    // Open Suggestions
+    function openSuggestionModal() {
+        showAIModal("🤖 AI Task Suggestions");
+        fetchAIResponse('/api/ai-task-suggestions', "AI Task Suggestions");    }
+    
+    // Open Study Plan
+    function openPlanModal() {
+        showAIModal("📅 AI Weekly Study Plan");
+        fetchAIResponse('/api/ai-task-suggestions', "AI Task Suggestions");    }
+
+    // Download Function 
+    function downloadAI() {
+        if (!currentAIText.trim()) {
+            alert("Nothing to download yet!");
+            return;
+        }
+    
+        const blob = new Blob([currentAIText], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        
+        const title = document.getElementById("aiModalTitle").innerText;
+        a.download = title.includes("Suggestion") ? "AI_Task_Suggestions.txt" : "AI_Study_Plan.txt";
+        a.href = url;
+        a.click();
+        
+        URL.revokeObjectURL(url);
+    }
 </script>
 </body>
 </html>
