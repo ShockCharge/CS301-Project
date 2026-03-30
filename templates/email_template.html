@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 20px;">
+        <tr>
+            <td align="center">
+                <table width="600" cellpadding="0" cellspacing="0" style="background-color: white; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                    <!-- Header -->
+                    <tr>
+                        <td style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+                            <h1 style="color: white; margin: 0; font-size: 24px;">📅 Study Planner</h1>
+                            <p style="color: white; margin: 10px 0 0 0; opacity: 0.9;">Upcoming Deadlines Reminder</p>
+                        </td>
+                    </tr>
+                    
+                    <!-- Body -->
+                    <tr>
+                        <td style="padding: 30px;">
+                            <p style="font-size: 16px; color: #333; margin: 0 0 20px 0;">
+                                Hello <strong>{{USER_NAME}}</strong>,
+                            </p>
+                            
+                            <p style="font-size: 14px; color: #666; margin: 0 0 20px 0;">
+                                This is a friendly reminder about your upcoming deadlines tomorrow (<strong>{{DATE}}</strong>):
+                            </p>
+                            
+                            <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f8f9ff; border-radius: 8px; padding: 20px; margin: 20px 0;">
+                                <tr>
+                                    <td>
+                                        <ul style="margin: 0; padding-left: 20px; line-height: 2;">
+                                            {{ITEMS}}
+                                        </ul>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <p style="font-size: 14px; color: #666; margin: 30px 0 0 0;">
+                                Don't forget to prepare! Good luck! 🎯
+                            </p>
+                        </td>
+                    </tr>
+                    
+                    <!-- Footer -->
+                    <tr>
+                        <td style="padding: 20px 30px; border-top: 1px solid #eee;">
+                            <p style="font-size: 12px; color: #999; margin: 0; text-align: center;">
+                                Best regards,<br>
+                                <strong style="color: #667eea;">Study Planner Team</strong>
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+                
+                <!-- Unsubscribe -->
+                <p style="font-size: 11px; color: #999; margin: 20px 0 0 0; text-align: center;">
+                    You're receiving this because you have upcoming deadlines in Study Planner
+                </p>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
