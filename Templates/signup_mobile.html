@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Study Planner - Sign Up</title>
+
+  <!-- Bootstrap -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <style>
+    body {
+      background: #ddd;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      font-family: Arial, sans-serif;
+    }
+
+    /* Phone Frame (S24 Ultra style) */
+    .phone-frame {
+      width: 390px;
+      height: 844px;
+      border: 8px solid #333;
+      border-radius: 35px;
+      background: #0b1a8f;
+      box-shadow: 0 0 20px rgba(0,0,0,0.4);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .screen {
+      padding: 25px 20px;
+      color: white;
+      height: 100%;
+      overflow-y: auto;
+      text-align: center;
+    }
+
+    .logo-circle {
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #4facfe, #00f2fe);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 10px auto;
+      font-size: 40px;
+    }
+
+    h2 {
+      font-weight: bold;
+    }
+
+    .subtitle {
+      font-size: 14px;
+      opacity: 0.8;
+      margin-bottom: 20px;
+    }
+
+    .form-control {
+      border-radius: 30px;
+      background: rgba(255,255,255,0.25);
+      border: none;
+      color: white;
+      text-align: center;
+      margin-bottom: 15px;
+      padding: 12px;
+    }
+
+    .form-control::placeholder {
+      color: rgba(255,255,255,0.7);
+    }
+
+    .btn-signup {
+      border-radius: 25px;
+      background: #cfd8dc;
+      color: #333;
+      padding: 8px 30px;
+      border: none;
+      margin-top: 10px;
+    }
+
+    .bottom-text {
+      margin-top: 15px;
+      font-size: 14px;
+    }
+
+    .bottom-text a {
+      color: #cfd8dc;
+      text-decoration: underline;
+    }
+
+  </style>
+</head>
+
+<body>
+
+  <div class="phone-frame">
+    <div class="screen">
+
+      <!-- Logo -->
+      <div class="logo-circle">🎓</div>
+
+      <!-- Title -->
+      <h4 class="fw-bold">Study Planner</h4>
+
+      <!-- Welcome -->
+      <h2 class="mt-3">Welcome Back!</h2>
+      <p class="subtitle">Organize your class, assignment, and exam</p>
+
+      <!-- Form -->
+      <form>
+        <input type="text" class="form-control" placeholder="Name">
+        <input type="email" class="form-control" placeholder="Email">
+        <input type="text" class="form-control" placeholder="Phone Number">
+        <input type="text" class="form-control" placeholder="Institute Name">
+        <input type="password" class="form-control" placeholder="Password">
+        <input type="password" class="form-control" placeholder="Confirm Password">
+
+        <button type="submit" class="btn btn-signup">Sign Up</button>
+      </form>
+
+      <!-- Bottom -->
+      <div class="bottom-text">
+        Already have an account? <a href="#">Sign in</a>
+      </div>
+
+    </div>
+  </div>
+
+</body>
+</html>
