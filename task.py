@@ -1,5 +1,6 @@
 from celery import Celery
 from datetime import datetime
+from celery_app import celery_app
 from common import NZ_TZ, tasks_collection, exams_collection, chain
 import os
 
