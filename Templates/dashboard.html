@@ -403,13 +403,9 @@ header {
         <!-- AI Task Suggestions Card -->
 <!-- AI Task Suggestions -->
 <div class="card mt-4 p-3">
-    <h5>🤖 AI Task Suggestions</h5>
-    <button class="btn btn-primary w-100" onclick="openSuggestionModal()">Get Suggestions</button>
-</div>
+    <h5>🤖 AI Task Suggestions and Plans</h5>
+    <button class="btn-action"  onclick="openSuggestionModal()">Get Suggestions</button>
 
-<!-- AI Study Plan -->
-<div class="card mt-4 p-3">
-    <h5>📅 AI Weekly Study Plan</h5>
     <button class="btn btn-success w-100" onclick="openPlanModal()">Generate Plan</button>
 </div>
 
@@ -435,6 +431,7 @@ header {
       </div>
 
       <div class="modal-footer border-0">
+        <button class="btn btn-warning" id="cancelAIBtn" onclick="cancelAIRequest()" style="display:none;">Cancel Request</button>
         <button class="btn btn-outline-primary" onclick="downloadAI()">📥 Download Result</button>
         <button class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
       </div>
@@ -487,6 +484,7 @@ header {
 <script>
     let aiModal;
     let currentAIText = "";
+    let aiAbortController = new AbortController();
 
     document.addEventListener("DOMContentLoaded", () => {
         aiModal = new bootstrap.Modal(document.getElementById('aiModal'), {
@@ -496,21 +494,22 @@ header {
     });
 
     // Show modal with loading
-    function showAIModal(title) {
-        document.getElementById("aiModalTitle").innerText = title;
-        document.getElementById("aiModalContent").innerHTML = `
-            <div class="text-center py-5">
-                <div class="spinner-border text-primary mb-3" role="status"></div>
-                <p class="text-muted mb-0">Thinking... Please wait while your AI coach prepares the response.</p>
-            </div>`;
-        
-        aiModal.show();
-    }
+  function showAIModal(title) {
+    document.getElementById("aiModalTitle").innerText = title;
+    document.getElementById("aiModalContent").innerHTML = `
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary mb-3" role="status"></div>
+            <p class="text-muted mb-0">Thinking... Please wait while your AI coach prepares the response.</p>
+        </div>`;
+    document.getElementById("cancelAIBtn").style.display = "block";
+    
+    aiModal.show();
+}
 
     // New function to fetch AI response asynchronously
-    async function fetchAIResponse(endpoint, title) {
+async function fetchAIResponse(endpoint, title) {
     try {
-        const res = await fetch(endpoint);
+        const res = await fetch(endpoint, { signal: aiAbortController.signal });
         const data = await res.json();
 
         if (!data.task_id) {
@@ -525,10 +524,8 @@ header {
         while (attempts < maxAttempts) {
             await new Promise(resolve => setTimeout(resolve, 1000));
 
-            const statusRes = await fetch(`/api/ai-task-status/${taskId}`);
+            const statusRes = await fetch(`/api/ai-task-status/${taskId}`, { signal: aiAbortController.signal });
             const result = await statusRes.json();
-
-            // ✅ Handle all states properly
             if (result.state === "SUCCESS") {
                 currentAIText =
                     result.result?.suggestions ||
@@ -536,6 +533,7 @@ header {
                     "No response received.";
 
                 document.getElementById("aiModalContent").innerText = currentAIText;
+                document.getElementById("cancelAIBtn").style.display = "none";
                 return;
             }
 
@@ -558,22 +556,29 @@ header {
         throw new Error("AI is taking too long. Try again.");
 
     } catch (err) {
-        console.error(err);
-        document.getElementById("aiModalContent").innerHTML =
-            `<span class="text-danger">${err.message}</span>`;
+        if (err.name === 'AbortError') {
+            document.getElementById("aiModalContent").innerHTML =
+                `<span class="text-warning">Request cancelled by user</span>`;
+        } else {
+            console.error(err);
+            document.getElementById("aiModalContent").innerHTML =
+                `<span class="text-danger">${err.message}</span>`;
+        }
+        document.getElementById("cancelAIBtn").style.display = "none";
     }
+} 
+  function openSuggestionModal() {
+    aiAbortController = new AbortController();
+    showAIModal("🤖 AI Task Suggestions");
+    fetchAIResponse('/api/ai-task-suggestions', "AI Task Suggestions");    
 }
     
-    // Open Suggestions
-    function openSuggestionModal() {
-        showAIModal("🤖 AI Task Suggestions");
-        fetchAIResponse('/api/ai-task-suggestions', "AI Task Suggestions");    }
-    
     // Open Study Plan
-    function openPlanModal() {
-        showAIModal("📅 AI Weekly Study Plan");
-        fetchAIResponse('/api/ai-task-suggestions', "AI Task Suggestions");    }
-
+   function openPlanModal() {
+    aiAbortController = new AbortController();
+    showAIModal("📅 AI Weekly Study Plan");
+    fetchAIResponse('/api/ai-study-plan', "AI Weekly Study Plan");    
+}
     // Download Function 
     function downloadAI() {
         if (!currentAIText.trim()) {
@@ -592,6 +597,11 @@ header {
         
         URL.revokeObjectURL(url);
     }
+    // Cancel AI Request
+function cancelAIRequest() {
+    aiAbortController.abort();
+    document.getElementById("cancelAIBtn").style.display = "none";
+}
 </script>
 </body>
 </html>
