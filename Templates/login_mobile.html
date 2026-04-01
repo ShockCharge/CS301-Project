@@ -111,12 +111,11 @@
 
     <h2>Welcome Back!</h2>
     <p>Organize your class, assignment,and exam</p>
-
-    <form>
-      <input type="text" class="form-control" placeholder="Username">
-      <input type="password" class="form-control" placeholder="Password">
-
-      <button class="btn btn-login">Log in</button>
+    
+    <form method="POST" action="/">
+      <input type="text"     name="email"    class="form-control" placeholder="Username">
+      <input type="password"  name="password"  class="form-control" placeholder="Password">
+      <button type="submit" class="btn btn-login">Log in</button>
     </form>
 
     <div class="mt-3">
