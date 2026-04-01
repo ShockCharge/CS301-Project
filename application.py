@@ -12,6 +12,9 @@ from common import NZ_TZ, ZoneInfo, users_collection, schedules_collection, task
 from task import get_ai_suggestions_task, get_ai_study_plan_task 
 from celery import Celery
 from celery_app import celery_app
+import random
+import secrets
+import boto3 
 
 # Initialize Celery app (must be done in application.py as well for Flask context)
 celery_app = Celery(
@@ -206,31 +209,102 @@ def test_email():
 def index():
     return render_template('login.html') 
 
-
-
 @app.route('/', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        email = request.form['email']
+        email    = request.form['email']
         password = request.form['password']
-        
+
+        # 1. Look up the user in MongoDB
         if users_collection is not None:
             user = users_collection.find_one({'email': email})
             if user and not check_password_hash(user.get('password', ''), password):
-                user = None
+                user = None   # wrong password → treat as not found
         else:
+            # Dev fallback (no DB)
             user = {'email': email} if email == 'test@example.com' and password == 'password' else None
-        
+
         if user:
-            session['user'] = email
-            if users_collection is not None and user:
-                session['user_name'] = f"{user.get('first_name', '')} {user.get('last_name', '')}".strip()
-            else:
-                session['user_name'] = email
-            return redirect(url_for('dashboard'))
+            # 2. Credentials valid — start 2FA instead of logging in
+            otp = str(random.randint(100000, 999999))
+
+            # 3. Save OTP in Redis — expires automatically in 10 min
+            redis_client.setex(f"2fa:{email}", 600, otp)
+
+            # 4. Mark session as "mid-login" (NOT fully authenticated)
+            session['pending_2fa_email'] = email
+            session['pending_2fa_user_name'] = (
+                f"{user.get('first_name','')}" + " " + f"{user.get('last_name','')}"
+            ).strip() or email
+
+            # 5. Email the OTP
+            _send_otp_email(email, otp)
+
+            # 6. Send user to the OTP entry page
+            return redirect(url_for('verify_2fa'))
         else:
             return render_template('login.html', error='Invalid email or password')
-    return render_template('login.html')
+
+    return render_template('login.html')  # GET: show blank form
+
+@app.route('/verify-2fa', methods=['GET', 'POST'])
+def verify_2fa():
+    # Guard: if no pending login, send back to login page
+    if 'pending_2fa_email' not in session:
+        return redirect(url_for('login'))
+
+    email = session['pending_2fa_email']
+
+    if request.method == 'POST':
+        entered_otp = request.form.get('otp', '').strip()
+
+        # Fetch the stored OTP from Redis
+        stored = redis_client.get(f"2fa:{email}")
+
+        if stored and stored.decode() == entered_otp:
+            # ✓ Correct — delete OTP immediately (one-time use)
+            redis_client.delete(f"2fa:{email}")
+
+            # Clear the "pending" keys
+            session.pop('pending_2fa_email', None)
+
+            # NOW set the real session — user is fully logged in
+            session['user'] = email
+            session['user_name'] = session.pop('pending_2fa_user_name', email)
+
+            return redirect(url_for('dashboard'))
+        else:
+            # ✗ Wrong or expired code
+            return render_template(
+                'verify_2fa.html',
+                email=email,
+                error='Invalid or expired code. Please try again.'
+            )
+
+    # GET request — just show the form
+    return render_template('verify_2fa.html', email=email)
+
+@app.route('/resend-2fa', methods=['POST'])
+def resend_2fa():
+    # Guard: must be mid-login to resend
+    if 'pending_2fa_email' not in session:
+        return redirect(url_for('login'))
+
+    email = session['pending_2fa_email']
+
+    # Generate a brand-new OTP and reset the 10-min timer
+    otp = str(random.randint(100000, 999999))
+    redis_client.setex(f"2fa:{email}", 600, otp)
+
+    # Send it
+    _send_otp_email(email, otp)
+
+    # Re-render the verify page with a confirmation message
+    return render_template(
+        'verify_2fa.html',
+        email=email,
+        info='A new code has been sent to your email.'
+    )
 
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
