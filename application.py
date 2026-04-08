@@ -39,6 +39,44 @@ app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
 
 mail = Mail(app)
 
+# Send otp email
+def _send_otp_email(recipient_email: str, otp: str):
+    """Send a 6-digit OTP to the user via Flask-Mail."""
+    try:
+        msg = Message(
+            subject='Study Planner – Your Login Code',
+            sender=app.config.get('MAIL_USERNAME'),
+            recipients=[recipient_email]
+        )
+        # Plain-text fallback
+        msg.body = (
+            f"Your Study Planner verification code is: {otp}\n\n"
+            "This code expires in 10 minutes.\n"
+            "If you did not request this, please ignore this email."
+        )
+        # Styled HTML email  — matches the app's dark-blue theme
+        msg.html = f"""
+        <div style="font-family:sans-serif;max-width:420px;margin:auto;
+                    background:#0d1b8c;color:#fff;border-radius:16px;
+                    padding:32px;text-align:center;">
+          <div style="font-size:48px;margin-bottom:8px;">&#127891;</div>
+          <h2 style="margin:0 0 8px;">Study Planner</h2>
+          <p style="opacity:.75;margin-bottom:24px;">Your one-time login code</p>
+          <div style="background:rgba(255,255,255,.15);border-radius:12px;
+                      padding:20px;font-size:36px;font-weight:700;
+                      letter-spacing:10px;">
+            {otp}
+          </div>
+          <p style="margin-top:20px;font-size:13px;opacity:.65;">
+            Expires in 10 minutes. Do not share this code.
+          </p>
+        </div>
+        """
+        mail.send(msg)
+        print(f"[2FA] OTP sent to {recipient_email}")
+    except Exception as exc:
+        print(f"[2FA] Failed to send OTP to {recipient_email}: {exc}")
+
 # Email notification function
 def send_deadline_email(user_email, user_name, deadline_date, items):
     """Send email notification for upcoming deadlines"""
@@ -215,41 +253,40 @@ def login():
         email    = request.form['email']
         password = request.form['password']
 
-        # 1. Look up the user in MongoDB
         if users_collection is not None:
             user = users_collection.find_one({'email': email})
             if user and not check_password_hash(user.get('password', ''), password):
-                user = None   # wrong password → treat as not found
+                user = None
         else:
-            # Dev fallback (no DB)
+            # Dev fallback — no database
             user = {'email': email} if email == 'test@example.com' and password == 'password' else None
 
         if user:
-            # 2. Credentials valid — start 2FA instead of logging in
+            # ── Credentials correct: generate OTP and start 2FA ──
             otp = str(random.randint(100000, 999999))
 
-            # 3. Save OTP in Redis — expires automatically in 10 min
+            # Store OTP in Redis — auto-expires after 10 minutes (600 seconds)
             redis_client.setex(f"2fa:{email}", 600, otp)
 
-            # 4. Mark session as "mid-login" (NOT fully authenticated)
+            # Save partial session — user is NOT logged in yet
             session['pending_2fa_email'] = email
             session['pending_2fa_user_name'] = (
-                f"{user.get('first_name','')}" + " " + f"{user.get('last_name','')}"
-            ).strip() or email
+                f"{user.get('first_name', '')} {user.get('last_name', '')}".strip() or email
+            )
 
-            # 5. Email the OTP
+            # Email the OTP
             _send_otp_email(email, otp)
 
-            # 6. Send user to the OTP entry page
             return redirect(url_for('verify_2fa'))
         else:
             return render_template('login.html', error='Invalid email or password')
 
-    return render_template('login.html')  # GET: show blank form
+    return render_template('login.html')
 
 @app.route('/verify-2fa', methods=['GET', 'POST'])
 def verify_2fa():
-    # Guard: if no pending login, send back to login page
+    """Show OTP entry form and validate the code on submission."""
+    # If there is no pending login in session, go back to login
     if 'pending_2fa_email' not in session:
         return redirect(url_for('login'))
 
@@ -258,18 +295,18 @@ def verify_2fa():
     if request.method == 'POST':
         entered_otp = request.form.get('otp', '').strip()
 
-        # Fetch the stored OTP from Redis
-        stored = redis_client.get(f"2fa:{email}")
+        # Fetch stored OTP from Redis (returns bytes or None)
+        stored_otp = redis_client.get(f"2fa:{email}")
 
-        if stored and stored.decode() == entered_otp:
-            # ✓ Correct — delete OTP immediately (one-time use)
+        if stored_otp and stored_otp.decode() == entered_otp:
+            # ✓ Correct code — delete it immediately (one-time use)
             redis_client.delete(f"2fa:{email}")
 
-            # Clear the "pending" keys
+            # Clear the pending keys
             session.pop('pending_2fa_email', None)
 
-            # NOW set the real session — user is fully logged in
-            session['user'] = email
+            # NOW complete the login — set the real session keys
+            session['user']      = email
             session['user_name'] = session.pop('pending_2fa_user_name', email)
 
             return redirect(url_for('dashboard'))
@@ -281,7 +318,7 @@ def verify_2fa():
                 error='Invalid or expired code. Please try again.'
             )
 
-    # GET request — just show the form
+    # GET — just show the form
     return render_template('verify_2fa.html', email=email)
 
 @app.route('/resend-2fa', methods=['POST'])
