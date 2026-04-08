@@ -1,0 +1,106 @@
+.main-container {
+    background-color: var(--bg-dark);
+    display: flex;
+    flex-direction: column;
+}
+
+/*  ########## Header ########## */
+.header {
+    background-color: var(--bg-medium);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.header-content {
+    text-align: center;
+    flex: 1;
+}
+
+.header-title {
+    color: var(--normal-text);
+    white-space: nowrap;
+}
+
+.header-time,
+.header-date {
+    color: var(--normal-text);
+}
+
+/*  ########## Menu ########## */
+.menu {
+    background: none;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+}
+
+.menu span {
+    background-color: var(--normal-text);
+    display: block;
+}
+
+/* ########## Main Content ########## */
+.content {
+    display: flex;
+    flex-direction: column;
+}
+
+.content-title {
+    color: var(--normal-text);
+    text-align: center;
+}
+
+/* ########## Cards ########## */
+.card-title {
+    background-color: var(--bg-medium);
+    text-align: center;
+}
+
+.content-button {
+    color: var(--normal-text);
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/*  ########## Quick Action ########## */
+.quick-action {
+    background-color: var(--bg-medium);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.quick-action-text {
+    color: var(--normal-text);
+}
+
+.quick-action-button {
+    color: var(--bg-medium);
+    cursor: pointer;
+}
+
+.quick-action-button:hover {
+    background-color: var(--bg-light);
+}
+
+.quick-action-schedule {
+    color: var(--normal-text);
+    cursor: pointer;
+    text-decoration: none;
+}
+
+/*  ########## Progress Overview ########## */
+.progress-overview {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.progress-overview-text {
+    color: var(--normal-text);
+}
