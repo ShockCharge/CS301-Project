@@ -179,13 +179,45 @@
                 </div>
             </div>
 
-               <!-- Smart Suggestion Box -->
-            <div class="suggestion-box" id="suggestionBox">
-                <div class="suggestion-content">
-                    <h3>💡 Smart Advice & Quotes</h3>
-                    <p id="suggestionContent">Loading your personalized study advice...</p>
-                </div>
-            </div>
+            <!-- Smart Suggestion Box -->
+<div class="suggestion-box" id="suggestionBox">
+    <div class="suggestion-content">
+        <h3>💡 Smart Advice & Quotes</h3>
+        <p id="suggestionContent">Loading your personalized study advice...</p>
+    </div>
+</div>
+
+<!-- Study Plan Section -->
+<div class="study-plan-section" id="studyPlanSection">
+    <div class="study-plan-header">
+        <div>
+            <h3 class="study-plan-title">
+                <i class="bi bi-calendar-week"></i> Weekly Study Plan
+            </h3>
+            <p class="study-plan-subtitle">AI-generated based on your tasks and upcoming exams</p>
+        </div>
+        <button class="btn-generate-plan" id="generatePlanBtn" onclick="generateStudyPlan()">
+            <i class="bi bi-magic"></i> Generate Plan
+        </button>
+    </div>
+
+    <!-- Loading state -->
+    <div class="study-plan-loading" id="studyPlanLoading" style="display: none;">
+        <div class="plan-spinner"></div>
+        <p>Generating your personalised study plan...</p>
+    </div>
+
+    <!-- Plan content -->
+    <div class="study-plan-content" id="studyPlanContent" style="display: none;">
+        <pre id="studyPlanText"></pre>
+    </div>
+
+    <!-- Empty state (shown before first generation) -->
+    <div class="study-plan-empty" id="studyPlanEmpty">
+        <i class="bi bi-journal-text" style="font-size: 40px; color: #bdc3c7;"></i>
+        <p>Click <strong>Generate Plan</strong> to create a personalised weekly study schedule based on your tasks and exams.</p>
+    </div>
+</div>
 
             <!-- Outdated Tasks -->
             {% if outdated_items %}

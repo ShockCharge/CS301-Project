@@ -24,8 +24,11 @@ function formatDateTimeNZ(dateString, timeString) {
 
 (function applyDarkModeOnLoad() {
     if (localStorage.getItem('darkMode') === 'true') {
-        document.body.classList.add('dark-mode');
+        document.addEventListener('DOMContentLoaded', function () {
+            document.body.classList.add('dark-mode');
+        });
     }
+
 
     fetch('/api/settings')
         .then(r => r.ok ? r.json() : null)

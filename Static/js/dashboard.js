@@ -92,14 +92,12 @@ function fetchAISuggestions() {
                 suggestionBox.style.display = 'block';
                 suggestionBox.classList.add('fade-in');
             } else {
-                // Fallback message if no suggestions
                 setFallbackSuggestion(suggestionContent);
             }
         })
         .catch(err => {
             console.error("AI Fetch Error:", err);
             suggestionBox.classList.remove('loading');
-            // Fallback message on error
             setFallbackSuggestion(suggestionContent);
             suggestionBox.style.display = 'block';
         });
@@ -133,12 +131,10 @@ function loadTaskStats() {
             const completedTasks = tasks.filter(t => t.completed).length;
             const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
-            // Update stats display
             updateStatElement('totalTasks', totalTasks);
             updateStatElement('completedTasks', completedTasks);
             updateStatElement('completionRate', completionRate + '%');
 
-            // Update progress circle
             updateProgressCircle(completionRate);
             updateProgressBar(completionRate);
         })
@@ -191,7 +187,6 @@ function toggleTaskCompletion(taskElement, taskId) {
     taskElement.style.opacity = '0.5';
     taskElement.style.textDecoration = 'line-through';
     
-    // Optional: Send update to backend
     fetch(`/api/tasks/${taskId}`, {
         method: 'PATCH',
         headers: {
@@ -203,7 +198,6 @@ function toggleTaskCompletion(taskElement, taskId) {
     .then(data => {
         setTimeout(() => {
             taskElement.remove();
-            // Refresh stats after task completion
             loadDashboardStats();
         }, 300);
     })
@@ -218,13 +212,13 @@ function setupEventListeners() {
     setupTaskEventListeners();
     setupButtonEventListeners();
     setupOutdatedItemsEventListeners();
+}   
 
 function setupTaskEventListeners() {
     const taskItems = document.querySelectorAll('.task-item');
     taskItems.forEach(item => {
         item.addEventListener('click', function(e) {
             if (!e.target.closest('button')) {
-                // Toggle task completion
                 const taskId = this.getAttribute('data-task-id');
                 if (taskId) {
                     toggleTaskCompletion(this, taskId);
@@ -239,7 +233,6 @@ function setupButtonEventListeners() {
     const addTaskBtn = document.getElementById('add-task-btn');
     if (addTaskBtn) {
         addTaskBtn.addEventListener('click', function() {
-            // Open add task modal or form
             console.log('Add task clicked');
         });
     }
@@ -300,4 +293,55 @@ window.dashboardUtils = {
     formatDateNZ,
     showNotification
 };
+
+function generateStudyPlan() {
+    const btn      = document.getElementById('generatePlanBtn');
+    const loading  = document.getElementById('studyPlanLoading');
+    const content  = document.getElementById('studyPlanContent');
+    const planText = document.getElementById('studyPlanText');
+    const empty    = document.getElementById('studyPlanEmpty');
+
+    if (!btn) return;
+
+    // Show loading state
+    btn.disabled = true;
+    btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Generating...';
+    if (loading) loading.style.display = 'flex';
+    if (content) content.style.display = 'none';
+    if (empty)   empty.style.display   = 'none';
+
+    fetch('/api/study_plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requested_at: new Date().toISOString() })
+
+    })
+    .then(r => {
+        if (!r.ok) throw new Error('Server error');
+        return r.json();
+    })
+    .then(data => {
+        if (loading) loading.style.display = 'none';
+
+        if (data.plan) {
+            if (planText) planText.textContent = data.plan;
+            if (content)  content.style.display = 'block';
+        } else {
+            if (empty) {
+                empty.innerHTML = '<p style="color:#e74c3c;">Could not generate a plan. Please try again.</p>';
+                empty.style.display = 'block';
+            }
+        }
+    })
+    .catch(() => {
+        if (loading) loading.style.display = 'none';
+        if (empty) {
+            empty.innerHTML = '<p style="color:#e74c3c;">Network error. Please check your connection and try again.</p>';
+            empty.style.display = 'block';
+        }
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-magic"></i> Generate Plan';
+    });
 }

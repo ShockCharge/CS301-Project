@@ -1938,3 +1938,143 @@ body.dark-mode .urgency-high   { background-color: #4a1a1a; color: #e74c3c; }
 body.dark-mode .urgency-medium { background-color: #4a3000; color: #f39c12; }
 body.dark-mode .urgency-low    { background-color: #1a3a2a; color: #27ae60; }
 body.dark-mode .urgency-info   { background-color: #1a2a3a; color: #2980b9; }
+
+
+/* ==========================================================================
+   STUDY PLAN SECTION — Dashboard
+   ========================================================================== */
+
+.study-plan-section {
+    background: var(--white);
+    border-radius: 12px;
+    padding: 28px;
+    margin-top: 24px;
+    box-shadow: var(--shadow);
+}
+
+.study-plan-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.study-plan-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-dark);
+    margin: 0 0 4px 0;
+}
+
+.study-plan-title i {
+    color: var(--primary-color);
+    margin-right: 8px;
+}
+
+.study-plan-subtitle {
+    font-size: 13px;
+    color: var(--text-light);
+    margin: 0;
+}
+
+.btn-generate-plan {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.2s;
+    white-space: nowrap;
+}
+
+.btn-generate-plan:hover {
+    background: #0056b3;
+    transform: translateY(-1px);
+}
+
+.btn-generate-plan:disabled {
+    background: #a0b4c8;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Loading spinner */
+.study-plan-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    padding: 40px 20px;
+    color: var(--text-light);
+    font-size: 14px;
+}
+
+.plan-spinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid #e0e0e0;
+    border-top-color: var(--primary-color);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Plan text output */
+.study-plan-content pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-family: inherit;
+    font-size: 14px;
+    line-height: 1.8;
+    color: var(--text-dark);
+    background: var(--light-bg);
+    border-radius: 8px;
+    padding: 20px;
+    margin: 0;
+    border-left: 4px solid var(--primary-color);
+}
+
+/* Empty state */
+.study-plan-empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-light);
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.study-plan-empty i {
+    display: block;
+    margin-bottom: 12px;
+}
+
+/* Dark mode */
+body.dark-mode .study-plan-section {
+    background-color: #16213e;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+body.dark-mode .study-plan-title  { color: #e0e0e0; }
+body.dark-mode .study-plan-subtitle { color: #a0a0b0; }
+
+body.dark-mode .study-plan-content pre {
+    background-color: #1e1e3a;
+    color: #e0e0e0;
+    border-left-color: #4da6ff;
+}
+
+body.dark-mode .plan-spinner {
+    border-color: #2e2e4e;
+    border-top-color: #4da6ff;
+}
