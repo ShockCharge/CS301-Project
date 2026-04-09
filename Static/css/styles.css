@@ -1911,3 +1911,30 @@ body.dark-mode .filter-controls select {
         width: 100%;
     }
 }
+
+.card-border-high   { border-left: 4px solid #e74c3c; }   
+.card-border-medium { border-left: 4px solid #f39c12; }   
+.card-border-low    { border-left: 4px solid #27ae60; }   
+.card-border-done   { border-left: 4px solid #bdc3c7; }  
+.card-border-info   { border-left: 4px solid #2980b9; }   
+
+.urgency-badge {
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    white-space: nowrap;
+}
+
+.urgency-high   { background-color: #fde8e8; color: #c0392b; } 
+.urgency-medium { background-color: #fef3e2; color: #d68910; }   
+.urgency-low    { background-color: #e9f7ef; color: #1e8449; }   
+.urgency-info   { background-color: #eaf4fb; color: #1a5276; }   
+
+/* Dark mode overrides */
+body.dark-mode .urgency-high   { background-color: #4a1a1a; color: #e74c3c; }
+body.dark-mode .urgency-medium { background-color: #4a3000; color: #f39c12; }
+body.dark-mode .urgency-low    { background-color: #1a3a2a; color: #27ae60; }
+body.dark-mode .urgency-info   { background-color: #1a2a3a; color: #2980b9; }

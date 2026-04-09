@@ -635,20 +635,31 @@ function filterTasks() {
 function displayTasks(tasks) {
     const tasksGrid = document.getElementById('tasks-grid');
     if (!tasksGrid) return;
-    
+
     if (tasks.length === 0) {
         tasksGrid.innerHTML = '<p class="empty-state">No tasks yet. Click "Add Task" to create one.</p>';
         return;
     }
-    
+
     tasksGrid.innerHTML = tasks.map(task => {
         const isCompleted = task.completed || false;
+
+        // Determine left-border colour class
+        let colorClass = 'card-border-low';
+        if (isCompleted) {
+            colorClass = 'card-border-done';
+        } else if (task.priority === 'high') {
+            colorClass = 'card-border-high';
+        } else if (task.priority === 'medium') {
+            colorClass = 'card-border-medium';
+        }
+
         return `
-            <div class="item-card ${isCompleted ? 'completed' : ''}">
+            <div class="item-card ${colorClass} ${isCompleted ? 'completed' : ''}">
                 <div class="item-card-header">
                     <div class="task-checkbox">
-                        <input type="checkbox" ${isCompleted ? 'checked' : ''} 
-                               onchange="toggleTaskComplete('${task._id}')" 
+                        <input type="checkbox" ${isCompleted ? 'checked' : ''}
+                               onchange="toggleTaskComplete('${task._id}')"
                                id="task-${task._id}">
                     </div>
                     <h4 style="${isCompleted ? 'text-decoration: line-through; opacity: 0.6;' : ''}">${task.name}</h4>
@@ -756,39 +767,47 @@ function filterExams() {
     displayExams(filtered);
 }
 
-function displayExams(exams) {
-    const examsGrid = document.getElementById('exams-grid');
-    if (!examsGrid) return;
-    
-    if (exams.length === 0) {
-        examsGrid.innerHTML = '<p class="empty-state">No exams scheduled. Click "Add Exam" to create one.</p>';
-        return;
-    }
-    
-    examsGrid.innerHTML = exams.map(exam => `
-        <div class="item-card">
-            <div class="item-card-header">
-                <h4>${exam.subject}</h4>
-            </div>
-            <div class="item-card-body">
-                <p>${exam.notes || 'No notes'}</p>
-                <div class="item-meta">
-                    <span><i class="bi bi-calendar"></i> ${formatDateNZ(exam.date)}</span>
-                    <span><i class="bi bi-clock"></i> ${formatTimeNZ(exam.time)}</span>
-                    <span><i class="bi bi-hourglass"></i> ${exam.duration} min</span>
+    examsGrid.innerHTML = exams.map(exam => {
+        // Calculate days until exam for urgency colour
+        const today    = new Date();
+        const examDate = new Date(exam.date);
+        const daysLeft = Math.ceil((examDate - today) / (1000 * 60 * 60 * 24));
+
+        let colorClass = 'card-border-low';          // green — plenty of time
+        if (daysLeft <= 3)      colorClass = 'card-border-high';    // red — urgent
+        else if (daysLeft <= 7) colorClass = 'card-border-medium';  // orange — soon
+
+        // Urgency label shown next to the subject
+        let urgencyBadge = '';
+        if (daysLeft <= 3)      urgencyBadge = '<span class="urgency-badge urgency-high">Urgent</span>';
+        else if (daysLeft <= 7) urgencyBadge = '<span class="urgency-badge urgency-medium">Soon</span>';
+        else                    urgencyBadge = '<span class="urgency-badge urgency-low">Upcoming</span>';
+
+        return `
+            <div class="item-card ${colorClass}">
+                <div class="item-card-header">
+                    <h4>${exam.subject}</h4>
+                    ${urgencyBadge}
                 </div>
-                <div class="item-actions">
-                    <button class="btn-action btn-edit" onclick="editExam('${exam._id}')">
-                        <i class="bi bi-pencil"></i> Edit
-                    </button>
-                    <button class="btn-action btn-delete" onclick="deleteExam('${exam._id}')">
-                        <i class="bi bi-trash"></i> Delete
-                    </button>
+                <div class="item-card-body">
+                    <p>${exam.notes || 'No notes'}</p>
+                    <div class="item-meta">
+                        <span><i class="bi bi-calendar"></i> ${formatDateNZ(exam.date)}</span>
+                        <span><i class="bi bi-clock"></i> ${formatTimeNZ(exam.time)}</span>
+                        <span><i class="bi bi-hourglass"></i> ${exam.duration} min</span>
+                    </div>
+                    <div class="item-actions">
+                        <button class="btn-action btn-edit" onclick="editExam('${exam._id}')">
+                            <i class="bi bi-pencil"></i> Edit
+                        </button>
+                        <button class="btn-action btn-delete" onclick="deleteExam('${exam._id}')">
+                            <i class="bi bi-trash"></i> Delete
+                        </button>
+                    </div>
                 </div>
             </div>
-        </div>
-    `).join('');
-}
+        `;
+    }).join('');
 
 // Classes Page Functions
 function initClasses() {
@@ -878,19 +897,11 @@ function filterClasses() {
     displayClasses(filtered);
 }
 
-function displayClasses(classes) {
-    const classesGrid = document.getElementById('classes-grid');
-    if (!classesGrid) return;
-    
-    if (classes.length === 0) {
-        classesGrid.innerHTML = '<p class="empty-state">No classes added. Click "Add Class" to create one.</p>';
-        return;
-    }
-    
     classesGrid.innerHTML = classes.map(classItem => `
-        <div class="item-card">
+        <div class="item-card card-border-info">
             <div class="item-card-header">
                 <h4>${classItem.name}</h4>
+                <span class="urgency-badge urgency-info">${classItem.day}</span>
             </div>
             <div class="item-card-body">
                 <p><strong>Instructor:</strong> ${classItem.instructor || 'N/A'}</p>
@@ -910,7 +921,6 @@ function displayClasses(classes) {
             </div>
         </div>
     `).join('');
-}
 
 // Vacations Page Functions
 function initVacations() {
