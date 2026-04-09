@@ -22,6 +22,24 @@ function formatDateTimeNZ(dateString, timeString) {
     return `${formatDateNZ(dateString)} ${formatTimeNZ(timeString)}`;
 }
 
+(function applyDarkModeOnLoad() {
+    if (localStorage.getItem('darkMode') === 'true') {
+        document.addEventListener('DOMContentLoaded', function () {
+            document.body.classList.add('dark-mode');
+        });
+    }
+
+
+    fetch('/api/settings')
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+            if (!data || data.dark_mode === undefined) return;
+            document.body.classList.toggle('dark-mode', data.dark_mode);
+            localStorage.setItem('darkMode', data.dark_mode ? 'true' : 'false');
+        })
+        .catch(() => {});
+})();
+
 // Sidebar Submenu Toggle
 document.addEventListener('DOMContentLoaded', function() {
     const activitiesToggle = document.getElementById('activities-toggle');
@@ -53,11 +71,93 @@ document.addEventListener('DOMContentLoaded', function() {
         initClasses();
     } else if (currentPage.includes('/vacations')) {
         initVacations();
+    } else if (currentPage.includes('/settings')) {
+        initSettings();
     }
 });
 
+function initSettings() {
+    fetch('/api/settings')
+        .then(r => r.ok ? r.json() : {})
+        .then(data => {
+            const map = {
+                darkMode:       'dark_mode',
+                taskReminders:  'task_reminders',
+                examAlerts:     'exam_alerts',
+                studyDuration:  'study_duration',
+                breakDuration:  'break_duration',
+                defaultView:    'default_view'
+            };
+
+            for (const [elementId, key] of Object.entries(map)) {
+                const el = document.getElementById(elementId);
+                if (!el || data[key] === undefined) continue;
+                if (el.type === 'checkbox') el.checked = data[key];
+                else el.value = data[key];
+            }
+        })
+        .catch(() => {});
+
+    const darkToggle = document.getElementById('darkMode');
+    if (darkToggle) {
+        darkToggle.addEventListener('change', function () {
+            document.body.classList.toggle('dark-mode', this.checked);
+            localStorage.setItem('darkMode', this.checked ? 'true' : 'false');
+        });
+    }
+
+    const saveBtn = document.getElementById('saveSettings');
+    if (saveBtn) {
+        saveBtn.addEventListener('click', function () {
+            const payload = {
+                dark_mode:      document.getElementById('darkMode')?.checked      ?? false,
+                task_reminders: document.getElementById('taskReminders')?.checked ?? true,
+                exam_alerts:    document.getElementById('examAlerts')?.checked    ?? true,
+                study_duration: document.getElementById('studyDuration')?.value   ?? '60',
+                break_duration: document.getElementById('breakDuration')?.value   ?? '10',
+                default_view:   document.getElementById('defaultView')?.value     ?? 'week'
+            };
+
+            fetch('/api/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+            .then(r => r.json())
+            .then(result => {
+                if (result.success) {
+                    document.body.classList.toggle('dark-mode', payload.dark_mode);
+                    localStorage.setItem('darkMode', payload.dark_mode ? 'true' : 'false');
+                    showToast('Settings saved successfully!', 'success');
+                } else {
+                    showToast('Could not save settings. Please try again.', 'error');
+                }
+            })
+            .catch(() => showToast('Network error. Please try again.', 'error'));
+        });
+    }
+}
+
+
+if (typeof showToast === 'undefined') {
+    function showToast(message, type = 'success') {
+        const icon  = type === 'success' ? 'check-circle' : 'exclamation-circle';
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.innerHTML = `<i class="bi bi-${icon}"></i> ${message}`;
+        document.body.appendChild(toast);
+
+        setTimeout(() => {
+            toast.style.animation = 'toastSlideOut 0.3s ease-in forwards';
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
+}
+
+
 // Dashboard Functions
 function initDashboard() {
+    fetchAISuggestions();
     const addTaskBtn = document.getElementById('add-task-btn');
     const addTaskModal = document.getElementById('addTaskModal');
     const closeModal = addTaskModal ? addTaskModal.querySelector('.close') : null;
@@ -497,32 +597,72 @@ function initTasks() {
     loadTasks();
 }
 
+let allTasks = [];
+
 function loadTasks() {
     fetch('/api/tasks')
         .then(response => response.json())
         .then(tasks => {
-            displayTasks(tasks);
+            allTasks = tasks;
+            filterTasks();
         })
         .catch(error => console.error('Error loading tasks:', error));
+}
+
+function filterTasks() {
+    const search   = (document.getElementById('taskSearch')?.value || '').toLowerCase();
+    const priority = document.getElementById('taskPriorityFilter')?.value || '';
+    const status   = document.getElementById('taskStatusFilter')?.value || '';
+    const sort     = document.getElementById('taskSort')?.value || 'newest';
+
+    let filtered = allTasks.filter(task => {
+        const matchSearch   = task.name.toLowerCase().includes(search) ||
+                              (task.description || '').toLowerCase().includes(search);
+        const matchPriority = !priority || task.priority === priority;
+        const matchStatus   = !status ||
+                              (status === 'completed' && task.completed) ||
+                              (status === 'pending'   && !task.completed);
+        return matchSearch && matchPriority && matchStatus;
+    });
+
+    const priorityOrder = { high: 1, medium: 2, low: 3 };
+
+    if (sort === 'newest')   filtered.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+    if (sort === 'oldest')   filtered.sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
+    if (sort === 'priority') filtered.sort((a, b) => (priorityOrder[a.priority] || 9) - (priorityOrder[b.priority] || 9));
+    if (sort === 'name')     filtered.sort((a, b) => a.name.localeCompare(b.name));
+
+    displayTasks(filtered);
 }
 
 function displayTasks(tasks) {
     const tasksGrid = document.getElementById('tasks-grid');
     if (!tasksGrid) return;
-    
+
     if (tasks.length === 0) {
         tasksGrid.innerHTML = '<p class="empty-state">No tasks yet. Click "Add Task" to create one.</p>';
         return;
     }
-    
+
     tasksGrid.innerHTML = tasks.map(task => {
         const isCompleted = task.completed || false;
+
+        // Determine left-border colour class
+        let colorClass = 'card-border-low';
+        if (isCompleted) {
+            colorClass = 'card-border-done';
+        } else if (task.priority === 'high') {
+            colorClass = 'card-border-high';
+        } else if (task.priority === 'medium') {
+            colorClass = 'card-border-medium';
+        }
+
         return `
-            <div class="item-card ${isCompleted ? 'completed' : ''}">
+            <div class="item-card ${colorClass} ${isCompleted ? 'completed' : ''}">
                 <div class="item-card-header">
                     <div class="task-checkbox">
-                        <input type="checkbox" ${isCompleted ? 'checked' : ''} 
-                               onchange="toggleTaskComplete('${task._id}')" 
+                        <input type="checkbox" ${isCompleted ? 'checked' : ''}
+                               onchange="toggleTaskComplete('${task._id}')"
                                id="task-${task._id}">
                     </div>
                     <h4 style="${isCompleted ? 'text-decoration: line-through; opacity: 0.6;' : ''}">${task.name}</h4>
@@ -602,48 +742,75 @@ function initExams() {
     loadExams();
 }
 
+let allExams = [];
+
 function loadExams() {
     fetch('/api/exams')
         .then(response => response.json())
         .then(exams => {
-            displayExams(exams);
+            allExams = exams;
+            filterExams();
         })
         .catch(error => console.error('Error loading exams:', error));
 }
 
-function displayExams(exams) {
-    const examsGrid = document.getElementById('exams-grid');
-    if (!examsGrid) return;
-    
-    if (exams.length === 0) {
-        examsGrid.innerHTML = '<p class="empty-state">No exams scheduled. Click "Add Exam" to create one.</p>';
-        return;
-    }
-    
-    examsGrid.innerHTML = exams.map(exam => `
-        <div class="item-card">
-            <div class="item-card-header">
-                <h4>${exam.subject}</h4>
-            </div>
-            <div class="item-card-body">
-                <p>${exam.notes || 'No notes'}</p>
-                <div class="item-meta">
-                    <span><i class="bi bi-calendar"></i> ${formatDateNZ(exam.date)}</span>
-                    <span><i class="bi bi-clock"></i> ${formatTimeNZ(exam.time)}</span>
-                    <span><i class="bi bi-hourglass"></i> ${exam.duration} min</span>
-                </div>
-                <div class="item-actions">
-                    <button class="btn-action btn-edit" onclick="editExam('${exam._id}')">
-                        <i class="bi bi-pencil"></i> Edit
-                    </button>
-                    <button class="btn-action btn-delete" onclick="deleteExam('${exam._id}')">
-                        <i class="bi bi-trash"></i> Delete
-                    </button>
-                </div>
-            </div>
-        </div>
-    `).join('');
+function filterExams() {
+    const search = (document.getElementById('examSearch')?.value || '').toLowerCase();
+    const sort   = document.getElementById('examSort')?.value || 'newest';
+
+    let filtered = allExams.filter(exam =>
+        exam.subject.toLowerCase().includes(search) ||
+        (exam.notes || '').toLowerCase().includes(search)
+    );
+
+    if (sort === 'newest') filtered.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+    if (sort === 'oldest') filtered.sort((a, b) => new Date(a.date || 0) - new Date(b.date || 0));
+    if (sort === 'name')   filtered.sort((a, b) => a.subject.localeCompare(b.subject));
+
+    displayExams(filtered);
 }
+
+    examsGrid.innerHTML = exams.map(exam => {
+        // Calculate days until exam for urgency colour
+        const today    = new Date();
+        const examDate = new Date(exam.date);
+        const daysLeft = Math.ceil((examDate - today) / (1000 * 60 * 60 * 24));
+
+        let colorClass = 'card-border-low';          // green — plenty of time
+        if (daysLeft <= 3)      colorClass = 'card-border-high';    // red — urgent
+        else if (daysLeft <= 7) colorClass = 'card-border-medium';  // orange — soon
+
+        // Urgency label shown next to the subject
+        let urgencyBadge = '';
+        if (daysLeft <= 3)      urgencyBadge = '<span class="urgency-badge urgency-high">Urgent</span>';
+        else if (daysLeft <= 7) urgencyBadge = '<span class="urgency-badge urgency-medium">Soon</span>';
+        else                    urgencyBadge = '<span class="urgency-badge urgency-low">Upcoming</span>';
+
+        return `
+            <div class="item-card ${colorClass}">
+                <div class="item-card-header">
+                    <h4>${exam.subject}</h4>
+                    ${urgencyBadge}
+                </div>
+                <div class="item-card-body">
+                    <p>${exam.notes || 'No notes'}</p>
+                    <div class="item-meta">
+                        <span><i class="bi bi-calendar"></i> ${formatDateNZ(exam.date)}</span>
+                        <span><i class="bi bi-clock"></i> ${formatTimeNZ(exam.time)}</span>
+                        <span><i class="bi bi-hourglass"></i> ${exam.duration} min</span>
+                    </div>
+                    <div class="item-actions">
+                        <button class="btn-action btn-edit" onclick="editExam('${exam._id}')">
+                            <i class="bi bi-pencil"></i> Edit
+                        </button>
+                        <button class="btn-action btn-delete" onclick="deleteExam('${exam._id}')">
+                            <i class="bi bi-trash"></i> Delete
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
 
 // Classes Page Functions
 function initClasses() {
@@ -700,28 +867,44 @@ function initClasses() {
     loadClasses();
 }
 
+// Store classes globally so search/filter/sort can work without re-fetching
+let allClasses = [];
+
 function loadClasses() {
     fetch('/api/classes')
         .then(response => response.json())
         .then(classes => {
-            displayClasses(classes);
+            allClasses = classes;
+            filterClasses();
         })
         .catch(error => console.error('Error loading classes:', error));
 }
 
-function displayClasses(classes) {
-    const classesGrid = document.getElementById('classes-grid');
-    if (!classesGrid) return;
-    
-    if (classes.length === 0) {
-        classesGrid.innerHTML = '<p class="empty-state">No classes added. Click "Add Class" to create one.</p>';
-        return;
-    }
-    
+function filterClasses() {
+    const search = (document.getElementById('classSearch')?.value || '').toLowerCase();
+    const day    = document.getElementById('classDayFilter')?.value || '';
+    const sort   = document.getElementById('classSort')?.value || 'name';
+
+    let filtered = allClasses.filter(cls => {
+        const matchSearch = cls.name.toLowerCase().includes(search) ||
+                            (cls.instructor || '').toLowerCase().includes(search);
+        const matchDay    = !day || cls.day === day;
+        return matchSearch && matchDay;
+    });
+
+    const dayOrder = { Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6, Sunday: 7 };
+
+    if (sort === 'name') filtered.sort((a, b) => a.name.localeCompare(b.name));
+    if (sort === 'day')  filtered.sort((a, b) => (dayOrder[a.day] || 9) - (dayOrder[b.day] || 9));
+
+    displayClasses(filtered);
+}
+
     classesGrid.innerHTML = classes.map(classItem => `
-        <div class="item-card">
+        <div class="item-card card-border-info">
             <div class="item-card-header">
                 <h4>${classItem.name}</h4>
+                <span class="urgency-badge urgency-info">${classItem.day}</span>
             </div>
             <div class="item-card-body">
                 <p><strong>Instructor:</strong> ${classItem.instructor || 'N/A'}</p>
@@ -741,7 +924,6 @@ function displayClasses(classes) {
             </div>
         </div>
     `).join('');
-}
 
 // Vacations Page Functions
 function initVacations() {

@@ -81,3 +81,75 @@ If you don't know something, say so — don't guess.
 ])
 
 chain = prompt | llm | StrOutputParser()
+
+
+def get_ai_suggestion_sync(context):
+    """
+    Generate AI suggestions synchronously for the dashboard.
+    
+    Args:
+        context (dict): Dictionary containing:
+            - exams: List of exam dictionaries with 'name' and 'date'
+            - tasks: List of task dictionaries with 'name' and 'priority'
+    
+    Returns:
+        str: AI-generated suggestion/motivational message
+    """
+    try:
+        exams = context.get('exams', [])
+        tasks = context.get('tasks', [])
+        
+        # Check if there are any tasks or exams
+        has_content = len(exams) > 0 or len(tasks) > 0
+        
+        if not has_content:
+            # If no tasks or exams, show only motivational tips
+            motivational_tips = [
+                "Motivational Tip:Remember, every big project starts with small steps. Break your tasks into manageable parts to keep things from feeling overwhelming.",
+                "Motivational Tip:You're doing great! Take a moment to celebrate what you've already accomplished today. Small wins add up to big success!",
+                "Motivational Tip:Progress over perfection. Focus on making consistent effort rather than being perfect. You've got this! 🌟",
+                "Motivational Tip:Your future self will thank you for the effort you put in today. Keep pushing forward!",
+                "Motivational Tip:Remember: Rest is part of productivity. Take care of yourself while pursuing your goals.",
+            ]
+            import random
+            return random.choice(motivational_tips)
+        
+        # Format exams for the AI prompt
+        exams_text = "\n".join([
+            f"- {exam.get('name', 'Unknown')}: {exam.get('date', 'N/A')}"
+            for exam in exams
+        ]) or "No upcoming exams"
+        
+        # Format tasks for the AI prompt - prioritize HIGH priority tasks
+        tasks_text = "\n".join([
+            f"- {task.get('name', 'Unknown')} (Priority: {task.get('priority', 'medium')})"
+            for task in tasks
+        ]) or "No pending tasks"
+        
+        user_context = f"""
+Upcoming Exams:
+{exams_text}
+
+Pending Tasks (sorted by priority):
+{tasks_text}
+        """
+        
+        # Generate suggestion using the chain
+        suggestion = chain.invoke({
+            "question": "Give me one motivational study tip and one actionable suggestion for today based on the user's tasks and exams. Focus on HIGH priority tasks first. Keep it concise (2-3 sentences max) and encouraging.",
+            "user_context": user_context
+        })
+        
+        return suggestion.strip()
+    
+    except Exception as e:
+        print(f"Error generating AI suggestion: {e}")
+        # Fallback messages if AI fails
+        fallback_messages = [
+            "Motivational Tip:You've got this! Focus on one task at a time and celebrate small wins. 💪",
+            "Motivational Tip:Keep pushing forward! Every task completed brings you closer to your goals. 🚀",
+            "Motivational Tip:Remember: Progress over perfection. You're doing great! 🌟",
+            "Motivational Tip:Break down your goals into smaller tasks. You can do it! 📚"
+        ]
+        import random
+        return random.choice(fallback_messages)
