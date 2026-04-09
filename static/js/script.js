@@ -22,6 +22,21 @@ function formatDateTimeNZ(dateString, timeString) {
     return `${formatDateNZ(dateString)} ${formatTimeNZ(timeString)}`;
 }
 
+(function applyDarkModeOnLoad() {
+    if (localStorage.getItem('darkMode') === 'true') {
+        document.body.classList.add('dark-mode');
+    }
+
+    fetch('/api/settings')
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+            if (!data || data.dark_mode === undefined) return;
+            document.body.classList.toggle('dark-mode', data.dark_mode);
+            localStorage.setItem('darkMode', data.dark_mode ? 'true' : 'false');
+        })
+        .catch(() => {});
+})();
+
 // Sidebar Submenu Toggle
 document.addEventListener('DOMContentLoaded', function() {
     const activitiesToggle = document.getElementById('activities-toggle');
@@ -53,11 +68,93 @@ document.addEventListener('DOMContentLoaded', function() {
         initClasses();
     } else if (currentPage.includes('/vacations')) {
         initVacations();
+    } else if (currentPage.includes('/settings')) {
+        initSettings();
     }
 });
 
+function initSettings() {
+    fetch('/api/settings')
+        .then(r => r.ok ? r.json() : {})
+        .then(data => {
+            const map = {
+                darkMode:       'dark_mode',
+                taskReminders:  'task_reminders',
+                examAlerts:     'exam_alerts',
+                studyDuration:  'study_duration',
+                breakDuration:  'break_duration',
+                defaultView:    'default_view'
+            };
+
+            for (const [elementId, key] of Object.entries(map)) {
+                const el = document.getElementById(elementId);
+                if (!el || data[key] === undefined) continue;
+                if (el.type === 'checkbox') el.checked = data[key];
+                else el.value = data[key];
+            }
+        })
+        .catch(() => {});
+
+    const darkToggle = document.getElementById('darkMode');
+    if (darkToggle) {
+        darkToggle.addEventListener('change', function () {
+            document.body.classList.toggle('dark-mode', this.checked);
+            localStorage.setItem('darkMode', this.checked ? 'true' : 'false');
+        });
+    }
+
+    const saveBtn = document.getElementById('saveSettings');
+    if (saveBtn) {
+        saveBtn.addEventListener('click', function () {
+            const payload = {
+                dark_mode:      document.getElementById('darkMode')?.checked      ?? false,
+                task_reminders: document.getElementById('taskReminders')?.checked ?? true,
+                exam_alerts:    document.getElementById('examAlerts')?.checked    ?? true,
+                study_duration: document.getElementById('studyDuration')?.value   ?? '60',
+                break_duration: document.getElementById('breakDuration')?.value   ?? '10',
+                default_view:   document.getElementById('defaultView')?.value     ?? 'week'
+            };
+
+            fetch('/api/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+            .then(r => r.json())
+            .then(result => {
+                if (result.success) {
+                    document.body.classList.toggle('dark-mode', payload.dark_mode);
+                    localStorage.setItem('darkMode', payload.dark_mode ? 'true' : 'false');
+                    showToast('Settings saved successfully!', 'success');
+                } else {
+                    showToast('Could not save settings. Please try again.', 'error');
+                }
+            })
+            .catch(() => showToast('Network error. Please try again.', 'error'));
+        });
+    }
+}
+
+
+if (typeof showToast === 'undefined') {
+    function showToast(message, type = 'success') {
+        const icon  = type === 'success' ? 'check-circle' : 'exclamation-circle';
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.innerHTML = `<i class="bi bi-${icon}"></i> ${message}`;
+        document.body.appendChild(toast);
+
+        setTimeout(() => {
+            toast.style.animation = 'toastSlideOut 0.3s ease-in forwards';
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
+}
+
+
 // Dashboard Functions
 function initDashboard() {
+    fetchAISuggestions();
     const addTaskBtn = document.getElementById('add-task-btn');
     const addTaskModal = document.getElementById('addTaskModal');
     const closeModal = addTaskModal ? addTaskModal.querySelector('.close') : null;

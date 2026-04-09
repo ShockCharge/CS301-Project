@@ -1645,3 +1645,163 @@ body {
 .empty-state p {
     margin: 8px 0;
 }
+
+
+body.dark-mode {
+    --light-bg:     #1a1a2e;
+    --white:        #16213e;
+    --text-dark:    #e0e0e0;
+    --text-light:   #a0a0b0;
+    --border-color: #2e2e4e;
+    --shadow:       0 2px 8px rgba(0, 0, 0, 0.4);
+    --shadow-lg:    0 4px 16px rgba(0, 0, 0, 0.6);
+    background-color: var(--light-bg);
+    color: var(--text-dark);
+}
+
+/* --- Sidebar --- */
+body.dark-mode .sidebar {
+    background-color: #0f0f23;
+    border-right-color: var(--border-color);
+}
+body.dark-mode .sidebar-brand   { color: #4da6ff; }
+body.dark-mode .nav-link        { color: var(--text-dark); }
+body.dark-mode .nav-link:hover  { background-color: #2a2a4a; }
+body.dark-mode .nav-link.active { background-color: var(--primary-color); color: #fff; }
+body.dark-mode .logout-btn      { background-color: #2a2a4a; color: var(--text-dark); }
+body.dark-mode .logout-btn:hover{ background-color: #3a3a5a; }
+body.dark-mode .submenu         { background-color: rgba(77, 166, 255, 0.07); }
+
+/* --- Header & Titles --- */
+body.dark-mode .header     { border-bottom-color: var(--border-color); }
+body.dark-mode .page-title { color: var(--text-dark); }
+body.dark-mode .footer     { border-top-color: var(--border-color); color: var(--text-light); }
+
+/* --- Cards & Containers --- */
+body.dark-mode .card,
+body.dark-mode .item-card,
+body.dark-mode .stat-card,
+body.dark-mode .settings-section,
+body.dark-mode .schedule-container,
+body.dark-mode .schedule-item,
+body.dark-mode .modal-content,
+body.dark-mode .custom-modal {
+    background-color: var(--white);
+    color: var(--text-dark);
+    border-color: var(--border-color);
+}
+
+body.dark-mode .card-header,
+body.dark-mode .card-header h3,
+body.dark-mode .item-card-header h4,
+body.dark-mode .settings-section h3,
+body.dark-mode .page-header h3,
+body.dark-mode .modal-content h2,
+body.dark-mode .custom-modal-title {
+    color: var(--text-dark);
+}
+
+body.dark-mode .card-header  { border-bottom-color: var(--border-color); }
+body.dark-mode .task-item    { border-bottom-color: var(--border-color); }
+body.dark-mode .setting-item { border-bottom-color: var(--border-color); }
+
+/* --- Body Text --- */
+body.dark-mode .task-name,
+body.dark-mode .item-card-body,
+body.dark-mode .item-meta,
+body.dark-mode .schedule-description,
+body.dark-mode .schedule-meta,
+body.dark-mode .custom-modal-body,
+body.dark-mode .setting-item p,
+body.dark-mode .info-item p,
+body.dark-mode .empty-state {
+    color: var(--text-light);
+}
+
+/* --- Form Inputs --- */
+body.dark-mode .form-input,
+body.dark-mode select.form-input,
+body.dark-mode textarea.form-input {
+    background-color: #1e1e3a;
+    color: var(--text-dark);
+    border-color: var(--border-color);
+}
+body.dark-mode .form-input:focus { border-color: #4da6ff; outline: none; }
+
+body.dark-mode .modal-content label,
+body.dark-mode .settings-group label,
+body.dark-mode .setting-item strong,
+body.dark-mode .info-item label {
+    color: var(--text-dark);
+}
+
+/* --- Buttons --- */
+body.dark-mode .btn-add {
+    background-color: #2a2a4a;
+    border-color: var(--border-color);
+    color: var(--text-light);
+}
+body.dark-mode .btn-add:hover { background-color: var(--primary-color); color: #fff; }
+
+body.dark-mode .tab-btn {
+    background-color: #2a2a4a;
+    border-color: var(--border-color);
+    color: var(--text-light);
+}
+body.dark-mode .tab-btn.active { background-color: var(--primary-color); color: #fff; }
+
+body.dark-mode .btn-nav {
+    background-color: #2a2a4a;
+    border-color: var(--border-color);
+    color: var(--text-dark);
+}
+body.dark-mode .btn-nav:hover { background-color: var(--primary-color); color: #fff; }
+
+body.dark-mode .btn-icon { background-color: #2a2a4a; color: var(--text-light); }
+body.dark-mode .btn-icon:hover { background-color: var(--primary-color); color: #fff; }
+
+body.dark-mode .custom-modal-btn-cancel {
+    background-color: #2a2a4a;
+    color: var(--text-dark);
+}
+body.dark-mode .custom-modal-btn-cancel:hover { background-color: #3a3a5a; }
+
+/* --- Calendar --- */
+body.dark-mode .current-month { color: var(--text-dark); }
+body.dark-mode .day-header     { background-color: #2a2a4a; color: var(--text-dark); }
+
+body.dark-mode .calendar-day {
+    background-color: var(--white);
+    border-color: var(--border-color);
+    color: var(--text-dark);
+}
+body.dark-mode .calendar-day:hover       { background-color: #2a2a4a; border-color: #4da6ff; }
+body.dark-mode .calendar-day.other-month { background-color: #1a1a2e; color: var(--text-light); }
+
+body.dark-mode .time-slot   { background-color: var(--white); border-color: var(--border-color); }
+body.dark-mode .time-label  { color: var(--text-dark); }
+body.dark-mode .time-content{ border-left-color: var(--border-color); }
+
+/* --- Profile & Stats --- */
+body.dark-mode .progress-inner  { background-color: var(--white); }
+body.dark-mode .profile-header  { background: linear-gradient(135deg, #1a3a6e, #0d2040); }
+body.dark-mode .status-badge.active { background-color: #1a3a2e; color: #5cb85c; }
+
+/* --- Chatbot Page (inline style overrides) --- */
+body.dark-mode .chat-container,
+body.dark-mode .chat-header,
+body.dark-mode .chat-messages,
+body.dark-mode .chat-input-container {
+    background-color: var(--white)        !important;
+    color:            var(--text-dark)    !important;
+    border-color:     var(--border-color) !important;
+}
+body.dark-mode .bot-message {
+    background-color: #2a2a4a         !important;
+    color:            var(--text-dark) !important;
+}
+body.dark-mode .chat-input {
+    background-color: #1e1e3a         !important;
+    color:            var(--text-dark) !important;
+    border-color:     var(--border-color) !important;
+}

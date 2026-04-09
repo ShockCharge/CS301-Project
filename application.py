@@ -448,40 +448,70 @@ def chatbot():
     return render_template('chatbot.html')
 
 
-@app.route('/api/ai-task-suggestions')
-def ai_task_suggestions():
+@app.route('/get_ai_suggestions')
+def get_ai_suggestions():
+    """Endpoint to fetch AI suggestions for the dashboard"""
     if 'user' not in session:
-        return jsonify({'error': 'Not logged in'}), 401
+        return jsonify({"error": "User not logged in"}), 401
     
-    # Try Celery first, but provide a synchronous fallback for better reliability
     try:
-        task = get_ai_suggestions_task.delay(session['user'])
-        return jsonify({'task_id': task.id, 'async': True}), 202
+        user_email = session['user']
+        today = datetime.now(NZ_TZ)
+        
+        today_str = today.strftime('%d/%m/%Y')
+        
+        print(f"DEBUG: Looking for tasks with date: {today_str}")
+        
+        # Priority order for sorting
+        priority_order = {'high': 0, 'medium': 1, 'low': 2}
+        
+        today_tasks = list(tasks_collection.find({
+            "user": user_email,
+            "date": today_str,  #
+            "completed": {"$ne": True}
+        }))
+        
+        print(f"DEBUG: Found {len(today_tasks)} tasks for today")
+        
+        # Sort by priority (HIGH first)
+        today_tasks.sort(key=lambda x: priority_order.get(x.get('priority', 'medium').lower(), 1))
+        
+        today_exams = list(exams_collection.find({
+            "user": user_email,
+            "completed": {"$ne": True}
+        }).limit(3))
+        
+        # Filter exams to only show today and future dates
+        filtered_exams = []
+        for exam in today_exams:
+            exam_date_str = exam.get('date', '')
+            try:
+                exam_date = datetime.strptime(exam_date_str, '%d/%m/%Y')
+                if exam_date.date() >= today.date():
+                    filtered_exams.append(exam)
+            except:
+                pass
+        
+        context = {
+            "exams": [{"name": e.get("subject"), "date": e.get("date")} for e in filtered_exams],
+            "tasks": [{"name": t.get("name"), "priority": t.get("priority", "medium")} for t in today_tasks]
+        }
+        
+        print(f"DEBUG: Context = {context}")
+        
+        from common import get_ai_suggestion_sync
+        
+        ai_response = get_ai_suggestion_sync(context)
+        
+        return jsonify({"suggestions": ai_response})
+    
     except Exception as e:
-        print(f"Celery failed, falling back to synchronous AI: {e}")
-        today = datetime.now(NZ_TZ).strftime('%Y-%m-%d')
-        tasks = list(tasks_collection.find({'user': session['user'], 'date': {'$gte': today}, 'completed': {'$ne': True}}))
-        exams = list(exams_collection.find({'user': session['user'], 'date': {'$gte': today}, 'completed': {'$ne': True}}))
-        context = f"Today's date: {today}\nTasks: {tasks}\nExams: {exams}"
-        suggestions = chain.invoke({"question": "Suggest new study tasks", "user_context": context})
-        return jsonify({'result': {'suggestions': suggestions}, 'async': False})
+        print(f"Error in get_ai_suggestions: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)})
 
-@app.route('/api/ai-study-plan')
-def ai_study_plan():
-    if 'user' not in session:
-        return jsonify({'error': 'Not logged in'}), 401
-    
-    try:
-        task = get_ai_study_plan_task.delay(session['user'])
-        return jsonify({'task_id': task.id, 'async': True}), 202
-    except Exception as e:
-        print(f"Celery failed, falling back to synchronous AI: {e}")
-        today = datetime.now(NZ_TZ).strftime('%Y-%m-%d')
-        tasks = list(tasks_collection.find({'user': session['user'], 'date': {'$gte': today}, 'completed': {'$ne': True}}))
-        exams = list(exams_collection.find({'user': session['user'], 'date': {'$gte': today}, 'completed': {'$ne': True}}))
-        context = f"Today's date: {today}\nTasks: {tasks}\nExams: {exams}"
-        plan = chain.invoke({"question": "Create a detailed weekly study schedule", "user_context": context})
-        return jsonify({'result': {'plan': plan}, 'async': False})
+
 
 @app.route('/api/ai-task-status/<task_id>')
 def ai_task_status(task_id):
@@ -611,6 +641,60 @@ def settings():
     if 'user' not in session:
         return redirect(url_for('login'))
     return render_template('settings.html')
+
+
+@app.route('/api/settings', methods=['GET', 'POST'])
+def api_settings():
+    """
+    GET  — Return the current user's saved settings as JSON.
+    POST — Accept a JSON body and persist the settings to MongoDB.
+    """
+    if 'user' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+
+    # Development mode fallback (no database connection)
+    if users_collection is None:
+        if request.method == 'GET':
+            return jsonify({
+                'dark_mode':      False,
+                'task_reminders': True,
+                'exam_alerts':    True,
+                'study_duration': '60',
+                'break_duration': '10',
+                'default_view':   'week'
+            })
+        return jsonify({'success': True})
+
+    # GET — fetch and return stored settings
+    if request.method == 'GET':
+        user = users_collection.find_one(
+            {'email': session['user']},
+            {'settings': 1}
+        )
+        s = user.get('settings', {}) if user else {}
+        return jsonify({
+            'dark_mode':      s.get('dark_mode',      False),
+            'task_reminders': s.get('task_reminders',  True),
+            'exam_alerts':    s.get('exam_alerts',     True),
+            'study_duration': s.get('study_duration', '60'),
+            'break_duration': s.get('break_duration', '10'),
+            'default_view':   s.get('default_view',  'week')
+        })
+
+    # POST — validate and save settings
+    data = request.json or {}
+    users_collection.update_one(
+        {'email': session['user']},
+        {'$set': {
+            'settings.dark_mode':      bool(data.get('dark_mode',      False)),
+            'settings.task_reminders': bool(data.get('task_reminders',  True)),
+            'settings.exam_alerts':    bool(data.get('exam_alerts',     True)),
+            'settings.study_duration': str(data.get('study_duration',  '60')),
+            'settings.break_duration': str(data.get('break_duration',  '10')),
+            'settings.default_view':   str(data.get('default_view',   'week'))
+        }}
+    )
+    return jsonify({'success': True})
 
 @app.route('/profile')
 def profile():
