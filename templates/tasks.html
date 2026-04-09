@@ -98,11 +98,37 @@
             </header>
 
             <!-- Tasks Container -->
-            <div class="page-container">
-                <div class="page-header">
-                    <h3>Manage Your Tasks</h3>
-                    <button class="btn-add-schedule" id="add-task-page-btn">+ Add Task</button>
-                </div>
+            <div class="page-header">
+    <h3>Manage Your Tasks</h3>
+    <button class="btn-add-schedule" id="add-task-page-btn">+ Add Task</button>
+</div>
+
+<!-- Search, Sort & Filter Bar -->
+<div class="search-filter-bar">
+    <div class="search-box">
+        <i class="bi bi-search"></i>
+        <input type="text" id="taskSearch" placeholder="Search tasks..." oninput="filterTasks()">
+    </div>
+    <div class="filter-controls">
+        <select id="taskPriorityFilter" onchange="filterTasks()">
+            <option value="">All Priorities</option>
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
+        </select>
+        <select id="taskStatusFilter" onchange="filterTasks()">
+            <option value="">All Status</option>
+            <option value="pending">Pending</option>
+            <option value="completed">Completed</option>
+        </select>
+        <select id="taskSort" onchange="filterTasks()">
+            <option value="newest">Newest First</option>
+            <option value="oldest">Oldest First</option>
+            <option value="priority">By Priority</option>
+            <option value="name">By Name (A–Z)</option>
+        </select>
+    </div>
+</div>
 
                 <div class="items-grid" id="tasks-grid">
                     <!-- Tasks will be loaded here -->

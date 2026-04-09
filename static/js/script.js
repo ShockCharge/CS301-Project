@@ -594,13 +594,42 @@ function initTasks() {
     loadTasks();
 }
 
+let allTasks = [];
+
 function loadTasks() {
     fetch('/api/tasks')
         .then(response => response.json())
         .then(tasks => {
-            displayTasks(tasks);
+            allTasks = tasks;
+            filterTasks();
         })
         .catch(error => console.error('Error loading tasks:', error));
+}
+
+function filterTasks() {
+    const search   = (document.getElementById('taskSearch')?.value || '').toLowerCase();
+    const priority = document.getElementById('taskPriorityFilter')?.value || '';
+    const status   = document.getElementById('taskStatusFilter')?.value || '';
+    const sort     = document.getElementById('taskSort')?.value || 'newest';
+
+    let filtered = allTasks.filter(task => {
+        const matchSearch   = task.name.toLowerCase().includes(search) ||
+                              (task.description || '').toLowerCase().includes(search);
+        const matchPriority = !priority || task.priority === priority;
+        const matchStatus   = !status ||
+                              (status === 'completed' && task.completed) ||
+                              (status === 'pending'   && !task.completed);
+        return matchSearch && matchPriority && matchStatus;
+    });
+
+    const priorityOrder = { high: 1, medium: 2, low: 3 };
+
+    if (sort === 'newest')   filtered.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+    if (sort === 'oldest')   filtered.sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
+    if (sort === 'priority') filtered.sort((a, b) => (priorityOrder[a.priority] || 9) - (priorityOrder[b.priority] || 9));
+    if (sort === 'name')     filtered.sort((a, b) => a.name.localeCompare(b.name));
+
+    displayTasks(filtered);
 }
 
 function displayTasks(tasks) {
@@ -699,13 +728,32 @@ function initExams() {
     loadExams();
 }
 
+let allExams = [];
+
 function loadExams() {
     fetch('/api/exams')
         .then(response => response.json())
         .then(exams => {
-            displayExams(exams);
+            allExams = exams;
+            filterExams();
         })
         .catch(error => console.error('Error loading exams:', error));
+}
+
+function filterExams() {
+    const search = (document.getElementById('examSearch')?.value || '').toLowerCase();
+    const sort   = document.getElementById('examSort')?.value || 'newest';
+
+    let filtered = allExams.filter(exam =>
+        exam.subject.toLowerCase().includes(search) ||
+        (exam.notes || '').toLowerCase().includes(search)
+    );
+
+    if (sort === 'newest') filtered.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+    if (sort === 'oldest') filtered.sort((a, b) => new Date(a.date || 0) - new Date(b.date || 0));
+    if (sort === 'name')   filtered.sort((a, b) => a.subject.localeCompare(b.subject));
+
+    displayExams(filtered);
 }
 
 function displayExams(exams) {
@@ -797,13 +845,37 @@ function initClasses() {
     loadClasses();
 }
 
+// Store classes globally so search/filter/sort can work without re-fetching
+let allClasses = [];
+
 function loadClasses() {
     fetch('/api/classes')
         .then(response => response.json())
         .then(classes => {
-            displayClasses(classes);
+            allClasses = classes;
+            filterClasses();
         })
         .catch(error => console.error('Error loading classes:', error));
+}
+
+function filterClasses() {
+    const search = (document.getElementById('classSearch')?.value || '').toLowerCase();
+    const day    = document.getElementById('classDayFilter')?.value || '';
+    const sort   = document.getElementById('classSort')?.value || 'name';
+
+    let filtered = allClasses.filter(cls => {
+        const matchSearch = cls.name.toLowerCase().includes(search) ||
+                            (cls.instructor || '').toLowerCase().includes(search);
+        const matchDay    = !day || cls.day === day;
+        return matchSearch && matchDay;
+    });
+
+    const dayOrder = { Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6, Sunday: 7 };
+
+    if (sort === 'name') filtered.sort((a, b) => a.name.localeCompare(b.name));
+    if (sort === 'day')  filtered.sort((a, b) => (dayOrder[a.day] || 9) - (dayOrder[b.day] || 9));
+
+    displayClasses(filtered);
 }
 
 function displayClasses(classes) {

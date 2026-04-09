@@ -1805,3 +1805,109 @@ body.dark-mode .chat-input {
     color:            var(--text-dark) !important;
     border-color:     var(--border-color) !important;
 }
+
+
+/* ==========================================================================
+   SEARCH, SORT & FILTER BAR
+   Used on Tasks, Exams, and Classes pages.
+   ========================================================================== */
+
+.search-filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 24px;
+    padding: 16px 20px;
+    background: var(--white);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+}
+
+.search-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 200px;
+    background: var(--light-bg);
+    border: 1px solid var(--border-color, #e0e0e0);
+    border-radius: 8px;
+    padding: 8px 14px;
+}
+
+.search-box i {
+    color: var(--text-light);
+    font-size: 16px;
+}
+
+.search-box input {
+    border: none;
+    background: transparent;
+    outline: none;
+    font-size: 14px;
+    color: var(--text-dark);
+    width: 100%;
+}
+
+.search-box input::placeholder {
+    color: var(--text-light);
+}
+
+.filter-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.filter-controls select {
+    padding: 8px 14px;
+    border: 1px solid var(--border-color, #e0e0e0);
+    border-radius: 8px;
+    background: var(--light-bg);
+    color: var(--text-dark);
+    font-size: 14px;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.filter-controls select:focus {
+    border-color: var(--primary-color);
+}
+
+/* Dark mode overrides for the search bar */
+body.dark-mode .search-filter-bar {
+    background-color: #16213e;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+body.dark-mode .search-box {
+    background-color: #1e1e3a;
+    border-color: #2e2e4e;
+}
+
+body.dark-mode .search-box input {
+    color: #e0e0e0;
+}
+
+body.dark-mode .filter-controls select {
+    background-color: #1e1e3a;
+    border-color: #2e2e4e;
+    color: #e0e0e0;
+}
+
+@media (max-width: 768px) {
+    .search-filter-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .filter-controls {
+        flex-direction: column;
+    }
+
+    .filter-controls select {
+        width: 100%;
+    }
+}

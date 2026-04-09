@@ -94,6 +94,28 @@
                     </a>
                 </div>
             </header>
+            <div class="search-filter-bar">
+    <div class="search-box">
+        <i class="bi bi-search"></i>
+        <input type="text" id="classSearch" placeholder="Search classes..." oninput="filterClasses()">
+    </div>
+    <div class="filter-controls">
+        <select id="classDayFilter" onchange="filterClasses()">
+            <option value="">All Days</option>
+            <option value="Monday">Monday</option>
+            <option value="Tuesday">Tuesday</option>
+            <option value="Wednesday">Wednesday</option>
+            <option value="Thursday">Thursday</option>
+            <option value="Friday">Friday</option>
+            <option value="Saturday">Saturday</option>
+            <option value="Sunday">Sunday</option>
+        </select>
+        <select id="classSort" onchange="filterClasses()">
+            <option value="name">By Name (A–Z)</option>
+            <option value="day">By Day</option>
+        </select>
+    </div>
+</div>
 
             <!-- Classes Container -->
             <div class="page-container">
