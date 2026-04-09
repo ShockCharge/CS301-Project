@@ -1,5 +1,5 @@
-.main-container {
-    background-color: var(--bg-dark);
+.container {
+    width: 100%;
     display: flex;
     flex-direction: column;
 }
@@ -14,17 +14,28 @@
 
 .header-content {
     text-align: center;
-    flex: 1;
 }
 
 .header-title {
     color: var(--normal-text);
-    white-space: nowrap;
+    font-size: 2rem;
+    font-weight: 900;
 }
 
 .header-time,
 .header-date {
     color: var(--normal-text);
+}
+
+.header-time {
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.header-date {
+    font-size: 1.25rem;
+    font-weight: 400;
 }
 
 /*  ########## Menu ########## */
@@ -34,6 +45,8 @@
     cursor: pointer;
     display: flex;
     flex-direction: column;
+    gap: 5px;
+    padding: 4px;
 }
 
 .menu span {
@@ -53,8 +66,15 @@
 }
 
 /* ########## Cards ########## */
+.card {
+    background-color: var(--bg-medium);
+    color: var(--normal-text);
+    border-radius: 20px;
+}
+
 .card-title {
     background-color: var(--bg-medium);
+    color: var(--normal-text);
     text-align: center;
 }
 
@@ -96,6 +116,7 @@
 
 /*  ########## Progress Overview ########## */
 .progress-overview {
+    background-color: var(--bg-medium);
     display: flex;
     flex-direction: column;
     align-items: center;
