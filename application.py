@@ -14,7 +14,7 @@ from celery import Celery
 from celery_app import celery_app
 import random
 import secrets
-import boto3 
+from task import send_reminder_async
 
 # Initialize Celery app (must be done in application.py as well for Flask context)
 celery_app = Celery(
@@ -633,6 +633,18 @@ def tasks():
         tasks_list = []
         
     return render_template('tasks.html', tasks=tasks_list)
+
+@app.route('/create-task', methods=['POST'])
+def create_task():
+    data = request.json
+
+    email = data.get('email')
+    task_name = data.get('task_name')
+
+    # Trigger async SNS notification
+    send_reminder_async.delay(email, task_name)
+
+    return jsonify({"message": "Task created and reminder scheduled!"})
 
 @app.route('/exams')
 def exams():

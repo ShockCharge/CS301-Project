@@ -3,6 +3,8 @@ from datetime import datetime
 from celery_app import celery_app
 from common import NZ_TZ, tasks_collection, exams_collection, chain
 import os
+from celery_app import celery
+from notification import send_task_reminder
 
 # Initialize Celery app
 celery_app = Celery(
@@ -10,6 +12,10 @@ celery_app = Celery(
     broker=os.environ.get('CELERY_BROKER_URL', 'redis://localhost:6379/0'),
     backend=os.environ.get('CELERY_RESULT_BACKEND', 'redis://localhost:6379/0')
 )
+
+@celery.task
+def send_reminder_async(email, task_name):
+    send_task_reminder(email, task_name)
 
 @celery_app.task
 def get_ai_suggestions_task(user_email):
