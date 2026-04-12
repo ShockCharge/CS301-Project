@@ -636,16 +636,59 @@ def tasks():
 
 @app.route('/create-task', methods=['POST'])
 def create_task():
-    data = request.json
+    try:
+        data = request.get_json()
 
-    email = data.get('email')
-    task_name = data.get('task_name')
+        # 1. Validate input
+        email = data.get('email')
+        task_name = data.get('task_name')
+        due_time = data.get('due_time')  # optional
 
-    # Trigger async SNS notification
-    send_reminder_async.delay(email, task_name)
+        if not email or not task_name:
+            return jsonify({
+                "error": "Email and task_name are required"
+            }), 400
 
-    return jsonify({"message": "Task created and reminder scheduled!"})
+        # 2. Convert due_time if provided
+        eta_time = None
+        if due_time:
+            try:
+                eta_time = datetime.strptime(due_time, "%Y-%m-%d %H:%M:%S")
+            except ValueError:
+                return jsonify({
+                    "error": "Invalid due_time format. Use YYYY-MM-DD HH:MM:SS"
+                }), 400
 
+        # 3. Save task 
+        new_task = {
+            "email": email,
+            "task_name": task_name,
+            "due_time": due_time
+        }
+        tasks.append(new_task)
+
+        # 4. Trigger SNS notification
+        if eta_time:
+            # Schedule for later
+            send_reminder_async.apply_async(
+                args=[email, task_name],
+                eta=eta_time
+            )
+        else:
+            # Send immediately
+            send_reminder_async.delay(email, task_name)
+
+        # 5. Return success
+        return jsonify({
+            "message": "Task created successfully",
+            "task": new_task
+        }), 201
+
+    except Exception as e:
+        return jsonify({
+            "error": str(e)
+        }), 500
+    
 @app.route('/exams')
 def exams():
     if 'user' not in session:
