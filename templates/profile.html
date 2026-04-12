@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script src="{{ url_for('static', filename='js/darkmode.js') }}"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Study Planner | Profile</title>
@@ -281,7 +282,6 @@
             </div>
         </main>
     </div>
-<script src="{{ url_for('static', filename='js/darkmode.js') }}"></script>
 
     <script>
         // Load saved profile picture on page load
@@ -380,19 +380,33 @@
         });
 
         // Change password form
-        document.getElementById('change-password-form').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const newPassword = document.getElementById('new-password').value;
-            const confirmPassword = document.getElementById('confirm-new-password').value;
-            
-            if (newPassword !== confirmPassword) {
-                alert('New passwords do not match!');
-                return;
-            }
-            
-            alert('Password updated successfully!');
-            e.target.reset();
-        });
+   document.getElementById('change-password-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const newPassword = document.getElementById('new-password').value;
+    const confirmPassword = document.getElementById('confirm-new-password').value;
+
+    if (newPassword !== confirmPassword) {
+        alert('New passwords do not match!');
+        return;
+    }
+
+    const response = await fetch('/api/change_password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            current_password: document.getElementById('current-password').value,
+            new_password: newPassword
+        })
+    });
+    const result = await response.json();
+    if (result.success) {
+        alert('Password updated successfully!');
+        e.target.reset();
+    } else {
+        alert(result.error || 'Failed to update password.');
+    }
+});
+
 
         // Delete account
         function confirmDeleteAccount() {
@@ -404,5 +418,7 @@
             }
         }
     </script>
+        <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+
 </body>
 </html>

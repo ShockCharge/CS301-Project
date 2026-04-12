@@ -787,7 +787,7 @@ def api_settings():
 def profile():
     if 'user' not in session:
         return redirect(url_for('login'))
-    
+
     user_data = None
     stats = {
         'total_study_time': 0,
@@ -796,19 +796,60 @@ def profile():
         'upcoming_exams': 0,
         'current_streak': 0
     }
-    
+
     if users_collection is not None:
         user_data = users_collection.find_one({'email': session['user']})
         if user_data:
             user_data['_id'] = str(user_data['_id'])
-        
+
         if tasks_collection is not None:
+            # Total and completed task counts
             stats['total_tasks'] = tasks_collection.count_documents({'user': session['user']})
             stats['completed_tasks'] = tasks_collection.count_documents({
-                'user': session['user'], 
+                'user': session['user'],
                 'completed': True
             })
-        
+
+            # Total study time from completed tasks that have a duration field
+            completed_with_duration = tasks_collection.find({
+                'user': session['user'],
+                'completed': True,
+                'duration': {'$exists': True}
+            })
+            for task in completed_with_duration:
+                stats['total_study_time'] += task.get('duration', 0)
+
+            # Study streak — count consecutive days with at least one completed task
+            all_completed = list(tasks_collection.find({
+                'user': session['user'],
+                'completed': True,
+                'completed_at': {'$exists': True}
+            }).sort('completed_at', -1))
+
+            streak = 0
+            if all_completed:
+                check_date = datetime.now(NZ_TZ).date()
+                dates_with_completion = set()
+
+                for t in all_completed:
+                    completed_at = t.get('completed_at')
+                    if completed_at:
+                        if hasattr(completed_at, 'date'):
+                            dates_with_completion.add(completed_at.date())
+                        else:
+                            try:
+                                dates_with_completion.add(
+                                    datetime.strptime(str(completed_at)[:10], '%Y-%m-%d').date()
+                                )
+                            except Exception:
+                                pass
+
+                while check_date in dates_with_completion:
+                    streak += 1
+                    check_date -= timedelta(days=1)
+
+            stats['current_streak'] = streak
+
         if exams_collection is not None:
             today = datetime.now(NZ_TZ).strftime('%Y-%m-%d')
             stats['upcoming_exams'] = exams_collection.count_documents({
@@ -816,20 +857,33 @@ def profile():
                 'date': {'$gte': today},
                 'completed': {'$ne': True}
             })
-        
-        if tasks_collection is not None:
-            completed_tasks = tasks_collection.find({
-                'user': session['user'],
-                'completed': True,
-                'duration': {'$exists': True}
-            })
-            for task in completed_tasks:
-                stats['total_study_time'] += task.get('duration', 0)
-                # TODO: Calculate total_study_time and current_streak
-        
-    
+
     return render_template('profile.html', user=user_data, stats=stats)
 
+
+@app.route('/api/profile', methods=['PUT'])
+def api_profile():
+    if 'user' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+
+    data = request.json or {}
+    allowed_fields = [
+        'first_name', 'last_name', 'phone', 'date_of_birth',
+        'gender', 'address', 'institution', 'student_id',
+        'major', 'year_level', 'daily_study_goal', 'preferred_study_time'
+    ]
+    update_data = {k: v for k, v in data.items() if k in allowed_fields}
+
+    if not update_data:
+        return jsonify({'error': 'No valid fields to update'})
+
+    if users_collection is not None:
+        users_collection.update_one(
+            {'email': session['user']},
+            {'$set': update_data}
+        )
+
+    return jsonify({'success': True})
 
 @app.route('/api/schedules', methods=['GET', 'POST'])
 def api_schedules():
@@ -1225,6 +1279,29 @@ def api_single_vacation(vacation_id):
                 return jsonify({'error': 'Vacation not found'})
         else:
             return jsonify({'success': True, 'message': 'Vacation deleted (dev mode)'})
+        
+
+@app.route('/api/change_password', methods=['POST'])
+def api_change_password():
+    if 'user' not in session:
+        return jsonify({'error': 'Not authenticated'})
+
+    data = request.json or {}
+    current_password = data.get('current_password')
+    new_password = data.get('new_password')
+
+    if not current_password or not new_password:
+        return jsonify({'error': 'Missing fields'})
+
+    user = users_collection.find_one({'email': session['user']})
+    if not user or not check_password_hash(user.get('password', ''), current_password):
+        return jsonify({'error': 'Current password is incorrect'})
+
+    users_collection.update_one(
+        {'email': session['user']},
+        {'$set': {'password': generate_password_hash(new_password)}}
+    )
+    return jsonify({'success': True})
 
 @app.route('/logout')
 def logout():
