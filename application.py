@@ -358,7 +358,7 @@ def dashboard():
         outdated_items    = []
         progress          = 0
 
-    return render_template('dashboard.html', progress=progress, tasks=tasks_for_display,
+    return render_template('V2dashboard.html', progress=progress, tasks=tasks_for_display,
                            exams=exams_for_display, outdated_items=outdated_items)
 
 

@@ -1,0 +1,127 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --success-color: #7ae582;
+    --error-color: #d8315b;
+    --warning-color: #ff8600;
+    --bg-dark: #3b28cc;
+    --bg-medium: #2667ff;
+    --bg-low: #3f8efc;
+    --bg-light: #87bfff;
+    --normal-text: #e3f2fd;
+    --text-highlight: #bbdefb;
+    --text-muted: rgba(227, 242, 253, 0.6);
+    --border-color: rgba(255, 255, 255, 0.15);
+}
+
+body {
+    font-family: "Lato", sans-serif;
+    background-color: var(--bg-dark);
+    min-height: 100vh;
+}
+
+/* ########## Modal ########## */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 2000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    align-items: center;
+    justify-content: center;
+}
+
+.modal.active {
+    display: flex;
+}
+
+.modal-content {
+    background-color: var(--bg-medium);
+    color: var(--normal-text);
+    padding: 2rem;
+    border-radius: 16px;
+    width: 90%;
+    max-width: 480px;
+    position: relative;
+    border: 1px solid var(--border-color);
+}
+
+.modal-content h2 {
+    margin-bottom: 1.25rem;
+    font-size: 1.4rem;
+    font-weight: 700;
+}
+
+.close {
+    position: absolute;
+    right: 1.25rem;
+    top: 1rem;
+    font-size: 1.75rem;
+    cursor: pointer;
+    color: var(--text-muted);
+    line-height: 1;
+}
+
+.close:hover {
+    color: var(--normal-text);
+}
+
+/* ########## Forms ########## */
+.form-group {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 1rem;
+}
+
+.form-group label {
+    font-size: 0.875rem;
+    margin-bottom: 0.4rem;
+    color: var(--text-highlight);
+}
+
+.form-input {
+    padding: 0.6rem 0.875rem;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background-color: rgba(255, 255, 255, 0.1);
+    color: var(--normal-text);
+    font-size: 0.95rem;
+    font-family: "Lato", sans-serif;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: var(--bg-light);
+    background-color: rgba(255, 255, 255, 0.15);
+}
+
+.form-input option {
+    background-color: var(--bg-dark);
+    color: var(--normal-text);
+}
+
+/* ########## Buttons ########## */
+.btn-primary {
+    background-color: var(--bg-light);
+    color: var(--bg-dark);
+    padding: 0.65rem 1.5rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    width: 100%;
+    margin-top: 0.5rem;
+}
+
+.btn-primary:hover {
+    opacity: 0.85;
+}
