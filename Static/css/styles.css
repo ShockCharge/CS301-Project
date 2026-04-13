@@ -1807,10 +1807,7 @@ body.dark-mode .chat-input {
 }
 
 
-/* ==========================================================================
-   SEARCH, SORT & FILTER BAR
-   Used on Tasks, Exams, and Classes pages.
-   ========================================================================== */
+
 
 .search-filter-bar {
     display: flex;
@@ -1940,9 +1937,7 @@ body.dark-mode .urgency-low    { background-color: #1a3a2a; color: #27ae60; }
 body.dark-mode .urgency-info   { background-color: #1a2a3a; color: #2980b9; }
 
 
-/* ==========================================================================
-   STUDY PLAN SECTION — Dashboard
-   ========================================================================== */
+
 
 .study-plan-section {
     background: var(--white);
@@ -2077,4 +2072,101 @@ body.dark-mode .study-plan-content pre {
 body.dark-mode .plan-spinner {
     border-color: #2e2e4e;
     border-top-color: #4da6ff;
+}
+
+
+body.dark-mode .nav-link.active {
+    background-color: #1a6fd4;   /* slightly lighter blue so text pops */
+    color: #ffffff !important;
+}
+body.dark-mode .nav-link.active span,
+body.dark-mode .nav-link.active i {
+    color: #ffffff !important;
+}
+
+body.dark-mode .nav-link {
+    color: #d0d0e8 !important;
+}
+body.dark-mode .nav-link span,
+body.dark-mode .nav-link i {
+    color: #d0d0e8 !important;
+}
+body.dark-mode .nav-link:hover {
+    background-color: #2a2a4a;
+    color: #ffffff !important;
+}
+body.dark-mode .nav-link:hover span,
+body.dark-mode .nav-link:hover i {
+    color: #ffffff !important;
+}
+
+/* Submenu links */
+body.dark-mode .submenu .nav-link {
+    color: #b0b0cc !important;
+}
+body.dark-mode .submenu .nav-link.active {
+    color: #ffffff !important;
+}
+
+
+body.dark-mode .urgency-outdated {
+    background-color: #5a1a1a;
+    color: #ff6b6b !important;
+}
+
+
+body.dark-mode .urgency-done {
+    background-color: #1a3a2a;
+    color: #5cb85c !important;
+}
+
+
+body.dark-mode .card-border-outdated {
+    background-color: #1e1a1a;
+    border-color: #dc3545;
+}
+body.dark-mode .card-border-outdated .item-card-header h4,
+body.dark-mode .card-border-outdated .item-card-body,
+body.dark-mode .card-border-outdated .item-card-body p,
+body.dark-mode .card-border-outdated .item-meta,
+body.dark-mode .card-border-outdated .item-meta span {
+    color: #c0c0d0 !important;
+}
+
+
+body.dark-mode .card-border-done {
+    background-color: #1a1e1a;
+    border-color: #28a745;
+}
+body.dark-mode .card-border-done .item-card-header h4,
+body.dark-mode .card-border-done .item-card-body,
+body.dark-mode .card-border-done .item-card-body p,
+body.dark-mode .card-border-done .item-meta span {
+    color: #909090 !important;   
+}
+
+
+body.dark-mode .group-divider {
+    color: #ff6b6b !important;
+}
+body.dark-mode .group-divider::before,
+body.dark-mode .group-divider::after {
+    background: #ff6b6b;
+    opacity: 0.4;
+}
+
+
+body.dark-mode .item-card h4 {
+    color: #e0e0e0 !important;
+}
+body.dark-mode .item-card p {
+    color: #b0b0c0 !important;
+}
+body.dark-mode .item-card .item-meta span {
+    color: #a0a0b8 !important;
+}
+
+body.dark-mode .page-container h3,
+body.dark-mode .page-header h3 {
+    color: #e0e0e0 !important;
 }
