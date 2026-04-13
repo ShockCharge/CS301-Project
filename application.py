@@ -10,14 +10,13 @@ import warnings
 import redis
 from common import NZ_TZ, ZoneInfo, users_collection, schedules_collection, tasks_collection, exams_collection, classes_collection, vacations_collection, chain, llm
 from task import get_ai_suggestions_task, get_ai_study_plan_task 
-from celery import Celery
-from celery_app import celery_app
+import celery
 import random
 import secrets
 from task import send_reminder_async
 
 # Initialize Celery app (must be done in application.py as well for Flask context)
-celery_app = Celery(
+celery_app = celery.Celery(
     'study_planner',
     broker=os.environ.get('CELERY_BROKER_URL', 'redis://localhost:6379/0'),
     backend=os.environ.get('CELERY_RESULT_BACKEND', 'redis://localhost:6379/0')
