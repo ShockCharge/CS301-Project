@@ -1,281 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Study Planner | Dashboard</title>
 
-<title>Study Planner | Dashboard</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
 
-<!-- Bootstrap -->
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-
-<!-- CSS -->
-<link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
-
-<!-- JavaScript -->
-<script src="{{ url_for('static', filename='js/script.js') }}"></script>
-
-<style>
-body {
-    background-color: #f7f9fc;
-    font-family: 'Roboto', sans-serif;
-}
-
-.app-container {
-    display: flex;
-}
-
-.main-content {
-    flex: 1;
-    padding: 2rem;
-    margin-left: 260px;
-}
-
-.sidebar {
-    width: 260px;
-    min-height: 100vh;
-    background: #fff;
-    border-right: 1px solid #e4e6eb;
-    padding: 1.5rem;
-    position: fixed;
-    top: 0;
-    left: 0;
-    transition: all 0.3s ease;
-    z-index: 1000;
-}
-
-.sidebar.collapsed {
-    transform: translateX(-100%);
-}
-
-.sidebar h4 {
-    color: #007bff;
-    margin-bottom: 1.5rem;
-}
-
-.sidebar .nav-link {
-    border-radius: 12px;
-    padding: 10px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    color: #444;
-    text-decoration: none;
-}
-
-.sidebar .nav-link.active,
-.sidebar .nav-link:hover {
-    background: #e9eef7;
-    color: #007bff !important;
-}
-
-.submenu {
-    list-style: none;
-    padding-left: 20px;
-    display: none;
-}
-
-.submenu.show {
-    display: block;
-}
-
-.submenu li a {
-    font-size: 0.95rem;
-}
-
-.submenu-arrow {
-    margin-left: auto;
-}
-
-.logout-btn {
-    background: #6c757d;
-    color: white;
-    width: 100%;
-    border-radius: 12px;
-    padding: 10px;
-    text-align: center;
-    text-decoration: none;
-    margin-top: 1rem;
-}
-
-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1.5rem;
-}
-
-.user-avatar {
-    width: 45px;
-    height: 45px;
-    border-radius: 50%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background: #007bff;
-    color: white;
-    font-weight: bold;
-}
-
-.hamburger-btn {
-    display: none;
-    font-size: 1.5rem;
-    cursor: pointer;
-}
-
-.card {
-    border: none;
-    border-radius: 18px;
-    padding: 1.5rem;
-    background: white;
-    box-shadow: 0px 4px 14px rgba(0, 0, 0, 0.08);
-}
-
-.card-header {
-    background: transparent;
-    border-bottom: none;
-    padding-bottom: 0.75rem;
-}
-
-.btn-add,
-.btn-action {
-    border-radius: 8px;
-    padding: 6px 10px;
-    font-size: 0.9rem;
-    white-space: nowrap;
-}
-
-.btn-add {
-    background: #6c757d;
-    color: white;
-    border: none;
-    display: block;
-    width: 100%;
-    margin-top: 0.5rem;
-}
-
-.btn-action {
-    background: #007bff;
-    color: white;
-    border: none;
-    display: block;
-    width: 100%;
-    margin-bottom: 0.5rem;
-}
-
-.btn-clear-outdated {
-    display: block;
-    width: 100%;
-    background: #6c757d;
-    color: white;
-    border: none;
-    padding: 6px 0;
-    font-size: 0.9rem;
-    border-radius: 8px;
-    margin-top: 0.5rem;
-}
-
-.priority-badge {
-    border-radius: 8px;
-    padding: 3px 8px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: white;
-    display: inline-block;
-}
-
-.priority-high {
-    background: #dc3545;
-}
-
-.priority-medium {
-    background: #ffc107;
-    color: #222;
-}
-
-.priority-low {
-    background: #198754;
-}
-
-.outdated-badge {
-    background: #dc3545;
-    color: white;
-    padding: 2px 6px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    border-radius: 8px;
-}
-
-.progress-circle-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-.progress-circle {
-    position: relative;
-    width: 120px;
-    height: 120px;
-    border-radius: 50%;
-    background: conic-gradient(#007bff 0%, #e9ecef 0%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.progress-inner {
-    width: 90px;
-    height: 90px;
-    border-radius: 50%;
-    background: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-    font-size: 1.1rem;
-}
-
-.dashboard-grid {
-    display: grid;
-    gap: 1.5rem;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-}
-
-.card-body .outdated-item {
-    display: flex;
-    gap: 0.5rem;
-    align-items: center;
-    flex-wrap: wrap;
-}
-
-@media(max-width: 768px) {
-    .main-content {
-        margin-left: 0;
-        padding: 1rem;
-    }
-    .sidebar {
-        position: fixed;
-        left: -100%;
-    }
-    .sidebar.show {
-        left: 0;
-    }
-    .hamburger-btn {
-        display: block;
-    }
-}
-
-.modal.fade .modal-dialog {
-    transform: translateY(30px);
-    transition: all 0.3s ease;
-}
-
-.modal.show .modal-dialog {
-    transform: translateY(0);
-}
-</style>
+    <!-- Project CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
 </head>
 
 <body>
@@ -287,15 +23,18 @@ header {
             </div>
             <nav class="sidebar-nav">
                 <ul>
-                    <li><a href="{{ url_for('dashboard') }}" class="nav-link active">
-                        <i class="bi bi-grid"></i>
-                        <span>Dashboard</span>
-                    </a></li>
-                    <li><a href="{{ url_for('schedule') }}" class="nav-link">
-                        <i class="bi bi-calendar3"></i>
-                        <span>Schedule</span>
-                    </a></li>
-                    
+                    <li>
+                        <a href="{{ url_for('dashboard') }}" class="nav-link active">
+                            <i class="bi bi-grid"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('schedule') }}" class="nav-link">
+                            <i class="bi bi-calendar3"></i>
+                            <span>Schedule</span>
+                        </a>
+                    </li>
                     <li>
                         <a href="#" class="nav-link" id="activities-toggle">
                             <i class="bi bi-list-task"></i>
@@ -303,295 +42,246 @@ header {
                             <i class="bi bi-chevron-down submenu-arrow"></i>
                         </a>
                         <ul class="submenu" id="activities-submenu">
-                            <li><a href="{{ url_for('tasks') }}" class="nav-link">
-                                <i class="bi bi-check-square"></i>
-                                <span>Tasks</span>
-                            </a></li>
-                            <li><a href="{{ url_for('exams') }}" class="nav-link">
-                                <i class="bi bi-book"></i>
-                                <span>Exams</span>
-                            </a></li>
-                            <li><a href="{{ url_for('classes') }}" class="nav-link">
-                                <i class="bi bi-mortarboard"></i>
-                                <span>Classes</span>
-                            </a></li>
-                            <li><a href="{{ url_for('vacations') }}" class="nav-link">
-                                <i class="bi bi-airplane"></i>
-                                <span>Vacations</span>
-                            </a></li>
+                            <li>
+                                <a href="{{ url_for('tasks') }}" class="nav-link">
+                                    <i class="bi bi-check-square"></i>
+                                    <span>Tasks</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{{ url_for('exams') }}" class="nav-link">
+                                    <i class="bi bi-book"></i>
+                                    <span>Exams</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{{ url_for('classes') }}" class="nav-link">
+                                    <i class="bi bi-mortarboard"></i>
+                                    <span>Classes</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{{ url_for('vacations') }}" class="nav-link">
+                                    <i class="bi bi-airplane"></i>
+                                    <span>Vacations</span>
+                                </a>
+                            </li>
                         </ul>
                     </li>
-                    <li><a href="{{ url_for('chatbot') }}" class="nav-link">
-                        <i class="bi bi-chat-dots"></i>
-                        <span>Chatbot</span> 
-                    </a></li>
-                  
-                    <li><a href="{{ url_for('settings') }}" class="nav-link">
-                        <i class="bi bi-gear"></i>
-                        <span>Settings</span>
-                    </a></li>
-                    <li><a href="{{ url_for('profile') }}" class="nav-link">
-                        <i class="bi bi-person-circle"></i>
-                        <span>Profile</span>
-                    </a></li>
+                    <li>
+                        <a href="{{ url_for('chatbot') }}" class="nav-link">
+                            <i class="bi bi-chat-dots"></i>
+                            <span>Chatbot</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('settings') }}" class="nav-link">
+                            <i class="bi bi-gear"></i>
+                            <span>Settings</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('profile') }}" class="nav-link">
+                            <i class="bi bi-person-circle"></i>
+                            <span>Profile</span>
+                        </a>
+                    </li>
                 </ul>
             </nav>
             <div class="sidebar-footer">
                 <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
             </div>
         </aside>
-    <!-- Main Content -->
-    <main class="main-content">
-        <header>
-            <span class="hamburger-btn">&#9776;</span>
-            <div>
-                <h2 class="fw-bold">Dashboard</h2>
-                <p class="text-muted">Welcome back, {{ session.user_name or session.user }}!</p>
-            </div>
-            <div class="user-avatar">
-                <a href="{{ url_for('profile') }}" style="text-decoration:none; color:inherit;">
-                    <img id="header-avatar-img" src="" alt="" style="display:none;width:100%;height:100%;border-radius:50%;object-fit:cover;">
-                    <span id="header-avatar-text">{{ session.user_name[0].upper() if session.user_name else (session.user[0].upper() if session.user else 'U') }}</span>
-                </a>
-            </div>
-        </header>
 
-        <!-- Dashboard Grid -->
-        <div class="dashboard-grid">
-            <!-- Today's Tasks -->
-            <div class="card">
-                <div class="card-header d-flex flex-column align-items-start">
-                    <h5 class="fw-bold mb-2">Today's Tasks</h5>
-                    <button class="btn-add" id="add-task-btn">+ Add Task</button>
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header>
+                <span class="hamburger-btn">&#9776;</span>
+                <div>
+                    <h2 class="fw-bold">Dashboard</h2>
+                    <p class="text-muted">Welcome back, {{ session.user_name or session.user }}!</p>
                 </div>
-                <div class="card-body">
-                    {% if tasks %}
-                        {% for task in tasks %}
-                        <div class="d-flex justify-content-between mb-2">
-                            <span>{{ task.name }}</span>
-                            <span class="priority-badge priority-{{ task.priority }}">{{ task.priority }}</span>
-                        </div>
-                        {% endfor %}
-                    {% else %}
-                        <p class="text-muted">No tasks for today.</p>
-                    {% endif %}
+                <div class="user-avatar">
+                    <a href="{{ url_for('profile') }}">
+                        <img id="header-avatar-img" src="" alt="" style="display:none;width:100%;height:100%;border-radius:50%;object-fit:cover;">
+                        <span id="header-avatar-text">{{ session.user_name[0].upper() if session.user_name else (session.user[0].upper() if session.user else 'U') }}</span>
+                    </a>
                 </div>
-            </div>
-
-            <!-- Progress Overview -->
-            <div class="card text-center">
-                <div class="card-header"><h5 class="fw-bold">Progress Overview</h5></div>
-                <div class="card-body">
-                    <div class="progress-circle-container">
-                        <div class="progress-circle" id="progress-circle">
-                            <div class="progress-inner" id="progress-value">{{ progress }}%</div>
-                        </div>
+            </header>
+              
+            <!-- Dashboard Grid -->
+            <div class="dashboard-grid">
+                <!-- Today's Tasks -->
+                <div class="card">
+                    <div class="card-header d-flex flex-column align-items-start">
+                        <h5 class="fw-bold mb-2">Today's Tasks</h5>
+                        <button class="btn-add" id="add-task-btn">+ Add Task</button>
                     </div>
-                    <p class="text-muted mt-2">Tasks Completed This Week</p>
+                    <div class="card-body">
+                        {% if tasks %}
+                            {% for task in tasks %}
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>{{ task.name }}</span>
+                                <span class="priority-badge priority-{{ task.priority }}">{{ task.priority }}</span>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="text-muted">No tasks for today.</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Progress Overview -->
+                <div class="card text-center">
+                    <div class="card-header">
+                        <h5 class="fw-bold">Progress Overview</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="progress-circle-container">
+                            <div class="progress-circle" id="progress-circle">
+                                <div class="progress-inner" id="progress-value">{{ progress }}%</div>
+                            </div>
+                        </div>
+                        <p class="text-muted mt-2">Tasks Completed This Week</p>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="fw-bold">Quick Actions</h5>
+                    </div>
+                    <div class="card-body d-flex flex-column gap-2">
+                        <button class="btn-action" onclick="window.location.href='/schedule'">View Schedule</button>
+                        <button class="btn-action" onclick="window.location.href='/tasks'">Manage Tasks</button>
+                        <button class="btn-action" onclick="window.location.href='/exams'">View Exams</button>
+                    </div>
+                </div>
+
+                <!-- Upcoming Exams -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="fw-bold">Upcoming Exams</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if exams %}
+                            {% for exam in exams %}
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>{{ exam.subject }}</span>
+                                <span class="text-muted">{{ exam.date }}</span>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="text-muted">No upcoming exams.</p>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
 
-            <!-- Quick Actions -->
-            <div class="card">
-                <div class="card-header"><h5 class="fw-bold">Quick Actions</h5></div>
-                <div class="card-body d-flex flex-column gap-2">
-                    <button class="btn-action" onclick="window.location.href='/schedule'">View Schedule</button>
-                    <button class="btn-action" onclick="window.location.href='/tasks'">Manage Tasks</button>
-                    <button class="btn-action" onclick="window.location.href='/exams'">View Exams</button>
-                </div>
-            </div>
-        <!-- AI Task Suggestions Card -->
-<!-- AI Task Suggestions -->
-<div class="card mt-4 p-3">
-    <h5>🤖 AI Task Suggestions</h5>
-    <button class="btn btn-primary w-100" onclick="openSuggestionModal()">Get Suggestions</button>
-</div>
-
-<!-- AI Study Plan -->
-<div class="card mt-4 p-3">
-    <h5>📅 AI Weekly Study Plan</h5>
-    <button class="btn btn-success w-100" onclick="openPlanModal()">Generate Plan</button>
-</div>
-
-<!-- AI Modal - FIXED -->
-<div class="modal fade" id="aiModal" tabindex="-1" data-bs-backdrop="true">
-  <div class="modal-dialog modal-dialog-centered modal-lg">
-    <div class="modal-content rounded-4 shadow-lg">
-      
-      <div class="modal-header border-0">
-        <h5 class="modal-title fw-bold" id="aiModalTitle">AI Study Coach</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-
-      <div class="modal-body">
-        <input type="text" id="subjectInput" 
-               class="form-control mb-3" 
-               placeholder="Optional: Enter subject (e.g. Mathematics, Programming, Biology)">
-
-        <div id="aiModalContent" 
-             style="min-height: 300px; max-height: 450px; overflow-y: auto; 
-                    background:#f8f9fa; padding:18px; border-radius:10px; white-space:pre-wrap;">
-        </div>
-      </div>
-
-      <div class="modal-footer border-0">
-        <button class="btn btn-outline-primary" onclick="downloadAI()">📥 Download Result</button>
-        <button class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-      </div>
-
+            <!-- Smart Suggestion Box -->
+<div class="suggestion-box" id="suggestionBox">
+    <div class="suggestion-content">
+        <h3>💡 Smart Advice & Quotes</h3>
+        <p id="suggestionContent">Loading your personalized study advice...</p>
     </div>
-  </div>
 </div>
-            <!-- Upcoming Exams -->
-            <div class="card">
-                <div class="card-header"><h5 class="fw-bold">Upcoming Exams</h5></div>
-                <div class="card-body">
-                    {% if exams %}
-                        {% for exam in exams %}
-                        <div class="d-flex justify-content-between mb-2">
-                            <span>{{ exam.subject }}</span>
-                            <span class="text-muted">{{ exam.date }}</span>
+
+<!-- Study Plan Section -->
+<div class="study-plan-section" id="studyPlanSection">
+    <div class="study-plan-header">
+        <div>
+            <h3 class="study-plan-title">
+                <i class="bi bi-calendar-week"></i> Weekly Study Plan
+            </h3>
+            <p class="study-plan-subtitle">AI-generated based on your tasks and upcoming exams</p>
+        </div>
+        <button class="btn-generate-plan" id="generatePlanBtn" onclick="generateStudyPlan()">
+            <i class="bi bi-magic"></i> Generate Plan
+        </button>
+    </div>
+
+    <!-- Loading state -->
+    <div class="study-plan-loading" id="studyPlanLoading" style="display: none;">
+        <div class="plan-spinner"></div>
+        <p>Generating your personalised study plan...</p>
+    </div>
+
+    <!-- Plan content -->
+    <div class="study-plan-content" id="studyPlanContent" style="display: none;">
+        <pre id="studyPlanText"></pre>
+    </div>
+
+    <!-- Empty state (shown before first generation) -->
+    <div class="study-plan-empty" id="studyPlanEmpty">
+        <i class="bi bi-journal-text" style="font-size: 40px; color: #bdc3c7;"></i>
+        <p>Click <strong>Generate Plan</strong> to create a personalised weekly study schedule based on your tasks and exams.</p>
+    </div>
+</div>
+
+            <!-- Outdated Tasks -->
+            {% if outdated_items %}
+            <div class="mt-4">
+                <div class="card">
+                    <div class="card-header d-flex flex-column align-items-start">
+                        <h5 class="fw-bold mb-2">Outdated Tasks and Deadlines ({{ outdated_items | length }})</h5>
+                        <button class="btn-clear-outdated" id="clear-outdated-btn">Clear All Outdated</button>
+                    </div>
+                    <div class="card-body">
+                        {% for item in outdated_items %}
+                        <div class="outdated-item">
+                            <span class="fw-medium">{{ item.get('name', item.get('title', item.get('subject', 'Activity'))) }}</span>
+                            <span class="text-muted">{{ item.get('date', item.get('start_date', 'N/A')) }}</span>
+                            <span class="outdated-badge">OUTDATED</span>
                         </div>
                         {% endfor %}
-                    {% else %}
-                        <p class="text-muted">No upcoming exams.</p>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-
-        <!-- Outdated Tasks -->
-        {% if outdated_items %}
-        <div class="mt-4">
-            <div class="card">
-                <div class="card-header d-flex flex-column align-items-start">
-                    <h5 class="fw-bold mb-2">Outdated Tasks and Deadlines ({{ outdated_items | length }})</h5>
-                    <button class="btn-clear-outdated" id="clear-outdated-btn">Clear All Outdated</button>
-                </div>
-                <div class="card-body">
-                    {% for item in outdated_items %}
-                    <div class="outdated-item mb-1">
-                        <span class="fw-medium">{{ item.get('name', item.get('title', item.get('subject', 'Activity'))) }}</span>
-                        <span class="text-muted">{{ item.get('date', item.get('start_date', 'N/A')) }}</span>
-                        <span class="outdated-badge">OUTDATED</span>
                     </div>
-                    {% endfor %}
                 </div>
             </div>
-        </div>
-        {% endif %}
+            {% endif %}
 
-        <footer class="text-center mt-3 text-muted">&copy; 2025 Study Planner</footer>
-    </main>
+            <!-- Footer -->
+            <footer class="text-center mt-3 text-muted">&copy; 2025 Study Planner</footer>
+        </main>
+    </div>
+    <!-- Add Task Modal -->
+<div id="addTaskModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>Add Task</h2>
+        <form id="addTaskForm">
+            <div class="form-group">
+                <label>Task Name</label>
+                <input type="text" id="taskName" class="form-input" required>
+            </div>
+            <div class="form-group">
+                <label>Priority</label>
+                <select id="taskPriority" class="form-input">
+                    <option value="high">High</option>
+                    <option value="medium" selected>Medium</option>
+                    <option value="low">Low</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Due Date</label>
+                <input type="date" id="taskDate" class="form-input">
+            </div>
+            <div class="form-group">
+                <label>Description</label>
+                <textarea id="taskDescription" class="form-input" rows="3"></textarea>
+            </div>
+            <button type="submit" class="btn-primary">Add Task</button>
+        </form>
+    </div>
 </div>
-<script>
-    let aiModal;
-    let currentAIText = "";
 
-    document.addEventListener("DOMContentLoaded", () => {
-        aiModal = new bootstrap.Modal(document.getElementById('aiModal'), {
-            backdrop: 'true',
-            keyboard: true
-        });
-    });
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
 
-    // Show modal with loading
-    function showAIModal(title) {
-        document.getElementById("aiModalTitle").innerText = title;
-        document.getElementById("aiModalContent").innerHTML = `
-            <div class="text-center py-5">
-                <div class="spinner-border text-primary mb-3" role="status"></div>
-                <p class="text-muted mb-0">Thinking... Please wait while your AI coach prepares the response.</p>
-            </div>`;
-        
-        aiModal.show();
-    }
+    <!-- Project JavaScript -->
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/darkmode.js') }}"></script>
 
-    // New function to fetch AI response asynchronously
-    async function fetchAIResponse(endpoint, title) {
-    try {
-        const res = await fetch(endpoint);
-        const data = await res.json();
-
-        if (!data.task_id) {
-            throw new Error(data.error || "No task ID received");
-        }
-
-        const taskId = data.task_id;
-
-        let attempts = 0;
-        let maxAttempts = 30; // ~30 seconds max wait
-
-        while (attempts < maxAttempts) {
-            await new Promise(resolve => setTimeout(resolve, 1000));
-
-            const statusRes = await fetch(`/api/ai-task-status/${taskId}`);
-            const result = await statusRes.json();
-
-            // ✅ Handle all states properly
-            if (result.state === "SUCCESS") {
-                currentAIText =
-                    result.result?.suggestions ||
-                    result.result?.plan ||
-                    "No response received.";
-
-                document.getElementById("aiModalContent").innerText = currentAIText;
-                return;
-            }
-
-            if (result.state === "FAILURE") {
-                throw new Error(result.status || "AI failed");
-            }
-
-            // ⏳ still processing (PENDING / STARTED)
-            document.getElementById("aiModalContent").innerHTML = `
-                <div class="text-center py-5">
-                    <div class="spinner-border text-primary mb-3"></div>
-                    <p>Still working... (${attempts + 1}s)</p>
-                </div>
-            `;
-
-            attempts++;
-        }
-
-        // timeout case
-        throw new Error("AI is taking too long. Try again.");
-
-    } catch (err) {
-        console.error(err);
-        document.getElementById("aiModalContent").innerHTML =
-            `<span class="text-danger">${err.message}</span>`;
-    }
-}
-    
-    // Open Suggestions
-    function openSuggestionModal() {
-        showAIModal("🤖 AI Task Suggestions");
-        fetchAIResponse('/api/ai-task-suggestions', "AI Task Suggestions");    }
-    
-    // Open Study Plan
-    function openPlanModal() {
-        showAIModal("📅 AI Weekly Study Plan");
-        fetchAIResponse('/api/ai-task-suggestions', "AI Task Suggestions");    }
-
-    // Download Function 
-    function downloadAI() {
-        if (!currentAIText.trim()) {
-            alert("Nothing to download yet!");
-            return;
-        }
-    
-        const blob = new Blob([currentAIText], { type: 'text/plain' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        
-        const title = document.getElementById("aiModalTitle").innerText;
-        a.download = title.includes("Suggestion") ? "AI_Task_Suggestions.txt" : "AI_Study_Plan.txt";
-        a.href = url;
-        a.click();
-        
-        URL.revokeObjectURL(url);
-    }
-</script>
 </body>
 </html>

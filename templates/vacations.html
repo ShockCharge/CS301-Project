@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script src="{{ url_for('static', filename='js/darkmode.js') }}"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
@@ -15,8 +16,68 @@
     <!-- CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 
-    <!-- JavaScript -->
-    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    <style>
+        .btn-done {
+            background-color: #28a745;
+            color: white;
+            border: none;
+        }
+        .btn-done:hover { background-color: #218838; }
+
+        .btn-undo {
+            background-color: #6c757d;
+            color: white;
+            border: none;
+        }
+        .btn-undo:hover { background-color: #5a6268; }
+
+        .urgency-done {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .urgency-outdated {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .urgency-info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .card-border-outdated {
+            border-left: 4px solid #dc3545;
+            opacity: 0.85;
+        }
+
+        .card-border-done {
+            border-left: 4px solid #28a745;
+        }
+
+        .card-border-info {
+            border-left: 4px solid #17a2b8;
+        }
+
+        .group-divider {
+            grid-column: 1 / -1;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 20px 0 8px;
+            font-weight: 600;
+            font-size: 14px;
+            color: #dc3545;
+        }
+        .group-divider::before,
+        .group-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: #dc3545;
+            opacity: 0.3;
+        }
+    </style>
 </head>
 <body>
     <div class="app-container">
@@ -61,10 +122,9 @@
                         </ul>
                     </li>
                     <li><a href="{{ url_for('chatbot') }}" class="nav-link">
-    <i class="bi bi-chat-dots"></i>
-    <span>Chatbot</span>
-</a></li>
-
+                        <i class="bi bi-chat-dots"></i>
+                        <span>Chatbot</span>
+                    </a></li>
                     <li><a href="{{ url_for('settings') }}" class="nav-link">
                         <i class="bi bi-gear"></i>
                         <span>Settings</span>
@@ -102,6 +162,10 @@
                     <button class="btn-add-schedule" id="add-vacation-page-btn">+ Add Vacation</button>
                 </div>
 
+                <!--
+                    The JS displayVacations() function renders directly into this grid.
+                    It injects a .group-divider row between upcoming and outdated vacations automatically.
+                -->
                 <div class="items-grid" id="vacations-grid">
                     <p class="empty-state">No vacations planned. Click "Add Vacation" to create one.</p>
                 </div>
@@ -140,28 +204,6 @@
             </form>
         </div>
     </div>
-    <!-- Custom Delete Confirmation Modal -->
-<div class="custom-modal-overlay" id="deleteConfirmModal">
-    <div class="custom-modal">
-        <div class="custom-modal-header delete">
-            <i class="bi bi-exclamation-triangle-fill"></i>
-            <div>
-                <div class="custom-modal-title">Confirm Delete</div>
-            </div>
-        </div>
-        <div class="custom-modal-body">
-            <p id="deleteConfirmMessage">Are you sure you want to delete this item? This action cannot be undone.</p>
-        </div>
-        <div class="custom-modal-actions">
-            <button class="custom-modal-btn custom-modal-btn-cancel" onclick="closeDeleteModal()">
-                Cancel
-            </button>
-            <button class="custom-modal-btn custom-modal-btn-confirm" id="confirmDeleteBtn">
-                Delete
-            </button>
-        </div>
-    </div>
-</div>
 
     <!-- Edit Vacation Modal -->
     <div id="editVacationModal" class="modal">
@@ -191,30 +233,25 @@
         </div>
     </div>
 
-    <!-- Custom Delete Confirmation Modal -->
-<div class="custom-modal-overlay" id="deleteConfirmModal">
-    <div class="custom-modal">
-        <div class="custom-modal-header delete">
-            <i class="bi bi-exclamation-triangle-fill"></i>
-            <div>
-                <div class="custom-modal-title">Confirm Delete</div>
+    <!-- Delete Confirmation Modal (ONE copy only — duplicate removed) -->
+    <div class="custom-modal-overlay" id="deleteConfirmModal">
+        <div class="custom-modal">
+            <div class="custom-modal-header delete">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+                <div>
+                    <div class="custom-modal-title">Confirm Delete</div>
+                </div>
+            </div>
+            <div class="custom-modal-body">
+                <p id="deleteConfirmMessage">Are you sure you want to delete this item? This action cannot be undone.</p>
+            </div>
+            <div class="custom-modal-actions">
+                <button class="custom-modal-btn custom-modal-btn-cancel" onclick="closeDeleteModal()">Cancel</button>
+                <button class="custom-modal-btn custom-modal-btn-confirm" id="confirmDeleteBtn">Delete</button>
             </div>
         </div>
-        <div class="custom-modal-body">
-            <p id="deleteConfirmMessage">Are you sure you want to delete this item? This action cannot be undone.</p>
-        </div>
-        <div class="custom-modal-actions">
-            <button class="custom-modal-btn custom-modal-btn-cancel" onclick="closeDeleteModal()">
-                Cancel
-            </button>
-            <button class="custom-modal-btn custom-modal-btn-confirm" id="confirmDeleteBtn">
-                Delete
-            </button>
-        </div>
     </div>
-</div>
 
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </body>
 </html>
-

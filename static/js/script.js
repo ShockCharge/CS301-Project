@@ -1,20 +1,19 @@
-// Global variables
 let currentDate = new Date();
 let currentView = 'week';
+let allSchedules = [];   // cached so week/month badge injection can re-use them
 
-// NZ Date/Time Formatting Functions
+// DATE / TIME HELPERS
 function formatDateNZ(dateString) {
     if (!dateString) return '';
-    const date = new Date(dateString);
-    const day = String(date.getDate()).padStart(2, '0');
+    const date  = new Date(dateString);
+    const day   = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
+    const year  = date.getFullYear();
     return `${day}/${month}/${year}`;
 }
 
 function formatTimeNZ(timeString) {
     if (!timeString) return '';
-    // Already in 24-hour format, just return as is
     return timeString;
 }
 
@@ -22,97 +21,204 @@ function formatDateTimeNZ(dateString, timeString) {
     return `${formatDateNZ(dateString)} ${formatTimeNZ(timeString)}`;
 }
 
-// Sidebar Submenu Toggle
-document.addEventListener('DOMContentLoaded', function() {
-    const activitiesToggle = document.getElementById('activities-toggle');
+// DARK MODE (runs immediately on every page)
+(function applyDarkModeOnLoad() {
+    if (localStorage.getItem('darkMode') === 'true') {
+        document.addEventListener('DOMContentLoaded', function () {
+            document.body.classList.add('dark-mode');
+        });
+    }
+
+    fetch('/api/settings')
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+            if (!data || data.dark_mode === undefined) return;
+            document.body.classList.toggle('dark-mode', data.dark_mode);
+            localStorage.setItem('darkMode', data.dark_mode ? 'true' : 'false');
+        })
+        .catch(() => {});
+})();
+
+// PAGE ROUTER — runs once DOM is ready
+document.addEventListener('DOMContentLoaded', function () {
+    // Sidebar submenu toggle
+    const activitiesToggle  = document.getElementById('activities-toggle');
     const activitiesSubmenu = document.getElementById('activities-submenu');
-    
     if (activitiesToggle && activitiesSubmenu) {
-        activitiesToggle.addEventListener('click', function(e) {
+        activitiesToggle.addEventListener('click', function (e) {
             e.preventDefault();
             activitiesSubmenu.classList.toggle('active');
             const arrow = activitiesToggle.querySelector('.submenu-arrow');
-            if (arrow) {
-                arrow.classList.toggle('rotated');
-            }
+            if (arrow) arrow.classList.toggle('rotated');
         });
     }
-    
-    // Initialize page-specific functionality
-    const currentPage = window.location.pathname;
-    
-    if (currentPage.includes('/dashboard')) {
-        initDashboard();
-    } else if (currentPage.includes('/schedule')) {
-        initSchedule();
-    } else if (currentPage.includes('/tasks')) {
-        initTasks();
-    } else if (currentPage.includes('/exams')) {
-        initExams();
-    } else if (currentPage.includes('/classes')) {
-        initClasses();
-    } else if (currentPage.includes('/vacations')) {
-        initVacations();
-    }
+
+    // Route to the correct init function
+    const path = window.location.pathname;
+    if      (path.includes('/dashboard'))  initDashboard();
+    else if (path.includes('/schedule'))   initSchedule();
+    else if (path.includes('/tasks'))      initTasks();
+    else if (path.includes('/exams'))      initExams();
+    else if (path.includes('/classes'))    initClasses();
+    else if (path.includes('/vacations'))  initVacations();
+    else if (path.includes('/settings'))   initSettings();
 });
 
-// Dashboard Functions
+// SETTINGS
+function initSettings() {
+    fetch('/api/settings')
+        .then(r => r.ok ? r.json() : {})
+        .then(data => {
+            const map = {
+                darkMode:      'dark_mode',
+                taskReminders: 'task_reminders',
+                examAlerts:    'exam_alerts',
+                studyDuration: 'study_duration',
+                breakDuration: 'break_duration',
+                defaultView:   'default_view'
+            };
+            for (const [id, key] of Object.entries(map)) {
+                const el = document.getElementById(id);
+                if (!el || data[key] === undefined) continue;
+                if (el.type === 'checkbox') el.checked = data[key];
+                else el.value = data[key];
+            }
+        })
+        .catch(() => {});
+
+    const darkToggle = document.getElementById('darkMode');
+    if (darkToggle) {
+        darkToggle.addEventListener('change', function () {
+            document.body.classList.toggle('dark-mode', this.checked);
+            localStorage.setItem('darkMode', this.checked ? 'true' : 'false');
+        });
+    }
+
+    const saveBtn = document.getElementById('saveSettings');
+    if (saveBtn) {
+        saveBtn.addEventListener('click', function () {
+            const payload = {
+                dark_mode:      document.getElementById('darkMode')?.checked      ?? false,
+                task_reminders: document.getElementById('taskReminders')?.checked ?? true,
+                exam_alerts:    document.getElementById('examAlerts')?.checked    ?? true,
+                study_duration: document.getElementById('studyDuration')?.value   ?? '60',
+                break_duration: document.getElementById('breakDuration')?.value   ?? '10',
+                default_view:   document.getElementById('defaultView')?.value     ?? 'week'
+            };
+            fetch('/api/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+            .then(r => r.json())
+            .then(result => {
+                if (result.success) {
+                    document.body.classList.toggle('dark-mode', payload.dark_mode);
+                    localStorage.setItem('darkMode', payload.dark_mode ? 'true' : 'false');
+                    showToast('Settings saved successfully!', 'success');
+                } else {
+                    showToast('Could not save settings. Please try again.', 'error');
+                }
+            })
+            .catch(() => showToast('Network error. Please try again.', 'error'));
+        });
+    }   // closes: if (saveBtn)
+
+    const exportBtn = document.getElementById('exportDataBtn');
+    if (exportBtn) {
+        exportBtn.addEventListener('click', function () {
+            window.location.href = '/api/export';
+        });
+    }
+
+    const clearBtn = document.getElementById('clearAllDataBtn');
+    if (clearBtn) {
+        clearBtn.addEventListener('click', function () {
+            if (confirm('Are you absolutely sure? This will delete ALL your tasks, exams, classes, and schedules. This cannot be undone.')) {
+                fetch('/api/clear-all', { method: 'POST' })
+                    .then(r => r.json())
+                    .then(result => {
+                        if (result.success) showToast('All data cleared successfully.', 'success');
+                        else                showToast('Failed to clear data.', 'error');
+                    })
+                    .catch(() => showToast('Network error.', 'error'));
+            }
+        });
+    }   // closes: if (clearBtn)
+}       // closes: function initSettings()
+
+// TOAST NOTIFICATION
+function showToast(message, type = 'success') {
+    // Try the new schedule-page toast container first, fall back to body
+    let container = document.getElementById('toastContainer');
+    if (!container) {
+        container = document.body;
+    }
+
+    const toast = document.createElement('div');
+    toast.className = `toast-msg toast-${type}`;
+    toast.textContent = message;
+    container.appendChild(toast);
+
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transition = 'opacity 0.3s';
+        setTimeout(() => { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 300);
+    }, 3000);
+}
+
+function showSuccessToast(message) { showToast(message, 'success'); }
+function showErrorToast(message)   { showToast(message, 'error'); }
+
+// DASHBOARD
+
 function initDashboard() {
-    const addTaskBtn = document.getElementById('add-task-btn');
+    fetchAISuggestions();
+
+    const addTaskBtn   = document.getElementById('add-task-btn');
     const addTaskModal = document.getElementById('addTaskModal');
-    const closeModal = addTaskModal ? addTaskModal.querySelector('.close') : null;
-    const addTaskForm = document.getElementById('addTaskForm');
-    
+    const closeModal   = addTaskModal ? addTaskModal.querySelector('.close') : null;
+    const addTaskForm  = document.getElementById('addTaskForm');
+
     if (addTaskBtn && addTaskModal) {
-        addTaskBtn.addEventListener('click', function() {
+        addTaskBtn.addEventListener('click', function () {
             addTaskModal.style.display = 'block';
         });
     }
-    
     if (closeModal) {
-        closeModal.addEventListener('click', function() {
+        closeModal.addEventListener('click', function () {
             addTaskModal.style.display = 'none';
         });
     }
-    
     if (addTaskForm) {
-        addTaskForm.addEventListener('submit', function(e) {
+        addTaskForm.addEventListener('submit', function (e) {
             e.preventDefault();
-            
             const taskData = {
-                name: document.getElementById('taskName').value,
+                name:     document.getElementById('taskName').value,
                 priority: document.getElementById('taskPriority').value
             };
-            
             fetch('/api/tasks', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(taskData)
             })
-            .then(response => response.json())
-            .then(data => {
-                alert('Task added successfully!');
+            .then(r => r.json())
+            .then(() => {
+                showSuccessToast('Task added successfully!');
                 addTaskModal.style.display = 'none';
                 addTaskForm.reset();
                 location.reload();
             })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Failed to add task');
-            });
+            .catch(() => showErrorToast('Failed to add task'));
         });
     }
-    
-    // Load tasks and exams for dashboard
+
     loadDashboardData();
 }
 
 function loadDashboardData() {
-    // Load tasks
     fetch('/api/tasks')
-        .then(response => response.json())
+        .then(r => r.json())
         .then(tasks => {
             const taskList = document.getElementById('task-list');
             if (taskList && tasks.length > 0) {
@@ -124,11 +230,10 @@ function loadDashboardData() {
                 `).join('');
             }
         })
-        .catch(error => console.error('Error loading tasks:', error));
-    
-    // Load exams
+        .catch(err => console.error('Error loading tasks:', err));
+
     fetch('/api/exams')
-        .then(response => response.json())
+        .then(r => r.json())
         .then(exams => {
             const examList = document.getElementById('exam-list');
             if (examList && exams.length > 0) {
@@ -140,401 +245,543 @@ function loadDashboardData() {
                 `).join('');
             }
         })
-        .catch(error => console.error('Error loading exams:', error));
+        .catch(err => console.error('Error loading exams:', err));
 }
 
-// Schedule Functions
+function fetchAISuggestions() {
+    const box = document.getElementById('ai-suggestions');
+    if (!box) return;
+    box.innerHTML = '<p style="color:#999;font-size:13px;">Loading suggestions…</p>';
+    fetch('/api/suggestions')
+        .then(r => r.json())
+        .then(data => {
+            box.innerHTML = data.suggestions
+                ? `<p style="font-size:14px;">${data.suggestions}</p>`
+                : '<p style="color:#999;font-size:13px;">No suggestions available.</p>';
+        })
+        .catch(() => {
+            box.innerHTML = '<p style="color:#999;font-size:13px;">Could not load suggestions.</p>';
+        });
+}
+
+//  SCHEDULE — calendar views
+
 function initSchedule() {
-    const addScheduleBtn = document.getElementById('add-schedule-btn');
-    const addScheduleModal = document.getElementById('addScheduleModal');
-    const closeModal = addScheduleModal ? addScheduleModal.querySelector('.close') : null;
-    const addScheduleForm = document.getElementById('addScheduleForm');
-    
-    // Tab buttons
-    const tabButtons = document.querySelectorAll('.tab-btn');
-    tabButtons.forEach(btn => {
-        btn.addEventListener('click', function() {
-            const view = this.getAttribute('data-view');
-            switchView(view);
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', function () {
+            switchView(this.getAttribute('data-view'));
         });
     });
-    
-    // Month navigation
-    const prevMonthBtn = document.getElementById('prev-month');
-    const nextMonthBtn = document.getElementById('next-month');
-    
-    if (prevMonthBtn) {
-        prevMonthBtn.addEventListener('click', () => {
-            currentDate.setMonth(currentDate.getMonth() - 1);
-            renderCalendar();
-        });
-    }
-    
-    if (nextMonthBtn) {
-        nextMonthBtn.addEventListener('click', () => {
-            currentDate.setMonth(currentDate.getMonth() + 1);
-            renderCalendar();
-        });
-    }
-    
-    // Add schedule modal
-    if (addScheduleBtn && addScheduleModal) {
-        addScheduleBtn.addEventListener('click', function() {
-            addScheduleModal.style.display = 'block';
-        });
-    }
-    
-    if (closeModal) {
-        closeModal.addEventListener('click', function() {
-            addScheduleModal.style.display = 'none';
-        });
-    }
-    
-    if (addScheduleForm) {
-        addScheduleForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const scheduleData = {
-                title: document.getElementById('scheduleTitle').value,
-                date: document.getElementById('scheduleDate').value,
-                time: document.getElementById('scheduleTime').value,
-                duration: document.getElementById('scheduleDuration').value,
-                description: document.getElementById('scheduleDescription').value
-            };
-            
-            fetch('/api/schedules', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(scheduleData)
+
+    document.getElementById('prev-month')?.addEventListener('click', () => {
+        currentDate.setMonth(currentDate.getMonth() - 1);
+        renderCalendar();
+        injectBadges();          // re-draw badges after navigation
+    });
+    document.getElementById('next-month')?.addEventListener('click', () => {
+        currentDate.setMonth(currentDate.getMonth() + 1);
+        renderCalendar();
+        injectBadges();
+    });
+
+    const addBtn   = document.getElementById('add-schedule-btn');
+    const addModal = document.getElementById('addScheduleModal');
+    const addForm  = document.getElementById('addScheduleForm');
+
+    addBtn?.addEventListener('click', () => {
+        if (addModal) addModal.classList.add('active');
+    });
+    document.getElementById('closeAddScheduleModal')?.addEventListener('click', () => {
+        if (addModal) addModal.classList.remove('active');
+    });
+    document.getElementById('cancelAddSchedule')?.addEventListener('click', () => {
+        if (addModal) addModal.classList.remove('active');
+    });
+
+    addForm?.addEventListener('submit', function (e) {
+        e.preventDefault();
+        const data = {
+            title:       document.getElementById('scheduleTitle').value,
+            date:        document.getElementById('scheduleDate').value,
+            time:        document.getElementById('scheduleTime').value,
+            duration:    document.getElementById('scheduleDuration').value,
+            description: document.getElementById('scheduleDescription').value
+        };
+        fetch('/api/schedules', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        })
+        .then(r => r.json())
+        .then(() => {
+            showSuccessToast('Schedule added!');
+            addModal.classList.remove('active');
+            addForm.reset();
+            loadSchedules();
+        })
+        .catch(() => showErrorToast('Failed to add schedule'));
+    });
+
+    const editModal = document.getElementById('editScheduleModal');
+    document.getElementById('closeEditScheduleModal')?.addEventListener('click', () => {
+        if (editModal) editModal.classList.remove('active');
+    });
+    document.getElementById('cancelEditSchedule')?.addEventListener('click', () => {
+        if (editModal) editModal.classList.remove('active');
+    });
+
+    const deleteModal = document.getElementById('deleteScheduleModal');
+    document.getElementById('closeDeleteScheduleModal')?.addEventListener('click', () => {
+        if (deleteModal) deleteModal.classList.remove('active');
+    });
+    document.getElementById('cancelDeleteSchedule')?.addEventListener('click', () => {
+        if (deleteModal) deleteModal.classList.remove('active');
+    });
+    document.getElementById('confirmDeleteSchedule')?.addEventListener('click', () => {
+        const id = document.getElementById('deleteScheduleId').value;
+        if (!id) return;
+        fetch(`/api/schedules/${id}`, { method: 'DELETE' })
+            .then(r => r.json())
+            .then(result => {
+                if (result.success) {
+                    showSuccessToast('Schedule deleted!');
+                    deleteModal.classList.remove('active');
+                    loadSchedules();
+                } else {
+                    showErrorToast('Failed to delete schedule');
+                }
             })
-            .then(response => response.json())
-            .then(data => {
-                alert('Schedule added successfully!');
-                addScheduleModal.style.display = 'none';
-                addScheduleForm.reset();
-                loadSchedules();
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Failed to add schedule');
-            });
+            .catch(() => showErrorToast('Failed to delete schedule'));
+    });
+
+    [addModal, editModal, deleteModal].forEach(modal => {
+        modal?.addEventListener('click', function (e) {
+            if (e.target === this) this.classList.remove('active');
         });
-    }
-    
-    // Initial render
+    });
+
     renderCalendar();
     loadSchedules();
 }
 
 function switchView(view) {
     currentView = view;
-    
-    // Update active tab
+
     document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.classList.remove('active');
-        if (btn.getAttribute('data-view') === view) {
-            btn.classList.add('active');
-        }
+        btn.classList.toggle('active', btn.getAttribute('data-view') === view);
     });
-    
-    // Hide all views
-    const weekView = document.getElementById('week-view');
-    const dayView = document.getElementById('day-view');
-    const monthView = document.getElementById('month-view');
-    
-    if (weekView) weekView.style.display = 'none';
-    if (dayView) dayView.style.display = 'none';
-    if (monthView) monthView.style.display = 'none';
-    
-    // Show selected view
-    if (view === 'week' && weekView) {
-        weekView.style.display = 'block';
-    } else if (view === 'day' && dayView) {
-        dayView.style.display = 'block';
-    } else if (view === 'month' && monthView) {
-        monthView.style.display = 'block';
-    }
-    
+
+    document.getElementById('week-view') ?.style && (document.getElementById('week-view').style.display  = 'none');
+    document.getElementById('day-view')  ?.style && (document.getElementById('day-view').style.display   = 'none');
+    document.getElementById('month-view')?.style && (document.getElementById('month-view').style.display = 'none');
+
+    const target = document.getElementById(`${view}-view`);
+    if (target) target.style.display = 'block';
+
     renderCalendar();
+    injectBadges();    // show events on the newly visible view
 }
 
+// ── Master render dispatcher
 function renderCalendar() {
-    const monthYearElement = document.getElementById('current-month');
-    if (monthYearElement) {
-        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
-                          'July', 'August', 'September', 'October', 'November', 'December'];
-        monthYearElement.textContent = `${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
+    // Update the month/year label
+    const label = document.getElementById('current-month');
+    if (label) {
+        const names = ['January','February','March','April','May','June',
+                       'July','August','September','October','November','December'];
+        label.textContent = `${names[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
     }
-    
-    if (currentView === 'week') {
-        renderWeekView();
-    } else if (currentView === 'day') {
-        renderDayView();
-    } else if (currentView === 'month') {
-        renderMonthView();
-    }
+
+    if      (currentView === 'week')  renderWeekView();
+    else if (currentView === 'day')   renderDayView();
+    else if (currentView === 'month') renderMonthView();
 }
 
+//  WEEK VIEW  — 7 columns side by side, all visible at once
 function renderWeekView() {
-    const weekGrid = document.getElementById('week-grid');
+    const weekHeader = document.getElementById('week-header');
+    const weekGrid   = document.getElementById('week-grid');
     if (!weekGrid) return;
-    
+
+    // Work out the Sunday that starts the current week
+    const today        = new Date();
+    const startOfWeek  = new Date(currentDate);
+    startOfWeek.setDate(currentDate.getDate() - currentDate.getDay());
+
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+    // Build the day-name header row (only if the element exists and is empty)
+    if (weekHeader) {
+        weekHeader.innerHTML = '';
+        dayNames.forEach(name => {
+            const h = document.createElement('div');
+            h.className = 'cal-day-name';
+            h.textContent = name;
+            weekHeader.appendChild(h);
+        });
+    }
+
+    // Build the 7 day columns
     weekGrid.innerHTML = '';
-    
-    const today = new Date();
-    const dayOfWeek = today.getDay();
-    const startOfWeek = new Date(today);
-    startOfWeek.setDate(today.getDate() - dayOfWeek);
-    
-    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    
     for (let i = 0; i < 7; i++) {
         const date = new Date(startOfWeek);
         date.setDate(startOfWeek.getDate() + i);
-        
-        const dayCard = document.createElement('div');
-        dayCard.className = 'calendar-day';
-        if (date.toDateString() === today.toDateString()) {
-            dayCard.classList.add('today');
-        }
-        
-        dayCard.innerHTML = `
-            <div class="day-number">${days[i]} ${date.getDate()}</div>
+
+        const col = document.createElement('div');
+        col.className = 'calendar-day';
+        if (date.toDateString() === today.toDateString()) col.classList.add('today');
+
+        // Store the date as a data attribute so injectBadges() can match events
+        col.dataset.date = date.toISOString().split('T')[0];   // "YYYY-MM-DD"
+
+        col.innerHTML = `
+            <div class="day-number">${dayNames[i]}<br>${date.getDate()}</div>
             <div class="day-events"></div>
         `;
-        
-        weekGrid.appendChild(dayCard);
+        weekGrid.appendChild(col);
     }
 }
 
-function renderDayView() {
-    const dayTimeline = document.getElementById('day-slots');
-    if (!dayTimeline) return;
-    
-    dayTimeline.innerHTML = '';
-    
-    for (let hour = 0; hour < 24; hour++) {
-        const timeSlot = document.createElement('div');
-        timeSlot.className = 'time-slot';
-        
-        const timeLabel = String(hour).padStart(2, '0') + ':00';
-        
-        timeSlot.innerHTML = `
-            <div class="time-label">${timeLabel}</div>
-            <div class="time-content"></div>
-        `;
-        
-        dayTimeline.appendChild(timeSlot);
-    }
-}
-
+//  MONTH VIEW  — 7-column grid, all 28-42 cells visible at once
 function renderMonthView() {
     const monthGrid = document.getElementById('month-grid');
     if (!monthGrid) return;
-    
+
     monthGrid.innerHTML = '';
-    
-    const year = currentDate.getFullYear();
-    const month = currentDate.getMonth();
-    
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    const prevLastDay = new Date(year, month, 0);
-    
-    const firstDayIndex = firstDay.getDay();
-    const lastDateOfMonth = lastDay.getDate();
-    const prevLastDate = prevLastDay.getDate();
-    
-    // Previous month days
+
+    const year          = currentDate.getFullYear();
+    const month         = currentDate.getMonth();
+    const firstDayIndex = new Date(year, month, 1).getDay();       // 0=Sun
+    const lastDate      = new Date(year, month + 1, 0).getDate();  // e.g. 30
+    const prevLastDate  = new Date(year, month, 0).getDate();      // last day of prev month
+    const today         = new Date();
+
     for (let i = firstDayIndex; i > 0; i--) {
-        const day = document.createElement('div');
-        day.className = 'calendar-day other-month';
-        day.innerHTML = `<div class="day-number">${prevLastDate - i + 1}</div>`;
-        monthGrid.appendChild(day);
+        const cell = document.createElement('div');
+        cell.className = 'calendar-day other-month';
+        // Build a YYYY-MM-DD for the prev-month date so badges can still match
+        const prevMonth = month === 0 ? 12 : month;
+        const prevYear  = month === 0 ? year - 1 : year;
+        const d         = String(prevLastDate - i + 1).padStart(2, '0');
+        cell.dataset.date = `${prevYear}-${String(prevMonth).padStart(2,'0')}-${d}`;
+        cell.innerHTML = `<div class="day-number">${prevLastDate - i + 1}</div>`;
+        monthGrid.appendChild(cell);
     }
-    
-    // Current month days
-    const today = new Date();
-    for (let i = 1; i <= lastDateOfMonth; i++) {
-        const day = document.createElement('div');
-        day.className = 'calendar-day';
-        
-        if (i === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
-            day.classList.add('today');
+
+    for (let d = 1; d <= lastDate; d++) {
+        const cell = document.createElement('div');
+        cell.className = 'calendar-day';
+        if (d === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
+            cell.classList.add('today');
         }
-        
-        day.innerHTML = `<div class="day-number">${i}</div>`;
-        monthGrid.appendChild(day);
+        cell.dataset.date = `${year}-${String(month + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        cell.innerHTML = `<div class="day-number">${d}</div>`;
+        monthGrid.appendChild(cell);
     }
-    
-    // Next month days
-    const remainingCells = 42 - (firstDayIndex + lastDateOfMonth);
-    for (let i = 1; i <= remainingCells; i++) {
-        const day = document.createElement('div');
-        day.className = 'calendar-day other-month';
-        day.innerHTML = `<div class="day-number">${i}</div>`;
-        monthGrid.appendChild(day);
+
+    // ── Filler cells from the next month 
+    const remaining = 42 - (firstDayIndex + lastDate);
+    for (let d = 1; d <= remaining; d++) {
+        const cell = document.createElement('div');
+        cell.className = 'calendar-day other-month';
+        const nextMonth = month === 11 ? 1 : month + 2;
+        const nextYear  = month === 11 ? year + 1 : year;
+        cell.dataset.date = `${nextYear}-${String(nextMonth).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        cell.innerHTML = `<div class="day-number">${d}</div>`;
+        monthGrid.appendChild(cell);
     }
 }
 
+//  DAY VIEW  — compact 24-hour timeline
+function renderDayView() {
+    const daySlots = document.getElementById('day-slots');
+    const dayTitle = document.getElementById('day-title');
+    if (!daySlots) return;
+
+    // Show which day we are viewing
+    if (dayTitle) {
+        const opts = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        dayTitle.textContent = currentDate.toLocaleDateString('en-NZ', opts);
+    }
+
+    daySlots.innerHTML = '';
+
+    for (let hour = 0; hour < 24; hour++) {
+        const slot = document.createElement('div');
+        slot.className = 'time-slot';
+        const label = String(hour).padStart(2, '0') + ':00';
+        slot.dataset.hour = hour;
+        slot.innerHTML = `
+            <div class="time-label">${label}</div>
+            <div class="time-content"></div>
+        `;
+        daySlots.appendChild(slot);
+    }
+}
+
+//  BADGE INJECTION — places event badges on the visible calendar
+function injectBadges() {
+    if (!allSchedules.length) return;
+
+    if (currentView === 'month' || currentView === 'week') {
+        const gridId   = currentView === 'month' ? 'month-grid' : 'week-grid';
+        const cells    = document.querySelectorAll(`#${gridId} .calendar-day`);
+
+        // Build a lookup: "YYYY-MM-DD" → cell element
+        const cellMap = {};
+        cells.forEach(cell => {
+            if (cell.dataset.date) cellMap[cell.dataset.date] = cell;
+        });
+
+        allSchedules.forEach(schedule => {
+            if (!schedule.date) return;
+            const cell = cellMap[schedule.date];
+            if (!cell) return;
+
+            // Don't add duplicate badges on repeated calls
+            const alreadyAdded = Array.from(cell.querySelectorAll('.calendar-event-badge'))
+                .some(b => b.dataset.id === schedule._id);
+            if (alreadyAdded) return;
+
+            const badge = document.createElement('div');
+            badge.className = 'calendar-event-badge';
+            badge.dataset.id = schedule._id;
+            badge.textContent = schedule.time
+                ? `${schedule.time} ${schedule.title}`
+                : schedule.title;
+            cell.appendChild(badge);
+        });
+    }
+
+    if (currentView === 'day') {
+        // Show events in the correct hour slot
+        const todayStr = currentDate.toISOString().split('T')[0];
+        allSchedules.forEach(schedule => {
+            if (schedule.date !== todayStr || !schedule.time) return;
+            const hour = parseInt(schedule.time.split(':')[0], 10);
+            const slot = document.querySelector(`#day-slots .time-slot[data-hour="${hour}"] .time-content`);
+            if (!slot) return;
+
+            const item = document.createElement('div');
+            item.className = 'day-event-item';
+            item.textContent = `${schedule.time} — ${schedule.title}`;
+            slot.appendChild(item);
+        });
+    }
+}
+
+//  LOAD & DISPLAY SCHEDULES
 function loadSchedules() {
     fetch('/api/schedules')
-        .then(response => response.json())
+        .then(r => r.json())
         .then(schedules => {
+            allSchedules = schedules;
             displaySchedules(schedules);
+            injectBadges();
         })
-        .catch(error => console.error('Error loading schedules:', error));
+        .catch(err => console.error('Error loading schedules:', err));
 }
 
 function displaySchedules(schedules) {
-    const scheduleListItems = document.getElementById('schedule-list-items');
-    if (!scheduleListItems) {
-        console.error('schedule-list-items element not found');
-        return;
-    }
-    
-    if (schedules.length === 0) {
-        scheduleListItems.innerHTML = `
+    const list = document.getElementById('schedule-list-items');
+    if (!list) return;
+
+    if (!schedules.length) {
+        list.innerHTML = `
             <div class="empty-state">
-                <i class="bi bi-calendar-x" style="font-size: 48px; color: #ccc;"></i>
+                <i class="bi bi-calendar-x" style="font-size:48px;color:#ccc;"></i>
                 <p>No scheduled items yet</p>
-                <p style="font-size: 14px; color: #999;">Click "Add Schedule" to create your first schedule item</p>
-            </div>
-        `;
+                <p style="font-size:14px;color:#999;">Click "Add Schedule" to create your first item</p>
+            </div>`;
         return;
     }
-    
-    scheduleListItems.innerHTML = schedules.map(schedule => `
-        <div class="schedule-item" data-id="${schedule._id}">
+
+    list.innerHTML = schedules.map(s => `
+        <div class="schedule-item" data-id="${s._id}">
             <div class="schedule-item-header">
                 <div class="schedule-item-info">
-                    <h4 class="schedule-title">${schedule.title}</h4>
+                    <h4 class="schedule-title">${s.title}</h4>
                     <div class="schedule-meta">
-                        <span class="schedule-date">
-                            <i class="bi bi-calendar3"></i> ${schedule.date}
-                        </span>
-                        <span class="schedule-time">
-                            <i class="bi bi-clock"></i> ${schedule.time}
-                        </span>
-                        ${schedule.duration ? `
-                        <span class="schedule-duration">
-                            <i class="bi bi-hourglass-split"></i> ${schedule.duration} min
-                        </span>
-                        ` : ''}
+                        ${s.date     ? `<span><i class="bi bi-calendar3"></i> ${s.date}</span>` : ''}
+                        ${s.time     ? `<span><i class="bi bi-clock"></i> ${s.time}</span>` : ''}
+                        ${s.duration ? `<span><i class="bi bi-hourglass-split"></i> ${s.duration} min</span>` : ''}
                     </div>
                 </div>
                 <div class="schedule-actions">
-                    <button class="btn-icon btn-edit" onclick="editSchedule('${schedule._id}')" title="Edit">
+                    <button class="btn-icon btn-edit"   onclick="editSchedule('${s._id}')"   title="Edit">
                         <i class="bi bi-pencil"></i>
                     </button>
-                    <button class="btn-icon btn-delete" onclick="deleteSchedule('${schedule._id}')" title="Delete">
+                    <button class="btn-icon btn-delete" onclick="deleteSchedule('${s._id}')" title="Delete">
                         <i class="bi bi-trash"></i>
                     </button>
                 </div>
             </div>
-            ${schedule.description ? `
-            <div class="schedule-description">
-                <p>${schedule.description}</p>
-            </div>
-            ` : ''}
+            ${s.description ? `<div class="schedule-description"><p>${s.description}</p></div>` : ''}
         </div>
     `).join('');
 }
 
-// Tasks Page Functions
+// Called from the Edit button in the list
+function editSchedule(scheduleId) {
+    const s = allSchedules.find(x => x._id === scheduleId);
+    if (!s) return;
+
+    document.getElementById('editScheduleId').value          = s._id;
+    document.getElementById('editScheduleTitle').value       = s.title;
+    document.getElementById('editScheduleDate').value        = s.date        || '';
+    document.getElementById('editScheduleTime').value        = s.time        || '';
+    document.getElementById('editScheduleDuration').value    = s.duration    || '';
+    document.getElementById('editScheduleDescription').value = s.description || '';
+
+    document.getElementById('editScheduleModal').classList.add('active');
+}
+
+// Called from the Delete button in the list
+function deleteSchedule(scheduleId) {
+    document.getElementById('deleteScheduleId').value = scheduleId;
+    document.getElementById('deleteScheduleModal').classList.add('active');
+}
+
+// Edit form submit
+const editScheduleForm = document.getElementById('editScheduleForm');
+if (editScheduleForm) {
+    editScheduleForm.addEventListener('submit', async function (e) {
+        e.preventDefault();
+        const id   = document.getElementById('editScheduleId').value;
+        const data = {
+            title:       document.getElementById('editScheduleTitle').value,
+            date:        document.getElementById('editScheduleDate').value,
+            time:        document.getElementById('editScheduleTime').value,
+            duration:    document.getElementById('editScheduleDuration').value,
+            description: document.getElementById('editScheduleDescription').value
+        };
+        try {
+            const res    = await fetch(`/api/schedules/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const result = await res.json();
+            if (result.success) {
+                showSuccessToast('Schedule updated!');
+                document.getElementById('editScheduleModal').classList.remove('active');
+                loadSchedules();
+            } else {
+                showErrorToast('Failed to update schedule');
+            }
+        } catch {
+            showErrorToast('Failed to update schedule');
+        }
+    });
+}
+
+// TASKS
 function initTasks() {
-    const addTaskBtn = document.getElementById('add-task-page-btn');
+    const addTaskBtn   = document.getElementById('add-task-page-btn');
     const addTaskModal = document.getElementById('addTaskModal');
-    const closeModal = addTaskModal ? addTaskModal.querySelector('.close') : null;
-    const addTaskForm = document.getElementById('addTaskForm');
-    
+    const closeModal   = addTaskModal ? addTaskModal.querySelector('.close') : null;
+    const addTaskForm  = document.getElementById('addTaskForm');
+
     if (addTaskBtn && addTaskModal) {
-        addTaskBtn.addEventListener('click', function() {
-            addTaskModal.style.display = 'block';
-        });
+        addTaskBtn.addEventListener('click', () => { addTaskModal.style.display = 'block'; });
     }
-    
     if (closeModal) {
-        closeModal.addEventListener('click', function() {
-            addTaskModal.style.display = 'none';
-        });
+        closeModal.addEventListener('click', () => { addTaskModal.style.display = 'none'; });
     }
-    
     if (addTaskForm) {
-        addTaskForm.addEventListener('submit', function(e) {
+        addTaskForm.addEventListener('submit', function (e) {
             e.preventDefault();
-            
             const taskData = {
-                name: document.getElementById('taskName').value,
-                priority: document.getElementById('taskPriority').value,
-                date: document.getElementById('taskDate').value,
+                name:        document.getElementById('taskName').value,
+                priority:    document.getElementById('taskPriority').value,
+                date:        document.getElementById('taskDate').value,
                 description: document.getElementById('taskDescription').value
             };
-            
             fetch('/api/tasks', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(taskData)
             })
-            .then(response => response.json())
-            .then(data => {
-                alert('Task added successfully!');
+            .then(r => r.json())
+            .then(() => {
+                showSuccessToast('Task added successfully!');
                 addTaskModal.style.display = 'none';
                 addTaskForm.reset();
                 loadTasks();
             })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Failed to add task');
-            });
+            .catch(() => showErrorToast('Failed to add task'));
         });
     }
-    
     loadTasks();
 }
 
+let allTasks = [];
+
 function loadTasks() {
     fetch('/api/tasks')
-        .then(response => response.json())
-        .then(tasks => {
-            displayTasks(tasks);
-        })
-        .catch(error => console.error('Error loading tasks:', error));
+        .then(r => r.json())
+        .then(tasks => { allTasks = tasks; filterTasks(); })
+        .catch(err => console.error('Error loading tasks:', err));
+}
+
+function filterTasks() {
+    const search   = (document.getElementById('taskSearch')?.value || '').toLowerCase();
+    const priority = document.getElementById('taskPriorityFilter')?.value || '';
+    const status   = document.getElementById('taskStatusFilter')?.value  || '';
+    const sort     = document.getElementById('taskSort')?.value           || 'newest';
+
+    let filtered = allTasks.filter(task => {
+        const matchSearch   = task.name.toLowerCase().includes(search) ||
+                              (task.description || '').toLowerCase().includes(search);
+        const matchPriority = !priority || task.priority === priority;
+        const matchStatus   = !status ||
+                              (status === 'completed' && task.completed) ||
+                              (status === 'pending'   && !task.completed);
+        return matchSearch && matchPriority && matchStatus;
+    });
+
+    const priorityOrder = { high: 1, medium: 2, low: 3 };
+    if (sort === 'newest')   filtered.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+    if (sort === 'oldest')   filtered.sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
+    if (sort === 'priority') filtered.sort((a, b) => (priorityOrder[a.priority] || 9) - (priorityOrder[b.priority] || 9));
+    if (sort === 'name')     filtered.sort((a, b) => a.name.localeCompare(b.name));
+
+    displayTasks(filtered);
 }
 
 function displayTasks(tasks) {
-    const tasksGrid = document.getElementById('tasks-grid');
-    if (!tasksGrid) return;
-    
-    if (tasks.length === 0) {
-        tasksGrid.innerHTML = '<p class="empty-state">No tasks yet. Click "Add Task" to create one.</p>';
+    const grid = document.getElementById('tasks-grid');
+    if (!grid) return;
+
+    if (!tasks.length) {
+        grid.innerHTML = '<p class="empty-state">No tasks yet. Click "Add Task" to create one.</p>';
         return;
     }
-    
-    tasksGrid.innerHTML = tasks.map(task => {
-        const isCompleted = task.completed || false;
+
+    grid.innerHTML = tasks.map(task => {
+        const done       = task.completed || false;
+        let colorClass   = 'card-border-low';
+        if (done)                          colorClass = 'card-border-done';
+        else if (task.priority === 'high') colorClass = 'card-border-high';
+        else if (task.priority === 'medium') colorClass = 'card-border-medium';
+
         return `
-            <div class="item-card ${isCompleted ? 'completed' : ''}">
+            <div class="item-card ${colorClass} ${done ? 'completed' : ''}">
                 <div class="item-card-header">
                     <div class="task-checkbox">
-                        <input type="checkbox" ${isCompleted ? 'checked' : ''} 
-                               onchange="toggleTaskComplete('${task._id}')" 
-                               id="task-${task._id}">
+                        <input type="checkbox" ${done ? 'checked' : ''}
+                               onchange="toggleTaskComplete('${task._id}')" id="task-${task._id}">
                     </div>
-                    <h4 style="${isCompleted ? 'text-decoration: line-through; opacity: 0.6;' : ''}">${task.name}</h4>
+                    <h4 style="${done ? 'text-decoration:line-through;opacity:0.6;' : ''}">${task.name}</h4>
                     <span class="priority-badge priority-${task.priority}">${task.priority}</span>
                 </div>
                 <div class="item-card-body">
-                    <p style="${isCompleted ? 'opacity: 0.6;' : ''}">${task.description || 'No description'}</p>
+                    <p style="${done ? 'opacity:0.6;' : ''}">${task.description || 'No description'}</p>
                     <div class="item-meta">
                         ${task.date ? `<span><i class="bi bi-calendar"></i> ${formatDateNZ(task.date)}</span>` : ''}
                     </div>
                     <div class="item-actions">
-                        <button class="btn-action btn-edit" onclick="editTask('${task._id}')">
+                        <button class="btn-action btn-edit"   onclick="editTask('${task._id}')">
                             <i class="bi bi-pencil"></i> Edit
                         </button>
                         <button class="btn-action btn-delete" onclick="deleteTask('${task._id}')">
@@ -542,97 +789,123 @@ function displayTasks(tasks) {
                         </button>
                     </div>
                 </div>
-            </div>
-        `;
+            </div>`;
     }).join('');
 }
 
-// Exams Page Functions
+// EXAMS
 function initExams() {
-    const addExamBtn = document.getElementById('add-exam-page-btn');
+    const addExamBtn   = document.getElementById('add-exam-page-btn');
     const addExamModal = document.getElementById('addExamModal');
-    const closeModal = addExamModal ? addExamModal.querySelector('.close') : null;
-    const addExamForm = document.getElementById('addExamForm');
-    
+    const closeModal   = addExamModal ? addExamModal.querySelector('.close') : null;
+    const addExamForm  = document.getElementById('addExamForm');
+
     if (addExamBtn && addExamModal) {
-        addExamBtn.addEventListener('click', function() {
-            addExamModal.style.display = 'block';
-        });
+        addExamBtn.addEventListener('click', () => { addExamModal.style.display = 'block'; });
     }
-    
     if (closeModal) {
-        closeModal.addEventListener('click', function() {
-            addExamModal.style.display = 'none';
-        });
+        closeModal.addEventListener('click', () => { addExamModal.style.display = 'none'; });
     }
-    
     if (addExamForm) {
-        addExamForm.addEventListener('submit', function(e) {
+        addExamForm.addEventListener('submit', function (e) {
             e.preventDefault();
-            
             const examData = {
-                subject: document.getElementById('examSubject').value,
-                date: document.getElementById('examDate').value,
-                time: document.getElementById('examTime').value,
+                subject:  document.getElementById('examSubject').value,
+                date:     document.getElementById('examDate').value,
+                time:     document.getElementById('examTime').value,
                 duration: document.getElementById('examDuration').value,
-                notes: document.getElementById('examNotes').value
+                notes:    document.getElementById('examNotes').value
             };
-            
             fetch('/api/exams', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(examData)
             })
-            .then(response => response.json())
-            .then(data => {
-                alert('Exam added successfully!');
+            .then(r => r.json())
+            .then(() => {
+                showSuccessToast('Exam added successfully!');
                 addExamModal.style.display = 'none';
                 addExamForm.reset();
                 loadExams();
             })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Failed to add exam');
-            });
+            .catch(() => showErrorToast('Failed to add exam'));
         });
     }
-    
     loadExams();
 }
 
+let allExams = [];
+
 function loadExams() {
     fetch('/api/exams')
-        .then(response => response.json())
-        .then(exams => {
-            displayExams(exams);
-        })
-        .catch(error => console.error('Error loading exams:', error));
+        .then(r => r.json())
+        .then(exams => { allExams = exams; filterExams(); })
+        .catch(err => console.error('Error loading exams:', err));
 }
 
-function displayExams(exams) {
-    const examsGrid = document.getElementById('exams-grid');
-    if (!examsGrid) return;
-    
-    if (exams.length === 0) {
-        examsGrid.innerHTML = '<p class="empty-state">No exams scheduled. Click "Add Exam" to create one.</p>';
-        return;
+function filterExams() {
+    const search = (document.getElementById('examSearch')?.value || '').toLowerCase();
+    const sort   = document.getElementById('examSort')?.value || 'newest';
+
+    let filtered = allExams.filter(exam =>
+        exam.subject.toLowerCase().includes(search) ||
+        (exam.notes || '').toLowerCase().includes(search)
+    );
+
+    if (sort === 'newest') filtered.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+    if (sort === 'oldest') filtered.sort((a, b) => new Date(a.date || 0) - new Date(b.date || 0));
+    if (sort === 'name')   filtered.sort((a, b) => a.subject.localeCompare(b.subject));
+
+    displayExams(filtered);
+}
+
+// Helper: build one exam card HTML string
+function buildExamCard(exam, isOutdated) {
+    const today    = new Date();
+    today.setHours(0, 0, 0, 0);
+    const [ey, em, ed] = (exam.date || '').split('-').map(Number);
+    const examDate = new Date(ey, em - 1, ed);
+    const daysLeft = Math.ceil((examDate - today) / (1000 * 60 * 60 * 24));
+    const isDone   = exam.completed || false;
+
+    let colorClass   = 'card-border-low';
+    let urgencyBadge = '<span class="urgency-badge urgency-low">Upcoming</span>';
+
+    if (isDone) {
+        colorClass   = 'card-border-done';
+        urgencyBadge = '<span class="urgency-badge urgency-done">Done</span>';
+    } else if (isOutdated) {
+        colorClass   = 'card-border-outdated';
+        urgencyBadge = '<span class="urgency-badge urgency-outdated">Outdated</span>';
+    } else if (daysLeft <= 3) {
+        colorClass   = 'card-border-high';
+        urgencyBadge = '<span class="urgency-badge urgency-high">Urgent</span>';
+    } else if (daysLeft <= 7) {
+        colorClass   = 'card-border-medium';
+        urgencyBadge = '<span class="urgency-badge urgency-medium">Soon</span>';
     }
-    
-    examsGrid.innerHTML = exams.map(exam => `
-        <div class="item-card">
+
+    const doneStyle = isDone ? 'text-decoration:line-through;opacity:0.6;' : '';
+
+    return `
+        <div class="item-card ${colorClass} ${isDone ? 'completed' : ''}">
             <div class="item-card-header">
-                <h4>${exam.subject}</h4>
+                <h4 style="${doneStyle}">${exam.subject}</h4>
+                ${urgencyBadge}
             </div>
             <div class="item-card-body">
-                <p>${exam.notes || 'No notes'}</p>
+                <p style="${doneStyle}">${exam.notes || 'No notes'}</p>
                 <div class="item-meta">
                     <span><i class="bi bi-calendar"></i> ${formatDateNZ(exam.date)}</span>
                     <span><i class="bi bi-clock"></i> ${formatTimeNZ(exam.time)}</span>
                     <span><i class="bi bi-hourglass"></i> ${exam.duration} min</span>
                 </div>
                 <div class="item-actions">
+                    <button class="btn-action ${isDone ? 'btn-undo' : 'btn-done'}"
+                            onclick="toggleExamDone('${exam._id}')">
+                        <i class="bi bi-${isDone ? 'arrow-counterclockwise' : 'check-circle'}"></i>
+                        ${isDone ? 'Undo' : 'Mark Done'}
+                    </button>
                     <button class="btn-action btn-edit" onclick="editExam('${exam._id}')">
                         <i class="bi bi-pencil"></i> Edit
                     </button>
@@ -641,685 +914,607 @@ function displayExams(exams) {
                     </button>
                 </div>
             </div>
-        </div>
-    `).join('');
+        </div>`;
 }
 
-// Classes Page Functions
+function displayExams(exams) {
+    const grid = document.getElementById('exams-grid');
+    if (!grid) return;
+
+    if (!exams.length) {
+        grid.innerHTML = '<p class="empty-state">No exams yet. Click "Add Exam" to create one.</p>';
+        return;
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Split into 3 groups: upcoming/done, and outdated (past + not done)
+    const upcoming = [];
+    const outdated = [];
+
+    exams.forEach(exam => {
+        if (!exam.date) { upcoming.push(exam); return; }
+        const [ey, em, ed] = exam.date.split('-').map(Number);
+        const examDate = new Date(ey, em - 1, ed);
+        // Outdated = date is in the past AND not marked done
+        if (examDate < today && !exam.completed) {
+            outdated.push(exam);
+        } else {
+            upcoming.push(exam);
+        }
+    });
+
+    let html = '';
+
+    if (upcoming.length) {
+        html += upcoming.map(e => buildExamCard(e, false)).join('');
+    }
+
+    if (outdated.length) {
+        html += `
+            <div class="group-divider">
+                <span><i class="bi bi-clock-history"></i> Outdated Exams (${outdated.length})</span>
+            </div>`;
+        html += outdated.map(e => buildExamCard(e, true)).join('');
+    }
+
+    grid.innerHTML = html;
+}
+
+// Toggle exam done/undone
+async function toggleExamDone(examId) {
+    const exam = allExams.find(e => e._id === examId);
+    if (!exam) return;
+    const newCompleted = !exam.completed;
+    try {
+        const res    = await fetch(`/api/exams/${examId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ completed: newCompleted })
+        });
+        const result = await res.json();
+        if (result.success) {
+            showSuccessToast(newCompleted ? 'Exam marked as done!' : 'Exam marked as pending');
+            loadExams();
+        } else {
+            showErrorToast('Failed to update exam');
+        }
+    } catch {
+        showErrorToast('Failed to update exam');
+    }
+}
+
+// CLASSES
 function initClasses() {
-    const addClassBtn = document.getElementById('add-class-page-btn');
+    const addClassBtn   = document.getElementById('add-class-page-btn');
     const addClassModal = document.getElementById('addClassModal');
-    const closeModal = addClassModal ? addClassModal.querySelector('.close') : null;
-    const addClassForm = document.getElementById('addClassForm');
-    
+    const closeModal    = addClassModal ? addClassModal.querySelector('.close') : null;
+    const addClassForm  = document.getElementById('addClassForm');
+
     if (addClassBtn && addClassModal) {
-        addClassBtn.addEventListener('click', function() {
-            addClassModal.style.display = 'block';
-        });
+        addClassBtn.addEventListener('click', () => { addClassModal.style.display = 'block'; });
     }
-    
     if (closeModal) {
-        closeModal.addEventListener('click', function() {
-            addClassModal.style.display = 'none';
-        });
+        closeModal.addEventListener('click', () => { addClassModal.style.display = 'none'; });
     }
-    
     if (addClassForm) {
-        addClassForm.addEventListener('submit', function(e) {
+        addClassForm.addEventListener('submit', function (e) {
             e.preventDefault();
-            
             const classData = {
-                name: document.getElementById('className').value,
+                name:       document.getElementById('className').value,
                 instructor: document.getElementById('classInstructor').value,
-                day: document.getElementById('classDay').value,
-                time: document.getElementById('classTime').value,
-                room: document.getElementById('classRoom').value
+                day:        document.getElementById('classDay').value,
+                time:       document.getElementById('classTime').value,
+                room:       document.getElementById('classRoom').value
             };
-            
             fetch('/api/classes', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(classData)
             })
-            .then(response => response.json())
-            .then(data => {
-                alert('Class added successfully!');
+            .then(r => r.json())
+            .then(() => {
+                showSuccessToast('Class added successfully!');
                 addClassModal.style.display = 'none';
                 addClassForm.reset();
                 loadClasses();
             })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Failed to add class');
-            });
+            .catch(() => showErrorToast('Failed to add class'));
         });
     }
-    
     loadClasses();
 }
 
+let allClasses = [];
+
 function loadClasses() {
     fetch('/api/classes')
-        .then(response => response.json())
-        .then(classes => {
-            displayClasses(classes);
-        })
-        .catch(error => console.error('Error loading classes:', error));
+        .then(r => r.json())
+        .then(classes => { allClasses = classes; filterClasses(); })
+        .catch(err => console.error('Error loading classes:', err));
+}
+
+function filterClasses() {
+    const search = (document.getElementById('classSearch')?.value || '').toLowerCase();
+    const day    = document.getElementById('classDayFilter')?.value || '';
+    const sort   = document.getElementById('classSort')?.value      || 'name';
+
+    let filtered = allClasses.filter(cls => {
+        const matchSearch = cls.name.toLowerCase().includes(search) ||
+                            (cls.instructor || '').toLowerCase().includes(search);
+        const matchDay    = !day || cls.day === day;
+        return matchSearch && matchDay;
+    });
+
+    const dayOrder = { Monday:1, Tuesday:2, Wednesday:3, Thursday:4, Friday:5, Saturday:6, Sunday:7 };
+    if (sort === 'name') filtered.sort((a, b) => a.name.localeCompare(b.name));
+    if (sort === 'day')  filtered.sort((a, b) => (dayOrder[a.day] || 9) - (dayOrder[b.day] || 9));
+
+    displayClasses(filtered);
 }
 
 function displayClasses(classes) {
-    const classesGrid = document.getElementById('classes-grid');
-    if (!classesGrid) return;
-    
-    if (classes.length === 0) {
-        classesGrid.innerHTML = '<p class="empty-state">No classes added. Click "Add Class" to create one.</p>';
+    const grid = document.getElementById('classes-grid');
+    if (!grid) return;
+
+    if (!classes.length) {
+        grid.innerHTML = '<p class="empty-state">No classes yet. Click "Add Class" to create one.</p>';
         return;
     }
-    
-    classesGrid.innerHTML = classes.map(classItem => `
-        <div class="item-card">
+
+    grid.innerHTML = classes.map(c => `
+        <div class="item-card card-border-info">
             <div class="item-card-header">
-                <h4>${classItem.name}</h4>
+                <h4>${c.name}</h4>
+                <span class="urgency-badge urgency-info">${c.day}</span>
             </div>
             <div class="item-card-body">
-                <p><strong>Instructor:</strong> ${classItem.instructor || 'N/A'}</p>
+                <p><strong>Instructor:</strong> ${c.instructor || 'N/A'}</p>
                 <div class="item-meta">
-                    <span><i class="bi bi-calendar"></i> ${classItem.day}</span>
-                    <span><i class="bi bi-clock"></i> ${formatTimeNZ(classItem.time)}</span>
-                    ${classItem.room ? `<span><i class="bi bi-door-open"></i> ${classItem.room}</span>` : ''}
+                    <span><i class="bi bi-calendar"></i> ${c.day}</span>
+                    <span><i class="bi bi-clock"></i> ${formatTimeNZ(c.time)}</span>
+                    ${c.room ? `<span><i class="bi bi-door-open"></i> ${c.room}</span>` : ''}
                 </div>
                 <div class="item-actions">
-                    <button class="btn-action btn-edit" onclick="editClass('${classItem._id}')">
+                    <button class="btn-action btn-edit"   onclick="editClass('${c._id}')">
                         <i class="bi bi-pencil"></i> Edit
                     </button>
-                    <button class="btn-action btn-delete" onclick="deleteClass('${classItem._id}')">
+                    <button class="btn-action btn-delete" onclick="deleteClass('${c._id}')">
                         <i class="bi bi-trash"></i> Delete
                     </button>
                 </div>
             </div>
-        </div>
-    `).join('');
+        </div>`).join('');
 }
 
-// Vacations Page Functions
+// VACATIONS
 function initVacations() {
-    const addVacationBtn = document.getElementById('add-vacation-page-btn');
+    const addVacationBtn   = document.getElementById('add-vacation-page-btn');
     const addVacationModal = document.getElementById('addVacationModal');
-    const closeModal = addVacationModal ? addVacationModal.querySelector('.close') : null;
-    const addVacationForm = document.getElementById('addVacationForm');
-    
+    const closeModal       = addVacationModal ? addVacationModal.querySelector('.close') : null;
+    const addVacationForm  = document.getElementById('addVacationForm');
+
     if (addVacationBtn && addVacationModal) {
-        addVacationBtn.addEventListener('click', function() {
-            addVacationModal.style.display = 'block';
-        });
+        addVacationBtn.addEventListener('click', () => { addVacationModal.style.display = 'block'; });
     }
-    
     if (closeModal) {
-        closeModal.addEventListener('click', function() {
-            addVacationModal.style.display = 'none';
-        });
+        closeModal.addEventListener('click', () => { addVacationModal.style.display = 'none'; });
     }
-    
     if (addVacationForm) {
-        addVacationForm.addEventListener('submit', function(e) {
+        addVacationForm.addEventListener('submit', function (e) {
             e.preventDefault();
-            
             const vacationData = {
-                title: document.getElementById('vacationTitle').value,
-                start_date: document.getElementById('vacationStart').value,
-                end_date: document.getElementById('vacationEnd').value,
+                title:       document.getElementById('vacationTitle').value,
+                start_date:  document.getElementById('vacationStart').value,
+                end_date:    document.getElementById('vacationEnd').value,
                 description: document.getElementById('vacationDescription').value
             };
-            
             fetch('/api/vacations', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(vacationData)
             })
-            .then(response => response.json())
-            .then(data => {
-                alert('Vacation added successfully!');
+            .then(r => r.json())
+            .then(() => {
+                showSuccessToast('Vacation added successfully!');
                 addVacationModal.style.display = 'none';
                 addVacationForm.reset();
                 loadVacations();
             })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Failed to add vacation');
-            });
+            .catch(() => showErrorToast('Failed to add vacation'));
         });
     }
-    
     loadVacations();
 }
 
+let allVacations = [];
+
 function loadVacations() {
     fetch('/api/vacations')
-        .then(response => response.json())
-        .then(vacations => {
-            displayVacations(vacations);
-        })
-        .catch(error => console.error('Error loading vacations:', error));
+        .then(r => r.json())
+        .then(vacations => { allVacations = vacations; displayVacations(vacations); })
+        .catch(err => console.error('Error loading vacations:', err));
 }
 
-function displayVacations(vacations) {
-    const vacationsGrid = document.getElementById('vacations-grid');
-    if (!vacationsGrid) return;
-    
-    if (vacations.length === 0) {
-        vacationsGrid.innerHTML = '<p class="empty-state">No vacations planned. Click "Add Vacation" to create one.</p>';
-        return;
+// Helper: build one vacation card HTML string
+function buildVacationCard(v, isOutdated) {
+    const isDone      = v.completed || false;
+    const doneStyle   = isDone ? 'text-decoration:line-through;opacity:0.6;' : '';
+    let   colorClass  = 'card-border-info';
+    let   statusBadge = '<span class="urgency-badge urgency-info">Planned</span>';
+
+    if (isDone) {
+        colorClass  = 'card-border-done';
+        statusBadge = '<span class="urgency-badge urgency-done">Done</span>';
+    } else if (isOutdated) {
+        colorClass  = 'card-border-outdated';
+        statusBadge = '<span class="urgency-badge urgency-outdated">Outdated</span>';
     }
-    
-    vacationsGrid.innerHTML = vacations.map(vacation => `
-        <div class="item-card">
+
+    return `
+        <div class="item-card ${colorClass} ${isDone ? 'completed' : ''}">
             <div class="item-card-header">
-                <h4>${vacation.title}</h4>
+                <h4 style="${doneStyle}">${v.title}</h4>
+                ${statusBadge}
             </div>
             <div class="item-card-body">
-                <p>${vacation.description || 'No description'}</p>
+                <p style="${doneStyle}">${v.description || 'No description'}</p>
                 <div class="item-meta">
-                    <span><i class="bi bi-calendar-check"></i> ${formatDateNZ(vacation.start_date)}</span>
-                    <span><i class="bi bi-calendar-x"></i> ${formatDateNZ(vacation.end_date)}</span>
+                    <span><i class="bi bi-calendar-check"></i> ${formatDateNZ(v.start_date)}</span>
+                    <span><i class="bi bi-calendar-x"></i> ${formatDateNZ(v.end_date)}</span>
                 </div>
                 <div class="item-actions">
-                    <button class="btn-action btn-edit" onclick="editVacation('${vacation._id}')">
+                    <button class="btn-action ${isDone ? 'btn-undo' : 'btn-done'}"
+                            onclick="toggleVacationDone('${v._id}')">
+                        <i class="bi bi-${isDone ? 'arrow-counterclockwise' : 'check-circle'}"></i>
+                        ${isDone ? 'Undo' : 'Mark Done'}
+                    </button>
+                    <button class="btn-action btn-edit" onclick="editVacation('${v._id}')">
                         <i class="bi bi-pencil"></i> Edit
                     </button>
-                    <button class="btn-action btn-delete" onclick="deleteVacation('${vacation._id}')">
+                    <button class="btn-action btn-delete" onclick="deleteVacation('${v._id}')">
                         <i class="bi bi-trash"></i> Delete
                     </button>
                 </div>
             </div>
-        </div>
-    `).join('');
+        </div>`;
 }
 
-// Close modal when clicking outside
-window.onclick = function(event) {
-    const modals = document.querySelectorAll('.modal');
-    modals.forEach(modal => {
-        if (event.target === modal) {
-            modal.style.display = 'none';
+function displayVacations(vacations) {
+    const grid = document.getElementById('vacations-grid');
+    if (!grid) return;
+
+    if (!vacations.length) {
+        grid.innerHTML = '<p class="empty-state">No vacations planned. Click "Add Vacation" to create one.</p>';
+        return;
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const upcoming = [];
+    const outdated = [];
+
+    vacations.forEach(v => {
+        if (!v.end_date) { upcoming.push(v); return; }
+        const [vy, vm, vd] = v.end_date.split('-').map(Number);
+        const endDate = new Date(vy, vm - 1, vd);
+        // Outdated = end date is in the past AND not marked done
+        if (endDate < today && !v.completed) {
+            outdated.push(v);
+        } else {
+            upcoming.push(v);
         }
     });
+
+    let html = '';
+
+    if (upcoming.length) {
+        html += upcoming.map(v => buildVacationCard(v, false)).join('');
+    }
+
+    if (outdated.length) {
+        html += `
+            <div class="group-divider">
+                <span><i class="bi bi-clock-history"></i> Outdated Vacations (${outdated.length})</span>
+            </div>`;
+        html += outdated.map(v => buildVacationCard(v, true)).join('');
+    }
+
+    grid.innerHTML = html;
 }
 
-// Toggle task completion
-async function toggleTaskComplete(taskId) {
+// Toggle vacation done/undone
+async function toggleVacationDone(vacationId) {
+    // Find in the cached list from loadVacations
+    const allVacs = Array.from(document.querySelectorAll('[data-vacation-id]'))
+        .map(el => ({ _id: el.dataset.vacationId }));
+
+    // Re-fetch to get latest state
     try {
-        const response = await fetch(`/api/tasks/${taskId}/toggle`, {
-            method: 'PUT'
+        const res      = await fetch('/api/vacations');
+        const vacations = await res.json();
+        const vacation  = vacations.find(v => v._id === vacationId);
+        if (!vacation) return;
+
+        const newCompleted = !vacation.completed;
+        const patchRes = await fetch(`/api/vacations/${vacationId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ completed: newCompleted })
         });
-        
-        const result = await response.json();
+        const result = await patchRes.json();
         if (result.success) {
-            // Reload tasks to show updated status
-            loadTasks();
+            showSuccessToast(newCompleted ? 'Vacation marked as done!' : 'Vacation marked as pending');
+            loadVacations();
+        } else {
+            showErrorToast('Failed to update vacation');
         }
-    } catch (error) {
-        console.error('Error toggling task:', error);
+    } catch {
+        showErrorToast('Failed to update vacation');
     }
 }
-// Global variable to store delete callback
+
+// CLOSE MODAL ON OUTSIDE CLICK (legacy modals)
+window.onclick = function (event) {
+    document.querySelectorAll('.modal').forEach(modal => {
+        if (event.target === modal) modal.style.display = 'none';
+    });
+};
+
+// TOGGLE TASK COMPLETE
+async function toggleTaskComplete(taskId) {
+    try {
+        const task         = allTasks.find(t => t._id === taskId);
+        const newCompleted = task ? !task.completed : true;
+
+        const res    = await fetch(`/api/tasks/${taskId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ completed: newCompleted })
+        });
+        const result = await res.json();
+        if (result.success) loadTasks();
+        else showErrorToast('Failed to update task');
+    } catch {
+        showErrorToast('Failed to update task');
+    }
+}
+
+// DELETE MODAL (shared across all pages)
 let deleteCallback = null;
 
 function closeDeleteModal() {
-    document.getElementById('deleteConfirmModal').classList.remove('active');
+    document.getElementById('deleteConfirmModal')?.classList.remove('active');
     deleteCallback = null;
 }
 
 function showDeleteModal(message, callback) {
-    document.getElementById('deleteConfirmMessage').textContent = message;
-    document.getElementById('deleteConfirmModal').classList.add('active');
+    const el = document.getElementById('deleteConfirmMessage');
+    if (el) el.textContent = message;
+    document.getElementById('deleteConfirmModal')?.classList.add('active');
     deleteCallback = callback;
 }
 
-// Setup delete confirm button (add this in DOMContentLoaded)
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     const confirmBtn = document.getElementById('confirmDeleteBtn');
     if (confirmBtn) {
-        confirmBtn.onclick = function() {
-            if (deleteCallback) {
-                deleteCallback();
-            }
+        confirmBtn.onclick = function () {
+            if (deleteCallback) deleteCallback();
             closeDeleteModal();
         };
     }
-    
-    // Close modal when clicking outside
-    document.getElementById('deleteConfirmModal')?.addEventListener('click', function(e) {
-        if (e.target === this) {
-            closeDeleteModal();
-        }
+    document.getElementById('deleteConfirmModal')?.addEventListener('click', function (e) {
+        if (e.target === this) closeDeleteModal();
     });
 });
 
-// Updated delete functions
+// DELETE FUNCTIONS
 async function deleteTask(taskId) {
-    showDeleteModal('Are you sure you want to delete this task? This action cannot be undone.', async function() {
+    showDeleteModal('Are you sure you want to delete this task? This cannot be undone.', async function () {
         try {
-            const response = await fetch(`/api/tasks/${taskId}`, { 
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' }
-            });
-            const result = await response.json();
-            
-            if (result.success) {
-                showSuccessToast('Task deleted successfully!');
-                loadTasks();
-            } else {
-                showErrorToast('Failed to delete task');
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            showErrorToast('Failed to delete task');
-        }
+            const res    = await fetch(`/api/tasks/${taskId}`, { method: 'DELETE' });
+            const result = await res.json();
+            if (result.success) { showSuccessToast('Task deleted!'); loadTasks(); }
+            else showErrorToast('Failed to delete task');
+        } catch { showErrorToast('Failed to delete task'); }
     });
 }
 
 async function deleteExam(examId) {
-    showDeleteModal('Are you sure you want to delete this exam? This action cannot be undone.', async function() {
+    showDeleteModal('Are you sure you want to delete this exam? This cannot be undone.', async function () {
         try {
-            const response = await fetch(`/api/exams/${examId}`, { 
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' }
-            });
-            const result = await response.json();
-            
-            if (result.success) {
-                showSuccessToast('Exam deleted successfully!');
-                loadExams();
-            } else {
-                showErrorToast('Failed to delete exam');
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            showErrorToast('Failed to delete exam');
-        }
+            const res    = await fetch(`/api/exams/${examId}`, { method: 'DELETE' });
+            const result = await res.json();
+            if (result.success) { showSuccessToast('Exam deleted!'); loadExams(); }
+            else showErrorToast('Failed to delete exam');
+        } catch { showErrorToast('Failed to delete exam'); }
     });
 }
 
 async function deleteClass(classId) {
-    showDeleteModal('Are you sure you want to delete this class? This action cannot be undone.', async function() {
+    showDeleteModal('Are you sure you want to delete this class? This cannot be undone.', async function () {
         try {
-            const response = await fetch(`/api/classes/${classId}`, { 
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' }
-            });
-            const result = await response.json();
-            
-            if (result.success) {
-                showSuccessToast('Class deleted successfully!');
-                loadClasses();
-            } else {
-                showErrorToast('Failed to delete class');
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            showErrorToast('Failed to delete class');
-        }
-    });
-}
-
-async function deleteSchedule(scheduleId) {
-    showDeleteModal('Are you sure you want to delete this schedule? This action cannot be undone.', async function() {
-        try {
-            const response = await fetch(`/api/schedules/${scheduleId}`, { 
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' }
-            });
-            const result = await response.json();
-            
-            if (result.success) {
-                showSuccessToast('Schedule deleted successfully!');
-                loadSchedules();
-            } else {
-                showErrorToast('Failed to delete schedule');
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            showErrorToast('Failed to delete schedule');
-        }
+            const res    = await fetch(`/api/classes/${classId}`, { method: 'DELETE' });
+            const result = await res.json();
+            if (result.success) { showSuccessToast('Class deleted!'); loadClasses(); }
+            else showErrorToast('Failed to delete class');
+        } catch { showErrorToast('Failed to delete class'); }
     });
 }
 
 async function deleteVacation(vacationId) {
-    showDeleteModal('Are you sure you want to delete this vacation? This action cannot be undone.', async function() {
+    showDeleteModal('Are you sure you want to delete this vacation? This cannot be undone.', async function () {
         try {
-            const response = await fetch(`/api/vacations/${vacationId}`, { 
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' }
-            });
-            const result = await response.json();
-            
-            if (result.success) {
-                showSuccessToast('Vacation deleted successfully!');
-                loadVacations();
-            } else {
-                showErrorToast('Failed to delete vacation');
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            showErrorToast('Failed to delete vacation');
-        }
+            const res    = await fetch(`/api/vacations/${vacationId}`, { method: 'DELETE' });
+            const result = await res.json();
+            if (result.success) { showSuccessToast('Vacation deleted!'); loadVacations(); }
+            else showErrorToast('Failed to delete vacation');
+        } catch { showErrorToast('Failed to delete vacation'); }
     });
 }
 
-function showSuccessToast(message) {
-    showToast(message, 'success');
-}
-
-function showErrorToast(message) {
-    showToast(message, 'error');
-}
-
-function showToast(message, type) {
-    const toast = document.createElement('div');
-    toast.className = `toast ${type}`;
-    toast.innerHTML = `
-        <i class="bi bi-${type === 'success' ? 'check-circle-fill' : 'exclamation-circle-fill'}"></i>
-        <span>${message}</span>
-    `;
-    
-    document.body.appendChild(toast);
-    
-    setTimeout(() => {
-        toast.style.animation = 'toastSlideOut 0.3s ease-out';
-        setTimeout(() => {
-            document.body.removeChild(toast);
-        }, 300);
-    }, 3000);
-}
-
+// EDIT FUNCTIONS (load data into edit modals)
 function editTask(taskId) {
-    fetch(`/api/tasks`)
-        .then(response => response.json())
-        .then(tasks => {
-            const task = tasks.find(t => t._id === taskId);
-            if (task) {
-                document.getElementById('editTaskId').value = task._id;
-                document.getElementById('editTaskName').value = task.name;
-                document.getElementById('editTaskPriority').value = task.priority || 'medium';
-                document.getElementById('editTaskDate').value = task.date || '';
-                document.getElementById('editTaskDescription').value = task.description || '';
-                document.getElementById('editTaskModal').style.display = 'block';
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            showErrorToast('Failed to load task data');
-        });
+    const task = allTasks.find(t => t._id === taskId);
+    if (!task) return;
+    document.getElementById('editTaskId').value          = task._id;
+    document.getElementById('editTaskName').value        = task.name;
+    document.getElementById('editTaskPriority').value    = task.priority;
+    document.getElementById('editTaskDate').value        = task.date        || '';
+    document.getElementById('editTaskDescription').value = task.description || '';
+    document.getElementById('editTaskModal').style.display = 'block';
 }
 
 function editExam(examId) {
-    fetch(`/api/exams`)
-        .then(response => response.json())
+    fetch('/api/exams')
+        .then(r => r.json())
         .then(exams => {
             const exam = exams.find(e => e._id === examId);
-            if (exam) {
-                document.getElementById('editExamId').value = exam._id;
-                document.getElementById('editExamSubject').value = exam.subject;
-                document.getElementById('editExamDate').value = exam.date || '';
-                document.getElementById('editExamTime').value = exam.time || '';
-                document.getElementById('editExamDuration').value = exam.duration || '';
-                document.getElementById('editExamNotes').value = exam.notes || '';
-                document.getElementById('editExamModal').style.display = 'block';
-            }
+            if (!exam) return;
+            document.getElementById('editExamId').value       = exam._id;
+            document.getElementById('editExamSubject').value  = exam.subject;
+            document.getElementById('editExamDate').value     = exam.date     || '';
+            document.getElementById('editExamTime').value     = exam.time     || '';
+            document.getElementById('editExamDuration').value = exam.duration || '';
+            document.getElementById('editExamNotes').value    = exam.notes    || '';
+            document.getElementById('editExamModal').style.display = 'block';
         })
-        .catch(error => {
-            console.error('Error:', error);
-            showErrorToast('Failed to load exam data');
-        });
+        .catch(() => showErrorToast('Failed to load exam data'));
 }
 
 function editClass(classId) {
-    fetch(`/api/classes`)
-        .then(response => response.json())
-        .then(classes => {
-            const classItem = classes.find(c => c._id === classId);
-            if (classItem) {
-                document.getElementById('editClassId').value = classItem._id;
-                document.getElementById('editClassName').value = classItem.name;
-                document.getElementById('editClassInstructor').value = classItem.instructor || '';
-                document.getElementById('editClassDay').value = classItem.day || '';
-                document.getElementById('editClassTime').value = classItem.time || '';
-                document.getElementById('editClassRoom').value = classItem.room || '';
-                document.getElementById('editClassModal').style.display = 'block';
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            showErrorToast('Failed to load class data');
-        });
-}
-
-function editSchedule(scheduleId) {
-    fetch(`/api/schedules`)
-        .then(response => response.json())
-        .then(schedules => {
-            const schedule = schedules.find(s => s._id === scheduleId);
-            if (schedule) {
-                document.getElementById('editScheduleId').value = schedule._id;
-                document.getElementById('editScheduleTitle').value = schedule.title;
-                document.getElementById('editScheduleDate').value = schedule.date || '';
-                document.getElementById('editScheduleTime').value = schedule.time || '';
-                document.getElementById('editScheduleDuration').value = schedule.duration || '';
-                document.getElementById('editScheduleDescription').value = schedule.description || '';
-                document.getElementById('editScheduleModal').style.display = 'block';
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            showErrorToast('Failed to load schedule data');
-        });
+    const c = allClasses.find(x => x._id === classId);
+    if (!c) return;
+    document.getElementById('editClassId').value         = c._id;
+    document.getElementById('editClassName').value       = c.name;
+    document.getElementById('editClassInstructor').value = c.instructor || '';
+    document.getElementById('editClassDay').value        = c.day        || '';
+    document.getElementById('editClassTime').value       = c.time       || '';
+    document.getElementById('editClassRoom').value       = c.room       || '';
+    document.getElementById('editClassModal').style.display = 'block';
 }
 
 function editVacation(vacationId) {
-    fetch(`/api/vacations`)
-        .then(response => response.json())
+    fetch('/api/vacations')
+        .then(r => r.json())
         .then(vacations => {
-            const vacation = vacations.find(v => v._id === vacationId);
-            if (vacation) {
-                document.getElementById('editVacationId').value = vacation._id;
-                document.getElementById('editVacationTitle').value = vacation.title;
-                document.getElementById('editVacationStart').value = vacation.start_date || '';
-                document.getElementById('editVacationEnd').value = vacation.end_date || '';
-                document.getElementById('editVacationDescription').value = vacation.description || '';
-                document.getElementById('editVacationModal').style.display = 'block';
-            }
+            const v = vacations.find(x => x._id === vacationId);
+            if (!v) return;
+            document.getElementById('editVacationId').value          = v._id;
+            document.getElementById('editVacationTitle').value       = v.title;
+            document.getElementById('editVacationStart').value       = v.start_date   || '';
+            document.getElementById('editVacationEnd').value         = v.end_date     || '';
+            document.getElementById('editVacationDescription').value = v.description  || '';
+            document.getElementById('editVacationModal').style.display = 'block';
         })
-        .catch(error => {
-            console.error('Error:', error);
-            showErrorToast('Failed to load vacation data');
-        });
+        .catch(() => showErrorToast('Failed to load vacation data'));
 }
 
-// Edit form submission handlers - ADD THIS TO THE END OF script.js
-
-// Edit Task Form Handler
+// EDIT FORM SUBMIT HANDLERS
 const editTaskForm = document.getElementById('editTaskForm');
 if (editTaskForm) {
-    editTaskForm.addEventListener('submit', async function(e) {
+    editTaskForm.addEventListener('submit', async function (e) {
         e.preventDefault();
-        
-        const taskId = document.getElementById('editTaskId').value;
-        const taskData = {
-            name: document.getElementById('editTaskName').value,
-            priority: document.getElementById('editTaskPriority').value,
-            date: document.getElementById('editTaskDate').value,
+        const id   = document.getElementById('editTaskId').value;
+        const data = {
+            name:        document.getElementById('editTaskName').value,
+            priority:    document.getElementById('editTaskPriority').value,
+            date:        document.getElementById('editTaskDate').value,
             description: document.getElementById('editTaskDescription').value
         };
-        
         try {
-            const response = await fetch(`/api/tasks/${taskId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(taskData)
+            const res    = await fetch(`/api/tasks/${id}`, {
+                method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
             });
-            
-            const result = await response.json();
+            const result = await res.json();
             if (result.success) {
-                showSuccessToast('Task updated successfully!');
+                showSuccessToast('Task updated!');
                 document.getElementById('editTaskModal').style.display = 'none';
                 loadTasks();
-            } else {
-                showErrorToast('Failed to update task');
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            showErrorToast('Failed to update task');
-        }
+            } else showErrorToast('Failed to update task');
+        } catch { showErrorToast('Failed to update task'); }
     });
 }
 
-// Edit Exam Form Handler
 const editExamForm = document.getElementById('editExamForm');
 if (editExamForm) {
-    editExamForm.addEventListener('submit', async function(e) {
+    editExamForm.addEventListener('submit', async function (e) {
         e.preventDefault();
-        
-        const examId = document.getElementById('editExamId').value;
-        const examData = {
-            subject: document.getElementById('editExamSubject').value,
-            date: document.getElementById('editExamDate').value,
-            time: document.getElementById('editExamTime').value,
+        const id   = document.getElementById('editExamId').value;
+        const data = {
+            subject:  document.getElementById('editExamSubject').value,
+            date:     document.getElementById('editExamDate').value,
+            time:     document.getElementById('editExamTime').value,
             duration: document.getElementById('editExamDuration').value,
-            notes: document.getElementById('editExamNotes').value
+            notes:    document.getElementById('editExamNotes').value
         };
-        
         try {
-            const response = await fetch(`/api/exams/${examId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(examData)
+            const res    = await fetch(`/api/exams/${id}`, {
+                method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
             });
-            
-            const result = await response.json();
+            const result = await res.json();
             if (result.success) {
-                showSuccessToast('Exam updated successfully!');
+                showSuccessToast('Exam updated!');
                 document.getElementById('editExamModal').style.display = 'none';
                 loadExams();
-            } else {
-                showErrorToast('Failed to update exam');
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            showErrorToast('Failed to update exam');
-        }
+            } else showErrorToast('Failed to update exam');
+        } catch { showErrorToast('Failed to update exam'); }
     });
 }
 
-// Edit Class Form Handler
 const editClassForm = document.getElementById('editClassForm');
 if (editClassForm) {
-    editClassForm.addEventListener('submit', async function(e) {
+    editClassForm.addEventListener('submit', async function (e) {
         e.preventDefault();
-        
-        const classId = document.getElementById('editClassId').value;
-        const classData = {
-            name: document.getElementById('editClassName').value,
+        const id   = document.getElementById('editClassId').value;
+        const data = {
+            name:       document.getElementById('editClassName').value,
             instructor: document.getElementById('editClassInstructor').value,
-            day: document.getElementById('editClassDay').value,
-            time: document.getElementById('editClassTime').value,
-            room: document.getElementById('editClassRoom').value
+            day:        document.getElementById('editClassDay').value,
+            time:       document.getElementById('editClassTime').value,
+            room:       document.getElementById('editClassRoom').value
         };
-        
         try {
-            const response = await fetch(`/api/classes/${classId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(classData)
+            const res    = await fetch(`/api/classes/${id}`, {
+                method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
             });
-            
-            const result = await response.json();
+            const result = await res.json();
             if (result.success) {
-                showSuccessToast('Class updated successfully!');
+                showSuccessToast('Class updated!');
                 document.getElementById('editClassModal').style.display = 'none';
                 loadClasses();
-            } else {
-                showErrorToast('Failed to update class');
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            showErrorToast('Failed to update class');
-        }
+            } else showErrorToast('Failed to update class');
+        } catch { showErrorToast('Failed to update class'); }
     });
 }
 
-// Edit Schedule Form Handler
-const editScheduleForm = document.getElementById('editScheduleForm');
-if (editScheduleForm) {
-    editScheduleForm.addEventListener('submit', async function(e) {
-        e.preventDefault();
-        
-        const scheduleId = document.getElementById('editScheduleId').value;
-        const scheduleData = {
-            title: document.getElementById('editScheduleTitle').value,
-            date: document.getElementById('editScheduleDate').value,
-            time: document.getElementById('editScheduleTime').value,
-            duration: document.getElementById('editScheduleDuration').value,
-            description: document.getElementById('editScheduleDescription').value
-        };
-        
-        try {
-            const response = await fetch(`/api/schedules/${scheduleId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(scheduleData)
-            });
-            
-            const result = await response.json();
-            if (result.success) {
-                showSuccessToast('Schedule updated successfully!');
-                document.getElementById('editScheduleModal').style.display = 'none';
-                loadSchedules();
-            } else {
-                showErrorToast('Failed to update schedule');
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            showErrorToast('Failed to update schedule');
-        }
-    });
-}
-
-// Edit Vacation Form Handler
 const editVacationForm = document.getElementById('editVacationForm');
 if (editVacationForm) {
-    editVacationForm.addEventListener('submit', async function(e) {
+    editVacationForm.addEventListener('submit', async function (e) {
         e.preventDefault();
-        
-        const vacationId = document.getElementById('editVacationId').value;
-        const vacationData = {
-            title: document.getElementById('editVacationTitle').value,
-            start_date: document.getElementById('editVacationStart').value,
-            end_date: document.getElementById('editVacationEnd').value,
+        const id   = document.getElementById('editVacationId').value;
+        const data = {
+            title:       document.getElementById('editVacationTitle').value,
+            start_date:  document.getElementById('editVacationStart').value,
+            end_date:    document.getElementById('editVacationEnd').value,
             description: document.getElementById('editVacationDescription').value
         };
-        
         try {
-            const response = await fetch(`/api/vacations/${vacationId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(vacationData)
+            const res    = await fetch(`/api/vacations/${id}`, {
+                method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
             });
-            
-            const result = await response.json();
+            const result = await res.json();
             if (result.success) {
-                showSuccessToast('Vacation updated successfully!');
+                showSuccessToast('Vacation updated!');
                 document.getElementById('editVacationModal').style.display = 'none';
                 loadVacations();
-            } else {
-                showErrorToast('Failed to update vacation');
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            showErrorToast('Failed to update vacation');
-        }
+            } else showErrorToast('Failed to update vacation');
+        } catch { showErrorToast('Failed to update vacation'); }
     });
 }

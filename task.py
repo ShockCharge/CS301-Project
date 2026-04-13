@@ -90,11 +90,11 @@ def get_chatbot_response(user_email, user_message):
         'date': {'$gte': today}
     }))
 
-    # Convert ObjectId to string (IMPORTANT)
     for col in [user_tasks, user_exams, user_classes, user_schedules]:
         for item in col:
             if '_id' in item:
                 item['_id'] = str(item['_id'])
+
 
     context = f"""
     Today's date: {today}
