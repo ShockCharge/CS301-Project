@@ -229,16 +229,6 @@ function setupTaskEventListeners() {
 }
 
 
-function setupButtonEventListeners() {
-    const addTaskBtn = document.getElementById('add-task-btn');
-    if (addTaskBtn) {
-        addTaskBtn.addEventListener('click', function() {
-            console.log('Add task clicked');
-        });
-    }
-}
-
-
 function setupOutdatedItemsEventListeners() {
     const clearOutdatedBtn = document.getElementById('clear-outdated-btn');
     if (clearOutdatedBtn) {

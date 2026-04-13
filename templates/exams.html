@@ -15,6 +15,60 @@
 
     <!-- CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+
+    <style>
+        .btn-done {
+            background-color: #28a745;
+            color: white;
+            border: none;
+        }
+        .btn-done:hover { background-color: #218838; }
+
+        .btn-undo {
+            background-color: #6c757d;
+            color: white;
+            border: none;
+        }
+        .btn-undo:hover { background-color: #5a6268; }
+
+        .urgency-done {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .urgency-outdated {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .card-border-outdated {
+            border-left: 4px solid #dc3545;
+            opacity: 0.85;
+        }
+
+        .card-border-done {
+            border-left: 4px solid #28a745;
+        }
+
+        .group-divider {
+            grid-column: 1 / -1;   
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 20px 0 8px;
+            font-weight: 600;
+            font-size: 14px;
+            color: #dc3545;
+        }
+        .group-divider::before,
+        .group-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: #dc3545;
+            opacity: 0.3;
+        }
+    </style>
 </head>
 <body>
     <div class="app-container">
@@ -100,7 +154,7 @@
                     <button class="btn-add-schedule" id="add-exam-page-btn">+ Add Exam</button>
                 </div>
 
-                <!-- Search, Sort & Filter Bar -->
+                <!-- Search & Sort Bar -->
                 <div class="search-filter-bar">
                     <div class="search-box">
                         <i class="bi bi-search"></i>
@@ -115,8 +169,11 @@
                     </div>
                 </div>
 
+                <!--
+                    The JS displayExams() function renders directly into this grid.
+                    It injects a .group-divider row between upcoming and outdated exams automatically.
+                -->
                 <div class="items-grid" id="exams-grid">
-                    <!-- Exams will be loaded here -->
                     <p class="empty-state">No exams scheduled. Click "Add Exam" to create one.</p>
                 </div>
             </div>
