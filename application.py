@@ -1,7 +1,7 @@
 import os
 import re
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, Response
-from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.security import generate_password_hash, check_password_hash, gen_salt, stored_password
 import json
 from flask_mail import Mail, Message
 from datetime import datetime, timedelta
@@ -13,6 +13,7 @@ from common import NZ_TZ, ZoneInfo, users_collection, schedules_collection, task
 from task import get_ai_suggestions_task, get_ai_study_plan_task
 from celery import Celery
 from celery_app import celery_app
+import bcrypt
 
 # Initialize Celery app (must be done in application.py as well for Flask context)
 celery_app = celery.Celery(
