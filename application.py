@@ -34,7 +34,6 @@ app.config['MAIL_PORT']     = 587
 app.config['MAIL_USE_TLS']  = True
 app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
 app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
-
 mail = Mail(app)
 
 
@@ -209,6 +208,9 @@ def test_email():
 
 @app.route('/', methods=['GET', 'POST'])
 def login():
+    hashed_password = generate_password_hash(password)
+    bcrypt.checkpw(password.encode('utf-8'), stored_password.encode('utf-8'))
+    
     if request.method == 'POST':
         email    = sanitize(request.form.get('email', '')).lower()
         password = request.form.get('password', '')
@@ -237,6 +239,9 @@ def login():
 
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
+    hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    check_password_hash(stored_password, password)
+
     if request.method == 'POST':
         first_name       = sanitize(request.form.get('first_name', ''))
         last_name        = sanitize(request.form.get('last_name', ''))
