@@ -1,7 +1,7 @@
 import os
 import re
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, Response
-from werkzeug.security import generate_password_hash, check_password_hash, gen_salt, stored_password
+from werkzeug.security import generate_password_hash, check_password_hash, gen_salt
 import json
 from flask_mail import Mail, Message
 from datetime import datetime, timedelta
@@ -209,8 +209,6 @@ def test_email():
 
 @app.route('/', methods=['GET', 'POST'])
 def login():
-    hashed_password = generate_password_hash(password)
-    bcrypt.checkpw(password.encode('utf-8'), stored_password.encode('utf-8'))
     
     if request.method == 'POST':
         email    = sanitize(request.form.get('email', '')).lower()
@@ -237,12 +235,14 @@ def login():
             return render_template('login.html', error='Invalid email or password.')
     return render_template('login.html')
 
+def hash_password(password):
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
+def verify_password(password, hashed):
+    return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
+    
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
-    hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-    check_password_hash(stored_password, password)
-
     if request.method == 'POST':
         first_name       = sanitize(request.form.get('first_name', ''))
         last_name        = sanitize(request.form.get('last_name', ''))
@@ -269,6 +269,13 @@ def signup():
         if users_collection is not None:
             if users_collection.find_one({'email': email}):
                 return render_template('signup.html', error='This email is already registered.')
+            
+            password = request.form.get("password")
+            hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+            users_collection.insert_one({
+                "email": email,
+                "password": hashed_password
+                })
 
             user_data = {
                 'first_name':  first_name,
@@ -285,6 +292,13 @@ def signup():
         return redirect(url_for('login'))
     return render_template('signup.html')
 
+
+
+def hash_password(password):
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
+def verify_password(password, hashed):
+    return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
 
 # PAGE ROUTES
 
