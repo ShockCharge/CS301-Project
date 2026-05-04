@@ -11,7 +11,7 @@ const DASHBOARD_CONFIG = {
 document.addEventListener('DOMContentLoaded', function() {
     const currentPage = window.location.pathname;
     
-    if (currentPage.includes('/dashboard')) {
+    if (currentPage.includes('/V2dashboard')) {
         initDashboardEnhanced();
         setupEventListeners();
         setupAutoRefresh();

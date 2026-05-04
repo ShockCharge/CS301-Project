@@ -5,6 +5,20 @@
 }
 
 :root {
+    /* OLD */
+    /* --primary-color: #007bff;
+    --primary-dark: #0056b3;
+    --secondary-color: #6c757d;
+    --success-color: #28a745;
+    --danger-color: #dc3545;
+    --warning-color: #ffc107;
+    --light-bg: #f8f9fa;
+    --white: #ffffff;
+    --text-dark: #333333;
+    --text-light: #6c757d;
+    --shadow: 0 2px 8px rgba(0, 0, 0, 0.1); */
+
+    /* NEW */
     --success-color: #7ae582;
     --error-color: #d8315b;
     --warning-color: #ff8600;

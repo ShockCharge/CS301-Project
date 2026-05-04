@@ -1,0 +1,335 @@
+/* ============================================================
+   V2pages.css — Shared styles for V2tasks, V2classes, V2exams
+   Designed to match the V2 dashboard aesthetic
+   ============================================================ */
+
+/* ########## Page Top Header ########## */
+.page-top-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.25rem;
+    padding: 0 0.25rem;
+}
+
+.page-top-title {
+    color: var(--normal-text);
+    font-size: 1.75rem;
+    font-weight: 900;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.page-top-icon {
+    font-size: 1.6rem;
+    line-height: 1;
+}
+
+/* ########## Add Button (top right) ########## */
+.btn-add-top {
+    padding: 0.45rem 1.1rem;
+    background-color: rgba(255, 255, 255, 0.12);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    color: var(--normal-text);
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    white-space: nowrap;
+    font-family: "Lato", sans-serif;
+}
+
+.btn-add-top:hover {
+    background-color: rgba(255, 255, 255, 0.22);
+}
+
+/* ########## Tab Bar ########## */
+.tab-bar {
+    display: flex;
+    background-color: var(--bg-medium);
+    border-radius: 10px;
+    padding: 4px;
+    margin-bottom: 1.25rem;
+    border: 1px solid var(--border-color);
+    width: fit-content;
+}
+
+.tab-btn {
+    padding: 0.45rem 1.4rem;
+    border-radius: 7px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: "Lato", sans-serif;
+    transition: background-color 0.2s, color 0.2s;
+    white-space: nowrap;
+}
+
+.tab-btn.active {
+    background-color: var(--bg-dark);
+    color: var(--normal-text);
+}
+
+.tab-btn:hover:not(.active) {
+    color: var(--normal-text);
+}
+
+/* ########## Items List ########## */
+.items-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    flex: 1;
+}
+
+/* ########## Item Card ########## */
+.item-card {
+    background-color: rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    border: 1px solid var(--border-color);
+    padding: 1rem 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: background-color 0.2s, transform 0.15s;
+    cursor: pointer;
+}
+
+.item-card:hover {
+    background-color: rgba(255, 255, 255, 0.12);
+    transform: translateY(-1px);
+}
+
+/* Checkbox circle */
+.item-check {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.35);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: border-color 0.2s, background-color 0.2s;
+    cursor: pointer;
+}
+
+.item-check.checked {
+    background-color: var(--success-color);
+    border-color: var(--success-color);
+}
+
+.item-check.checked::after {
+    content: '✓';
+    color: var(--bg-dark);
+    font-size: 0.75rem;
+    font-weight: 900;
+}
+
+/* Item body (main text area) */
+.item-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.item-title {
+    color: var(--normal-text);
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin: 0 0 0.2rem 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.item-sub {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Item right side (meta info or color swatch) */
+.item-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.25rem;
+    flex-shrink: 0;
+}
+
+/* Color swatch (tasks priority indicator) */
+.item-color-swatch {
+    width: 42px;
+    height: 42px;
+    border-radius: 8px;
+    flex-shrink: 0;
+}
+
+.swatch-red    { background-color: #e63946; }
+.swatch-yellow { background-color: #f4d03f; }
+.swatch-green  { background-color: #57cc99; }
+.swatch-blue   { background-color: #4fc3f7; }
+.swatch-purple { background-color: #9b5de5; }
+
+/* Room/time info (classes) */
+.item-room {
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    text-align: right;
+    line-height: 1.4;
+}
+
+/* ########## Empty State ########## */
+.empty-state {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    text-align: center;
+    padding: 2.5rem 1rem;
+    margin: 0;
+}
+
+/* ########## Custom Delete Modal (from old version) ########## */
+.custom-modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 2100;
+    align-items: center;
+    justify-content: center;
+}
+
+.custom-modal-overlay.active {
+    display: flex;
+}
+
+.custom-modal {
+    background-color: var(--bg-medium);
+    border-radius: 16px;
+    width: 90%;
+    max-width: 400px;
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+}
+
+.custom-modal-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1.1rem 1.25rem;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--normal-text);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.custom-modal-header.delete {
+    color: #ff8fab;
+}
+
+.custom-modal-header i {
+    font-size: 1.3rem;
+}
+
+.custom-modal-title {
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.custom-modal-body {
+    padding: 1.25rem;
+}
+
+.custom-modal-body p {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+.custom-modal-actions {
+    display: flex;
+    gap: 0.75rem;
+    padding: 0 1.25rem 1.25rem;
+    justify-content: flex-end;
+}
+
+.custom-modal-btn {
+    padding: 0.5rem 1.25rem;
+    border-radius: 8px;
+    border: none;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: "Lato", sans-serif;
+    transition: opacity 0.2s;
+}
+
+.custom-modal-btn-cancel {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: var(--normal-text);
+}
+
+.custom-modal-btn-cancel:hover {
+    background-color: rgba(255, 255, 255, 0.18);
+}
+
+.custom-modal-btn-confirm {
+    background-color: #d8315b;
+    color: #fff;
+}
+
+.custom-modal-btn-confirm:hover {
+    opacity: 0.85;
+}
+
+/* ########## Content overrides for pages (no max-width cap needed) ########## */
+.content-inner {
+    display: flex;
+    flex-direction: column;
+}
+
+/* ########## Responsive ########## */
+@media (max-width: 768px) {
+    .page-top-title {
+        font-size: 1.4rem;
+    }
+
+    .tab-bar {
+        width: 100%;
+    }
+
+    .tab-btn {
+        flex: 1;
+        text-align: center;
+        padding: 0.45rem 0.5rem;
+    }
+
+    .item-card {
+        padding: 0.875rem 1rem;
+    }
+
+    .item-color-swatch {
+        width: 34px;
+        height: 34px;
+    }
+}
+
+@media (max-width: 480px) {
+    .page-top-title {
+        font-size: 1.2rem;
+    }
+
+    .btn-add-top {
+        font-size: 0.8rem;
+        padding: 0.4rem 0.85rem;
+    }
+}

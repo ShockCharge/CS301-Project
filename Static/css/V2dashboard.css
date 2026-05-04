@@ -219,7 +219,7 @@
 
 .content-inner {
     width: 100%;
-    max-width: 680px;
+    max-width: 1100px;
     display: flex;
     flex-direction: column;
 }
@@ -229,21 +229,20 @@
     text-align: center;
     font-size: 2.25rem;
     font-weight: 700;
-    margin-bottom: 1.5rem;
+    margin-bottom: 0.25rem;
 }
 
 .content-welcome {
     color: var(--text-muted);
     text-align: center;
     font-size: 1rem;
-    margin-top: -1rem;
     margin-bottom: 1.5rem;
 }
 
-/* ########## Dashboard List ########## */
+/* ########## Dashboard List — 2 column on desktop ########## */
 .dashboard-list {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
     gap: 1.25rem;
 }
 
@@ -345,7 +344,7 @@
     color: #7ae582;
 }
 
-/* ########## Add Task Button ########## */
+/* ########## Buttons ########## */
 .btn-add {
     padding: 0.4rem 0.9rem;
     background-color: rgba(255, 255, 255, 0.1);
@@ -363,17 +362,14 @@
     border-style: solid;
 }
 
-/* ########## Quick Actions ########## */
 .quick-actions-body {
     display: flex;
-    flex-direction: row;
-    gap: 0.75rem;
-    flex-wrap: wrap;
+    flex-direction: column;
+    gap: 0.65rem;
 }
 
 .btn-action {
-    flex: 1;
-    min-width: 120px;
+    width: 100%;
     padding: 0.65rem 1rem;
     background-color: rgba(255, 255, 255, 0.12);
     border: 1px solid var(--border-color);
@@ -395,6 +391,7 @@
     display: flex;
     align-items: center;
     gap: 2rem;
+    padding: 1rem 1.25rem;
 }
 
 .progress-circle-container {
@@ -439,6 +436,167 @@
     color: var(--bg-light);
 }
 
+/* ########## Suggestion Box ########## */
+.suggestion-box {
+    grid-column: 1 / -1;
+    background: linear-gradient(135deg, #5e3fbe 0%, #7c3fcc 100%);
+    border-radius: 18px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    padding: 1.25rem 1.5rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.suggestion-content h3 {
+    color: var(--normal-text);
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin-bottom: 0.4rem;
+}
+
+.suggestion-content p {
+    color: rgba(227, 242, 253, 0.9);
+    font-size: 0.9rem;
+    line-height: 1.6;
+    margin: 0;
+}
+
+/* ########## Study Plan Section ########## */
+.study-plan-section {
+    grid-column: 1 / -1;
+    background-color: var(--bg-medium);
+    border-radius: 18px;
+    border: 1px solid var(--border-color);
+    padding: 1.25rem 1.5rem;
+}
+
+.study-plan-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.study-plan-title {
+    color: var(--normal-text);
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin: 0 0 0.25rem 0;
+}
+
+.study-plan-title i {
+    color: var(--bg-light);
+}
+
+.study-plan-subtitle {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    margin: 0;
+}
+
+.btn-generate-plan {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0.5rem 1.1rem;
+    background-color: var(--bg-light);
+    color: var(--bg-dark);
+    border: none;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    white-space: nowrap;
+}
+
+.btn-generate-plan:hover {
+    opacity: 0.85;
+}
+
+.btn-generate-plan:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.study-plan-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 2rem;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+.plan-spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid rgba(255, 255, 255, 0.15);
+    border-top-color: var(--bg-light);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.study-plan-content pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-family: "Lato", sans-serif;
+    font-size: 0.9rem;
+    line-height: 1.8;
+    color: var(--normal-text);
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    margin: 0;
+    border-left: 4px solid var(--bg-light);
+}
+
+.study-plan-empty {
+    text-align: center;
+    padding: 2rem 1rem;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    line-height: 1.6;
+}
+
+.study-plan-empty i {
+    display: block;
+    margin-bottom: 0.75rem;
+    color: var(--text-muted);
+}
+
+/* ########## Outdated Items ########## */
+.outdated-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    padding: 0.6rem 0;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.9rem;
+}
+
+.outdated-item:last-child {
+    border-bottom: none;
+}
+
+.outdated-badge {
+    background-color: rgba(216, 49, 91, 0.25);
+    color: #ff8fab;
+    padding: 2px 8px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    border-radius: 8px;
+}
+
 /* ########## Misc ########## */
 .text-muted-light {
     color: var(--text-muted);
@@ -448,14 +606,15 @@
 
 /* ########## Footer ########## */
 footer {
+    grid-column: 1 / -1;
     text-align: center;
-    margin-top: 2rem;
+    margin-top: 0.5rem;
     padding-bottom: 1rem;
     color: var(--text-muted);
     font-size: 0.875rem;
 }
 
-/* ########## Responsive ########## */
+/* ########## Responsive — stack to 1 column on mobile ########## */
 @media (max-width: 768px) {
     .content {
         padding: 1rem;
@@ -463,6 +622,22 @@ footer {
 
     .content-inner {
         max-width: 100%;
+    }
+
+    .dashboard-list {
+        grid-template-columns: 1fr;
+    }
+
+    .suggestion-box {
+        grid-column: 1;
+    }
+
+    .study-plan-section {
+        grid-column: 1;
+    }
+
+    footer {
+        grid-column: 1;
     }
 
     .progress-card-body {
