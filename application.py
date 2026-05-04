@@ -16,7 +16,7 @@ from celery_app import celery_app
 import bcrypt
 
 # Initialize Celery app (must be done in application.py as well for Flask context)
-celery_app = celery.Celery(
+celery_app = Celery(
     'study_planner',
     broker=os.environ.get('CELERY_BROKER_URL', 'redis://localhost:6379/0'),
     backend=os.environ.get('CELERY_RESULT_BACKEND', 'redis://localhost:6379/0')
