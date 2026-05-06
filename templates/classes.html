@@ -1,78 +1,55 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script src="{{ url_for('static', filename='js/darkmode.js') }}"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <!-- Page Title -->
     <title>Study Planner | Classes</title>
-
-    <!-- Bootstrap -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-
-    <!-- CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
-
-    <!-- JavaScript -->
-    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/V2style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pages.css') }}">
 </head>
 <body>
-    <div class="app-container">
-        <!-- Sidebar -->
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <h1 class="sidebar-brand">Study Planner</h1>
-            </div>
+<div class="app-wrapper">
+
+    <nav class="header">
+        <span class="header-title">Study Planner</span>
+        <div class="header-content">
+            <div class="header-time" id="header-time"></div>
+            <div class="header-date" id="header-date"></div>
+        </div>
+        <button class="menu" id="sidebar-toggle">
+            <span></span><span></span><span></span>
+        </button>
+    </nav>
+
+    <div class="app-body">
+        <aside class="sidebar collapsed" id="sidebar">
             <nav class="sidebar-nav">
                 <ul>
-                    <li><a href="{{ url_for('dashboard') }}" class="nav-link">
-                        <i class="bi bi-grid"></i>
-                        <span>Dashboard</span>
-                    </a></li>
-                    <li><a href="{{ url_for('schedule') }}" class="nav-link">
-                        <i class="bi bi-calendar3"></i>
-                        <span>Schedule</span>
-                    </a></li>
+                    <li><a href="{{ url_for('dashboard') }}" class="nav-link"><i class="bi bi-grid"></i><span>Dashboard</span></a></li>
+                    <li><a href="{{ url_for('schedule') }}" class="nav-link"><i class="bi bi-calendar3"></i><span>Schedule</span></a></li>
                     <li>
                         <a href="#" class="nav-link active" id="activities-toggle">
-                            <i class="bi bi-list-task"></i>
-                            <span>Activities</span>
-                            <i class="bi bi-chevron-down submenu-arrow"></i>
+                            <i class="bi bi-list-task"></i><span>Activities</span>
+                            <i class="bi bi-chevron-down submenu-arrow rotated" id="activities-arrow"></i>
                         </a>
                         <ul class="submenu active" id="activities-submenu">
-                            <li><a href="{{ url_for('tasks') }}" class="nav-link">
-                                <i class="bi bi-check-square"></i>
-                                <span>Tasks</span>
-                            </a></li>
-                            <li><a href="{{ url_for('exams') }}" class="nav-link">
-                                <i class="bi bi-book"></i>
-                                <span>Exams</span>
-                            </a></li>
-                            <li><a href="{{ url_for('classes') }}" class="nav-link active">
-                                <i class="bi bi-mortarboard"></i>
-                                <span>Classes</span>
-                            </a></li>
-                            <li><a href="{{ url_for('vacations') }}" class="nav-link">
-                                <i class="bi bi-airplane"></i>
-                                <span>Vacations</span>
-                            </a></li>
+                            <li><a href="{{ url_for('tasks') }}" class="nav-link"><i class="bi bi-check-square"></i><span>Tasks</span></a></li>
+                            <li><a href="{{ url_for('exams') }}" class="nav-link"><i class="bi bi-book"></i><span>Exams</span></a></li>
+                            <li><a href="{{ url_for('classes') }}" class="nav-link active"><i class="bi bi-mortarboard"></i><span>Classes</span></a></li>
+                            <li><a href="{{ url_for('vacations') }}" class="nav-link"><i class="bi bi-airplane"></i><span>Vacations</span></a></li>
                         </ul>
                     </li>
-                   <li><a href="{{ url_for('chatbot') }}" class="nav-link">
-                    <i class="bi bi-chat-dots"></i>
-                    <span>Chatbot</span>
-                </a></li>
-
-                    <li><a href="{{ url_for('settings') }}" class="nav-link">
-                        <i class="bi bi-gear"></i>
-                        <span>Settings</span>
-                    </a></li>
-                    <li><a href="{{ url_for('profile') }}" class="nav-link">
-                        <i class="bi bi-person-circle"></i>
-                        <span>Profile</span>
-                    </a></li>
+                    <li><a href="{{ url_for('chatbot') }}" class="nav-link"><i class="bi bi-chat-dots"></i><span>Chatbot</span></a></li>
+                    <li><a href="{{ url_for('settings') }}" class="nav-link"><i class="bi bi-gear"></i><span>Settings</span></a></li>
+                    <li><a href="{{ url_for('profile') }}" class="nav-link"><i class="bi bi-person-circle"></i><span>Profile</span></a></li>
                 </ul>
             </nav>
             <div class="sidebar-footer">
@@ -80,167 +57,118 @@
             </div>
         </aside>
 
-        <!-- Main Content -->
-        <main class="main-content">
-            <!-- Header -->
-            <header class="header">
-                <h2 class="page-title">Classes</h2>
-                <div class="user-profile">
-                    <a href="{{ url_for('profile') }}" style="text-decoration: none;">
-                        <div class="user-avatar" id="header-avatar">
-                            <img id="header-avatar-img" src="" alt="" style="display: none; width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
-                            <span id="header-avatar-text">{{ session.user_name[0].upper() if session.user_name else (session.user[0].upper() if session.user else 'U') }}</span>
-                        </div>
-                    </a>
+        <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+        <main class="content">
+            <div class="content-inner">
+                <div class="page-top-header">
+                    <h1 class="page-top-title"><span class="page-top-icon">🎓</span> Classes</h1>
+                    <button class="btn-add-top" id="add-class-page-btn">Add Class</button>
                 </div>
-            </header>
-            <div class="search-filter-bar">
-    <div class="search-box">
-        <i class="bi bi-search"></i>
-        <input type="text" id="classSearch" placeholder="Search classes..." oninput="filterClasses()">
-    </div>
-    <div class="filter-controls">
-        <select id="classDayFilter" onchange="filterClasses()">
-            <option value="">All Days</option>
-            <option value="Monday">Monday</option>
-            <option value="Tuesday">Tuesday</option>
-            <option value="Wednesday">Wednesday</option>
-            <option value="Thursday">Thursday</option>
-            <option value="Friday">Friday</option>
-            <option value="Saturday">Saturday</option>
-            <option value="Sunday">Sunday</option>
-        </select>
-        <select id="classSort" onchange="filterClasses()">
-            <option value="name">By Name (A–Z)</option>
-            <option value="day">By Day</option>
-        </select>
+                <div class="tab-bar">
+                    <button class="tab-btn active" data-tab="current" onclick="switchTab('current')">Current</button>
+                    <button class="tab-btn" data-tab="past" onclick="switchTab('past')">Past</button>
+                </div>
+                <div class="items-list" id="classes-grid">
+                    <p class="empty-state">No classes yet. Click "Add Class" to create one.</p>
+                </div>
+                <footer>&copy; 2025 Study Planner</footer>
+            </div>
+        </main>
     </div>
 </div>
 
-            <!-- Classes Container -->
-            <div class="page-container">
-                <div class="page-header">
-                    <h3>My Classes</h3>
-                    <button class="btn-add-schedule" id="add-class-page-btn">+ Add Class</button>
-                </div>
-
-                <div class="items-grid" id="classes-grid">
-                    <p class="empty-state">No classes added. Click "Add Class" to create one.</p>
-                </div>
+<!-- Add Class Modal -->
+<div id="addClassModal" class="modal">
+    <div class="modal-content">
+        <span class="close" id="modal-close">&times;</span>
+        <h2>Add Class</h2>
+        <form id="addClassForm">
+            <div class="form-group"><label>Class Name</label><input type="text" id="className" class="form-input" required></div>
+            <div class="form-group"><label>Instructor</label><input type="text" id="classInstructor" class="form-input"></div>
+            <div class="form-group"><label>Date</label><input type="date" id="taskDate" class="form-input"></div>
+            <div class="form-group">
+                <label>Day</label>
+                <select id="classDay" class="form-input">
+                    <option value="Monday">Monday</option><option value="Tuesday">Tuesday</option>
+                    <option value="Wednesday">Wednesday</option><option value="Thursday">Thursday</option>
+                    <option value="Friday">Friday</option><option value="Saturday">Saturday</option>
+                    <option value="Sunday">Sunday</option>
+                </select>
             </div>
-
-            <!-- Footer -->
-            <footer class="footer">
-                <p>&copy; 2025 Study Planner</p>
-            </footer>
-        </main>
+            <div class="form-group"><label>Time</label><input type="time" id="classTime" class="form-input" required></div>
+            <div class="form-group"><label>Room</label><input type="text" id="classRoom" class="form-input"></div>
+            <button type="submit" class="btn-primary">Add Class</button>
+        </form>
     </div>
+</div>
 
-    <!-- Add Class Modal -->
-    <div id="addClassModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>Add Class</h2>
-            <form id="addClassForm">
-                <div class="form-group">
-                    <label>Class Name</label>
-                    <input type="text" id="className" class="form-input" required>
-                </div>
-                <div class="form-group">
-                    <label>Instructor</label>
-                    <input type="text" id="classInstructor" class="form-input">
-                </div>
-                <div class="form-group">
-                    <label>Date</label>
-                    <input type="date" id="taskDate" class="form-input">
-                </div>
-                <div class="form-group">
-                    <label>Day</label>
-                    <select id="classDay" class="form-input">
-                        <option value="Monday">Monday</option>
-                        <option value="Tuesday">Tuesday</option>
-                        <option value="Wednesday">Wednesday</option>
-                        <option value="Thursday">Thursday</option>
-                        <option value="Friday">Friday</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Time</label>
-                    <input type="time" id="classTime" class="form-input" required>
-                </div>
-                <div class="form-group">
-                    <label>Room</label>
-                    <input type="text" id="classRoom" class="form-input">
-                </div>
-                <button type="submit" class="btn-primary">Add Class</button>
-            </form>
-        </div>
+<!-- Edit Class Modal -->
+<div id="editClassModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="document.getElementById('editClassModal').style.display='none'">&times;</span>
+        <h2>Edit Class</h2>
+        <form id="editClassForm">
+            <input type="hidden" id="editClassId">
+            <div class="form-group"><label>Class Name</label><input type="text" id="editClassName" class="form-input" required></div>
+            <div class="form-group"><label>Instructor</label><input type="text" id="editClassInstructor" class="form-input"></div>
+            <div class="form-group">
+                <label>Day</label>
+                <select id="editClassDay" class="form-input">
+                    <option value="Monday">Monday</option><option value="Tuesday">Tuesday</option>
+                    <option value="Wednesday">Wednesday</option><option value="Thursday">Thursday</option>
+                    <option value="Friday">Friday</option><option value="Saturday">Saturday</option>
+                    <option value="Sunday">Sunday</option>
+                </select>
+            </div>
+            <div class="form-group"><label>Time</label><input type="time" id="editClassTime" class="form-input" required></div>
+            <div class="form-group"><label>Room</label><input type="text" id="editClassRoom" class="form-input"></div>
+            <button type="submit" class="btn-primary">Update Class</button>
+        </form>
     </div>
+</div>
 
-    <!-- Edit Class Modal -->
-    <div id="editClassModal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="document.getElementById('editClassModal').style.display='none'">&times;</span>
-            <h2>Edit Class</h2>
-            <form id="editClassForm">
-                <input type="hidden" id="editClassId">
-                <div class="form-group">
-                    <label>Class Name</label>
-                    <input type="text" id="editClassName" class="form-input" required>
-                </div>
-                <div class="form-group">
-                    <label>Instructor</label>
-                    <input type="text" id="editClassInstructor" class="form-input">
-                </div>
-                <div class="form-group">
-                    <label>Day</label>
-                    <select id="editClassDay" class="form-input">
-                        <option value="Monday">Monday</option>
-                        <option value="Tuesday">Tuesday</option>
-                        <option value="Wednesday">Wednesday</option>
-                        <option value="Thursday">Thursday</option>
-                        <option value="Friday">Friday</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Time</label>
-                    <input type="time" id="editClassTime" class="form-input" required>
-                </div>
-                <div class="form-group">
-                    <label>Room</label>
-                    <input type="text" id="editClassRoom" class="form-input">
-                </div>
-                <button type="submit" class="btn-primary">Update Class</button>
-            </form>
-        </div>
-    </div>
-
-    <!-- Custom Delete Confirmation Modal -->
+<!-- Delete Confirmation Modal -->
 <div class="custom-modal-overlay" id="deleteConfirmModal">
     <div class="custom-modal">
         <div class="custom-modal-header delete">
             <i class="bi bi-exclamation-triangle-fill"></i>
-            <div>
-                <div class="custom-modal-title">Confirm Delete</div>
-            </div>
+            <div><div class="custom-modal-title">Confirm Delete</div></div>
         </div>
-        <div class="custom-modal-body">
-            <p id="deleteConfirmMessage">Are you sure you want to delete this item? This action cannot be undone.</p>
-        </div>
+        <div class="custom-modal-body"><p id="deleteConfirmMessage">Are you sure you want to delete this item?</p></div>
         <div class="custom-modal-actions">
-            <button class="custom-modal-btn custom-modal-btn-cancel" onclick="closeDeleteModal()">
-                Cancel
-            </button>
-            <button class="custom-modal-btn custom-modal-btn-confirm" id="confirmDeleteBtn">
-                Delete
-            </button>
+            <button class="custom-modal-btn custom-modal-btn-cancel" onclick="closeDeleteModal()">Cancel</button>
+            <button class="custom-modal-btn custom-modal-btn-confirm" id="confirmDeleteBtn">Delete</button>
         </div>
     </div>
 </div>
+
+<script src="{{ url_for('static', filename='js/script.js') }}"></script>
 <script src="{{ url_for('static', filename='js/darkmode.js') }}"></script>
+<script>
+    function updateTime() {
+        const now = new Date();
+        document.getElementById('header-time').textContent = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        document.getElementById('header-date').textContent = now.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long' });
+    }
+    updateTime(); setInterval(updateTime, 1000);
 
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+    document.getElementById('sidebar-toggle').addEventListener('click', function () {
+        sidebar.classList.toggle('collapsed'); overlay.classList.toggle('active');
+    });
+    overlay.addEventListener('click', function () {
+        sidebar.classList.add('collapsed'); overlay.classList.remove('active');
+    });
 
-    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    let currentTab = 'current';
+    function switchTab(tab) {
+        currentTab = tab;
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+        filterClasses();
+    }
+</script>
 </body>
 </html>
-
