@@ -1,7 +1,7 @@
 import os
 import re
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, Response
-from werkzeug.security import generate_password_hash, check_password_hash, gen_salt
+from werkzeug.security import generate_password_hash, check_password_hash
 import json
 from flask_mail import Mail, Message
 from datetime import datetime, timedelta
@@ -13,7 +13,6 @@ from common import NZ_TZ, ZoneInfo, users_collection, schedules_collection, task
 from task import get_ai_suggestions_task, get_ai_study_plan_task
 from celery import Celery
 from celery_app import celery_app
-import bcrypt
 
 # Initialize Celery app (must be done in application.py as well for Flask context)
 celery_app = Celery(
@@ -35,6 +34,7 @@ app.config['MAIL_PORT']     = 587
 app.config['MAIL_USE_TLS']  = True
 app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
 app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
+
 mail = Mail(app)
 
 
@@ -209,7 +209,6 @@ def test_email():
 
 @app.route('/', methods=['GET', 'POST'])
 def login():
-    
     if request.method == 'POST':
         email    = sanitize(request.form.get('email', '')).lower()
         password = request.form.get('password', '')
@@ -224,7 +223,6 @@ def login():
             if not user or not check_password_hash(user.get('password', ''), password):
                 return render_template('login.html', error='Invalid email or password.')
         else:
-            # Dev fallback — no database
             user = {'email': email} if email == 'test@example.com' and password == 'password' else None
 
         if user:
@@ -235,12 +233,7 @@ def login():
             return render_template('login.html', error='Invalid email or password.')
     return render_template('login.html')
 
-def hash_password(password):
-    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
-def verify_password(password, hashed):
-    return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
-    
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
     if request.method == 'POST':
@@ -269,13 +262,6 @@ def signup():
         if users_collection is not None:
             if users_collection.find_one({'email': email}):
                 return render_template('signup.html', error='This email is already registered.')
-            
-            password = request.form.get("password")
-            hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-            users_collection.insert_one({
-                "email": email,
-                "password": hashed_password
-                })
 
             user_data = {
                 'first_name':  first_name,
@@ -292,13 +278,6 @@ def signup():
         return redirect(url_for('login'))
     return render_template('signup.html')
 
-
-
-def hash_password(password):
-    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-
-def verify_password(password, hashed):
-    return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
 
 # PAGE ROUTES
 
@@ -511,6 +490,7 @@ def tasks():
     else:
         tasks_list = []
     return render_template('tasks.html', tasks=tasks_list)
+
 
 @app.route('/exams')
 def exams():

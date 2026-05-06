@@ -44,12 +44,12 @@ document.addEventListener('DOMContentLoaded', function () {
     // Sidebar submenu toggle
     const activitiesToggle  = document.getElementById('activities-toggle');
     const activitiesSubmenu = document.getElementById('activities-submenu');
+    const activitiesArrow   = document.getElementById('activities-arrow');
     if (activitiesToggle && activitiesSubmenu) {
         activitiesToggle.addEventListener('click', function (e) {
             e.preventDefault();
             activitiesSubmenu.classList.toggle('active');
-            const arrow = activitiesToggle.querySelector('.submenu-arrow');
-            if (arrow) arrow.classList.toggle('rotated');
+            if (activitiesArrow) activitiesArrow.classList.toggle('rotated');
         });
     }
 
@@ -1518,3 +1518,26 @@ if (editVacationForm) {
         } catch { showErrorToast('Failed to update vacation'); }
     });
 }
+
+document.addEventListener('DOMContentLoaded', function () {
+    const observer = new MutationObserver(function (mutations) {
+        mutations.forEach(function (mutation) {
+            if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                const el = mutation.target;
+                if (el.classList.contains('modal')) {
+                    if (el.style.display === 'block' || el.style.display === 'flex') {
+                        el.classList.add('active');
+                        el.style.display = '';
+                    } else if (el.style.display === 'none') {
+                        el.classList.remove('active');
+                        el.style.display = '';
+                    }
+                }
+            }
+        });
+    });
+
+    document.querySelectorAll('.modal').forEach(function (modal) {
+        observer.observe(modal, { attributes: true, attributeFilter: ['style'] });
+    });
+});
