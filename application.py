@@ -13,6 +13,7 @@ from common import NZ_TZ, ZoneInfo, users_collection, schedules_collection, task
 from task import get_ai_suggestions_task, get_ai_study_plan_task
 from celery import Celery
 from celery_app import celery_app
+from collaboration import collaboration_bp
 import bcrypt
 
 # Initialize Celery app (must be done in application.py as well for Flask context)
@@ -28,6 +29,9 @@ app = Flask(__name__)
 application = app
 
 app.secret_key = os.environ.get('SECRET_KEY', 'supersecretkey123-dev-only')
+
+
+app.register_blueprint(collaboration_bp)
 
 # Email configuration
 app.config['MAIL_SERVER']   = 'smtp.gmail.com'
