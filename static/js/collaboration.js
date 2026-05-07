@@ -57,11 +57,16 @@ document.addEventListener('DOMContentLoaded', () => {
                         <p class="person-meta">${escapeHtml(meta)}</p>
                     </div>
                 </div>
-                <div class="person-actions">
-                    <button class="btn btn-outline-primary btn-sm" type="button" disabled title="Coming in the next step">
-                        Request Connection
-                    </button>
-                </div>
+               <div class="person-actions">
+    <button
+        class="btn btn-outline-primary btn-sm request-connection-btn"
+        type="button"
+        data-email="${escapeHtml(user.email || '')}"
+    >
+        Request Connection
+    </button>
+</div>
+
             `;
             fragment.appendChild(card);
         });
@@ -96,6 +101,56 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    const sendConnectionRequest = async (button) => {
+    const receiverEmail = button.dataset.email;
+
+    if (!receiverEmail) {
+        peopleStatus.textContent = 'User email not found. Please refresh and try again.';
+        return;
+    }
+
+    button.disabled = true;
+    button.textContent = 'Sending...';
+    peopleStatus.textContent = 'Sending connection request...';
+
+    try {
+        const response = await fetch('/api/collaboration/requests', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                receiver_email: receiverEmail
+            })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || data.error) {
+            throw new Error(data.error || 'Unable to send connection request.');
+        }
+
+        button.textContent = 'Request Sent';
+        button.classList.remove('btn-outline-primary');
+        button.classList.add('btn-secondary');
+        peopleStatus.textContent = data.message || 'Connection request sent successfully.';
+    } catch (error) {
+        button.disabled = false;
+        button.textContent = 'Request Connection';
+        peopleStatus.textContent = error.message || 'Could not send connection request.';
+    }
+};
+peopleList.addEventListener('click', (event) => {
+    const button = event.target.closest('.request-connection-btn');
+
+    if (!button) {
+        return;
+    }
+
+    sendConnectionRequest(button);
+});
+
+
     searchButton.addEventListener('click', loadUsers);
     searchInput.addEventListener('keydown', (event) => {
         if (event.key === 'Enter') {
@@ -105,3 +160,4 @@ document.addEventListener('DOMContentLoaded', () => {
 
     loadUsers();
 });
+
