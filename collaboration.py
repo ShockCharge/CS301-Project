@@ -1,7 +1,10 @@
 from flask import Blueprint, render_template, redirect, url_for, session, jsonify, request
+from bson import ObjectId
+from datetime import datetime
 import re
 
-from common import users_collection
+from common import users_collection, social_connections_collection
+
 
 
 collaboration_bp = Blueprint('collaboration_bp', __name__)
@@ -32,6 +35,42 @@ def serialize_public_user(user):
         'institution': sanitize(user.get('institution', '') or ''),
         'major': sanitize(user.get('major', '') or ''),
     }
+
+def serialize_connection_request(connection):
+    """Return a safe JSON version of a connection request."""
+    return {
+        'id': str(connection.get('_id')),
+        'requester_email': connection.get('requester_email', ''),
+        'receiver_email': connection.get('receiver_email', ''),
+        'status': connection.get('status', ''),
+        'created_at': connection.get('created_at').isoformat() if connection.get('created_at') else '',
+        'updated_at': connection.get('updated_at').isoformat() if connection.get('updated_at') else '',
+    }
+
+
+def get_existing_connection(email_one, email_two):
+    """Find an existing connection/request between two users in either direction."""
+    if social_connections_collection is None:
+        return None
+
+    return social_connections_collection.find_one({
+        '$or': [
+            {'requester_email': email_one, 'receiver_email': email_two},
+            {'requester_email': email_two, 'receiver_email': email_one},
+        ]
+    })
+
+
+def get_request_by_id(request_id):
+    """Safely find a connection request by MongoDB ObjectId."""
+    if social_connections_collection is None:
+        return None
+
+    try:
+        return social_connections_collection.find_one({'_id': ObjectId(request_id)})
+    except Exception:
+        return None
+
 
 
 @collaboration_bp.route('/collaboration')
@@ -68,3 +107,186 @@ def api_collaboration_users():
     ).sort('first_name', 1).limit(25)
 
     return jsonify({'users': [serialize_public_user(user) for user in users]})
+
+@collaboration_bp.route('/api/collaboration/requests', methods=['POST'])
+def send_connection_request():
+    """Send a pending connection request to another student."""
+    current_user = get_current_user_email()
+    if not current_user:
+        return jsonify({'error': 'Not logged in'}), 401
+
+    if users_collection is None or social_connections_collection is None:
+        return jsonify({'error': 'Database is not connected.'}), 503
+
+    data = request.get_json(silent=True) or {}
+    receiver_email = sanitize(data.get('receiver_email', '')).lower()
+
+    if not receiver_email:
+        return jsonify({'error': 'Receiver email is required.'}), 400
+
+    if receiver_email == current_user.lower():
+        return jsonify({'error': 'You cannot send a request to yourself.'}), 400
+
+    receiver = users_collection.find_one({'email': receiver_email})
+    if not receiver:
+        return jsonify({'error': 'User not found.'}), 404
+
+    existing_connection = get_existing_connection(current_user, receiver_email)
+    if existing_connection:
+        existing_status = existing_connection.get('status', 'pending')
+        return jsonify({'error': f'A connection or request already exists with status: {existing_status}.'}), 409
+
+    now = datetime.utcnow()
+    connection_doc = {
+        'requester_email': current_user,
+        'receiver_email': receiver_email,
+        'status': 'pending',
+        'created_at': now,
+        'updated_at': now,
+    }
+
+    result = social_connections_collection.insert_one(connection_doc)
+    connection_doc['_id'] = result.inserted_id
+
+    return jsonify({
+        'message': 'Connection request sent successfully.',
+        'request': serialize_connection_request(connection_doc)
+    }), 201
+
+
+@collaboration_bp.route('/api/collaboration/requests/incoming', methods=['GET'])
+def get_incoming_connection_requests():
+    """Return pending requests received by the current user."""
+    current_user = get_current_user_email()
+    if not current_user:
+        return jsonify({'error': 'Not logged in'}), 401
+
+    if social_connections_collection is None:
+        return jsonify({'requests': [], 'message': 'Database is not connected.'})
+
+    requests_cursor = social_connections_collection.find({
+        'receiver_email': current_user,
+        'status': 'pending'
+    }).sort('created_at', -1)
+
+    return jsonify({
+        'requests': [serialize_connection_request(item) for item in requests_cursor]
+    })
+
+
+@collaboration_bp.route('/api/collaboration/requests/outgoing', methods=['GET'])
+def get_outgoing_connection_requests():
+    """Return pending requests sent by the current user."""
+    current_user = get_current_user_email()
+    if not current_user:
+        return jsonify({'error': 'Not logged in'}), 401
+
+    if social_connections_collection is None:
+        return jsonify({'requests': [], 'message': 'Database is not connected.'})
+
+    requests_cursor = social_connections_collection.find({
+        'requester_email': current_user,
+        'status': 'pending'
+    }).sort('created_at', -1)
+
+    return jsonify({
+        'requests': [serialize_connection_request(item) for item in requests_cursor]
+    })
+
+
+@collaboration_bp.route('/api/collaboration/connections', methods=['GET'])
+def get_accepted_connections():
+    """Return accepted connections for the current user."""
+    current_user = get_current_user_email()
+    if not current_user:
+        return jsonify({'error': 'Not logged in'}), 401
+
+    if social_connections_collection is None:
+        return jsonify({'connections': [], 'message': 'Database is not connected.'})
+
+    connections_cursor = social_connections_collection.find({
+        'status': 'accepted',
+        '$or': [
+            {'requester_email': current_user},
+            {'receiver_email': current_user},
+        ]
+    }).sort('updated_at', -1)
+
+    return jsonify({
+        'connections': [serialize_connection_request(item) for item in connections_cursor]
+    })
+
+
+@collaboration_bp.route('/api/collaboration/requests/<request_id>/accept', methods=['POST'])
+def accept_connection_request(request_id):
+    """Accept a pending connection request received by the current user."""
+    current_user = get_current_user_email()
+    if not current_user:
+        return jsonify({'error': 'Not logged in'}), 401
+
+    connection = get_request_by_id(request_id)
+    if not connection:
+        return jsonify({'error': 'Connection request not found.'}), 404
+
+    if connection.get('receiver_email') != current_user:
+        return jsonify({'error': 'You can only accept requests sent to you.'}), 403
+
+    if connection.get('status') != 'pending':
+        return jsonify({'error': 'Only pending requests can be accepted.'}), 400
+
+    social_connections_collection.update_one(
+        {'_id': connection['_id']},
+        {'$set': {'status': 'accepted', 'updated_at': datetime.utcnow()}}
+    )
+
+    return jsonify({'message': 'Connection request accepted successfully.'})
+
+
+@collaboration_bp.route('/api/collaboration/requests/<request_id>/reject', methods=['POST'])
+def reject_connection_request(request_id):
+    """Reject a pending connection request received by the current user."""
+    current_user = get_current_user_email()
+    if not current_user:
+        return jsonify({'error': 'Not logged in'}), 401
+
+    connection = get_request_by_id(request_id)
+    if not connection:
+        return jsonify({'error': 'Connection request not found.'}), 404
+
+    if connection.get('receiver_email') != current_user:
+        return jsonify({'error': 'You can only reject requests sent to you.'}), 403
+
+    if connection.get('status') != 'pending':
+        return jsonify({'error': 'Only pending requests can be rejected.'}), 400
+
+    social_connections_collection.update_one(
+        {'_id': connection['_id']},
+        {'$set': {'status': 'rejected', 'updated_at': datetime.utcnow()}}
+    )
+
+    return jsonify({'message': 'Connection request rejected successfully.'})
+
+
+@collaboration_bp.route('/api/collaboration/requests/<request_id>/cancel', methods=['POST'])
+def cancel_connection_request(request_id):
+    """Cancel a pending connection request sent by the current user."""
+    current_user = get_current_user_email()
+    if not current_user:
+        return jsonify({'error': 'Not logged in'}), 401
+
+    connection = get_request_by_id(request_id)
+    if not connection:
+        return jsonify({'error': 'Connection request not found.'}), 404
+
+    if connection.get('requester_email') != current_user:
+        return jsonify({'error': 'You can only cancel requests you sent.'}), 403
+
+    if connection.get('status') != 'pending':
+        return jsonify({'error': 'Only pending requests can be cancelled.'}), 400
+
+    social_connections_collection.update_one(
+        {'_id': connection['_id']},
+        {'$set': {'status': 'cancelled', 'updated_at': datetime.utcnow()}}
+    )
+
+    return jsonify({'message': 'Connection request cancelled successfully.'})

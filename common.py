@@ -53,6 +53,10 @@ try:
         exams_collection = None
         classes_collection = None
         vacations_collection = None
+        social_connections_collection = None
+        study_groups_collection = None
+        group_members_collection = None
+        group_messages_collection = None
 except Exception as e:
     print(f"MongoDB connection failed: {e}")
     print("Running in development mode.")
@@ -62,6 +66,10 @@ except Exception as e:
     exams_collection = None
     classes_collection = None
     vacations_collection = None
+    social_connections_collection = None
+    study_groups_collection = None
+    group_members_collection = None
+    group_messages_collection = None
 
 # LLM Configuration
 llm = ChatOllama(
