@@ -397,49 +397,96 @@ function renderCalendar() {
     else if (currentView === 'month') renderMonthView();
 }
 
-//  WEEK VIEW  — 7 columns side by side, all visible at once
 function renderWeekView() {
     const weekHeader = document.getElementById('week-header');
     const weekGrid   = document.getElementById('week-grid');
+    const timeLabels = document.getElementById('time-labels');
+    const timeLines  = document.getElementById('time-lines');
     if (!weekGrid) return;
 
-    // Work out the Sunday that starts the current week
-    const today        = new Date();
-    const startOfWeek  = new Date(currentDate);
+    const today       = new Date();
+    const startOfWeek = new Date(currentDate);
     startOfWeek.setDate(currentDate.getDate() - currentDate.getDay());
 
     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const startHour = 7;
+    const endHour   = 23; // 7am to 11pm
 
-    // Build the day-name header row (only if the element exists and is empty)
+    // Build header
     if (weekHeader) {
         weekHeader.innerHTML = '';
-        dayNames.forEach(name => {
-            const h = document.createElement('div');
-            h.className = 'cal-day-name';
-            h.textContent = name;
-            weekHeader.appendChild(h);
+        weekHeader.style.gridTemplateColumns = `repeat(7, 1fr)`;
+        dayNames.forEach((name, i) => {
+            const date = new Date(startOfWeek);
+            date.setDate(startOfWeek.getDate() + i);
+            const cell = document.createElement('div');
+            cell.className = 'time-grid-header-cell';
+            cell.textContent = name;
+            weekHeader.appendChild(cell);
         });
     }
 
-    // Build the 7 day columns
+    // Build time labels
+    if (timeLabels) {
+        timeLabels.innerHTML = '';
+        for (let h = startHour; h <= endHour; h++) {
+            const label = document.createElement('div');
+            label.className = 'time-label-cell';
+            const suffix = h >= 12 ? 'pm' : 'am';
+            const display = h > 12 ? h - 12 : h;
+            label.textContent = `${display}${suffix}`;
+            timeLabels.appendChild(label);
+        }
+    }
+
+    // Build horizontal lines
+    if (timeLines) {
+        timeLines.innerHTML = '';
+        for (let h = startHour; h <= endHour; h++) {
+            const line = document.createElement('div');
+            line.className = 'time-grid-line';
+            timeLines.appendChild(line);
+        }
+    }
+
+    // Build 7 day columns
     weekGrid.innerHTML = '';
+    weekGrid.style.gridTemplateColumns = `repeat(7, 1fr)`;
     for (let i = 0; i < 7; i++) {
         const date = new Date(startOfWeek);
         date.setDate(startOfWeek.getDate() + i);
-
         const col = document.createElement('div');
-        col.className = 'calendar-day';
-        if (date.toDateString() === today.toDateString()) col.classList.add('today');
-
-        // Store the date as a data attribute so injectBadges() can match events
-        col.dataset.date = date.toISOString().split('T')[0];   // "YYYY-MM-DD"
-
-        col.innerHTML = `
-            <div class="day-number">${dayNames[i]}<br>${date.getDate()}</div>
-            <div class="day-events"></div>
-        `;
+        col.className = 'time-grid-col';
+        col.dataset.date = date.toISOString().split('T')[0];
         weekGrid.appendChild(col);
     }
+
+    // Inject schedule events as positioned blocks
+    injectTimeGridEvents(startHour, endHour);
+}
+
+function injectTimeGridEvents(startHour, endHour) {
+    if (!allSchedules.length) return;
+    const cols = document.querySelectorAll('.time-grid-col');
+    const hourHeight = 48; // px per hour
+
+    cols.forEach(col => {
+        const colDate = col.dataset.date;
+        allSchedules.forEach(s => {
+            if (s.date !== colDate || !s.time) return;
+            const [h, m] = s.time.split(':').map(Number);
+            const top = ((h + m / 60) - startHour) * hourHeight;
+            const height = Math.max((parseInt(s.duration || 60) / 60) * hourHeight, 20);
+
+            const block = document.createElement('div');
+            block.className = 'sched-event-block';
+            block.style.top    = `${top}px`;
+            block.style.height = `${height}px`;
+            block.textContent  = s.title;
+            block.title        = `${s.time} — ${s.title}`;
+            col.appendChild(block);
+        });
+    });
 }
 
 //  MONTH VIEW  — 7-column grid, all 28-42 cells visible at once

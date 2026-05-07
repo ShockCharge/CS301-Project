@@ -39,6 +39,10 @@ try:
         exams_collection = db["exams"]
         classes_collection = db["classes"]
         vacations_collection = db["vacations"]
+        social_connections_collection = db["social_connections"]
+        study_groups_collection = db["study_groups"]
+        group_members_collection = db["group_members"]
+        group_messages_collection = db["group_messages"]
         
         print("MongoDB Atlas connected successfully!")
     else:
