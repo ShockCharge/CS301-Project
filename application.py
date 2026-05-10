@@ -296,11 +296,6 @@ def signup():
         return redirect(url_for('login'))
     return render_template('signup.html')
 
-
-
-def hash_password(password):
-    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-
 def verify_password(password, hashed):
     return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
 
