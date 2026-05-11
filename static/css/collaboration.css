@@ -197,3 +197,66 @@
         width: 100%;
     }
 }
+/* Incoming connection request section */
+.incoming-requests-panel {
+    margin-bottom: 1.5rem;
+}
+
+.requests-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.request-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    background: #ffffff;
+}
+
+.request-info {
+    flex: 1;
+}
+
+.request-info p {
+    margin-bottom: 0.25rem;
+}
+
+.request-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.section-status {
+    margin-bottom: 1rem;
+}
+
+@media (max-width: 700px) {
+    .request-card,
+    .section-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .request-actions {
+        width: 100%;
+    }
+
+    .request-actions .btn {
+        flex: 1;
+    }
+}

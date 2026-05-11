@@ -32,7 +32,7 @@
                         </ul>
                     </li>
                     <li><a href="{{ url_for('chatbot') }}" class="nav-link"><i class="bi bi-chat-dots"></i><span>Chatbot</span></a></li>
-                    <li><a href="{{url_for('collaboration_bp.collaboration') }}" class="nav-link active"><i class="bi bi-people"></i><span>Collaboration</span></a></li>
+                    <li><a href="{{ url_for('collaboration_bp.collaboration') }}" class="nav-link active"><i class="bi bi-people"></i><span>Collaboration</span></a></li>
                     <li><a href="{{ url_for('settings') }}" class="nav-link"><i class="bi bi-gear"></i><span>Settings</span></a></li>
                     <li><a href="{{ url_for('profile') }}" class="nav-link"><i class="bi bi-person-circle"></i><span>Profile</span></a></li>
                 </ul>
@@ -55,6 +55,21 @@
                 </div>
             </header>
 
+            <section class="collaboration-panel incoming-requests-panel">
+                <div class="section-header">
+                    <div>
+                        <h3>Incoming Requests</h3>
+                        <p class="panel-copy">Review students who want to connect with you.</p>
+                    </div>
+                    <button class="btn btn-outline-primary btn-sm" type="button" id="refreshIncomingBtn">
+                        Refresh
+                    </button>
+                </div>
+
+                <div id="incomingStatus" class="status-text section-status">Loading incoming requests...</div>
+                <div id="incomingRequestsList" class="requests-list" aria-live="polite"></div>
+            </section>
+
             <section class="collaboration-shell">
                 <aside class="collaboration-panel">
                     <h3>People</h3>
@@ -71,7 +86,7 @@
                     <div class="panel-heading">
                         <div>
                             <h3>Available Students</h3>
-                            <p class="panel-copy">Connection requests and study groups will be added in the next steps.</p>
+                            <p class="panel-copy">Send connection requests now. Study groups and group chat will be added in the next steps.</p>
                         </div>
                     </div>
                     <div id="peopleList" class="collaboration-list" aria-live="polite"></div>

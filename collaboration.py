@@ -6,12 +6,11 @@ import re
 from common import users_collection, social_connections_collection
 
 
-
 collaboration_bp = Blueprint('collaboration_bp', __name__)
 
 
 def sanitize(value):
-    """Basic sanitization helper for user-provided search values."""
+    """Basic sanitization helper for user-provided values."""
     if not isinstance(value, str):
         return value
     return re.sub(r'[<>"\']', '', value).strip()
@@ -35,6 +34,7 @@ def serialize_public_user(user):
         'institution': sanitize(user.get('institution', '') or ''),
         'major': sanitize(user.get('major', '') or ''),
     }
+
 
 def serialize_connection_request(connection):
     """Return a safe JSON version of a connection request."""
@@ -72,7 +72,6 @@ def get_request_by_id(request_id):
         return None
 
 
-
 @collaboration_bp.route('/collaboration')
 def collaboration():
     """Render the collaboration hub foundation page."""
@@ -85,6 +84,7 @@ def collaboration():
 def api_collaboration_users():
     """Return safe public user records for the collaboration people list."""
     current_user = get_current_user_email()
+
     if not current_user:
         return jsonify({'error': 'Not logged in'}), 401
 
@@ -108,10 +108,12 @@ def api_collaboration_users():
 
     return jsonify({'users': [serialize_public_user(user) for user in users]})
 
+
 @collaboration_bp.route('/api/collaboration/requests', methods=['POST'])
 def send_connection_request():
     """Send a pending connection request to another student."""
     current_user = get_current_user_email()
+
     if not current_user:
         return jsonify({'error': 'Not logged in'}), 401
 
@@ -128,15 +130,20 @@ def send_connection_request():
         return jsonify({'error': 'You cannot send a request to yourself.'}), 400
 
     receiver = users_collection.find_one({'email': receiver_email})
+
     if not receiver:
         return jsonify({'error': 'User not found.'}), 404
 
     existing_connection = get_existing_connection(current_user, receiver_email)
+
     if existing_connection:
         existing_status = existing_connection.get('status', 'pending')
-        return jsonify({'error': f'A connection or request already exists with status: {existing_status}.'}), 409
+        return jsonify({
+            'error': f'A connection or request already exists with status: {existing_status}.'
+        }), 409
 
     now = datetime.utcnow()
+
     connection_doc = {
         'requester_email': current_user,
         'receiver_email': receiver_email,
@@ -158,6 +165,7 @@ def send_connection_request():
 def get_incoming_connection_requests():
     """Return pending requests received by the current user."""
     current_user = get_current_user_email()
+
     if not current_user:
         return jsonify({'error': 'Not logged in'}), 401
 
@@ -169,15 +177,33 @@ def get_incoming_connection_requests():
         'status': 'pending'
     }).sort('created_at', -1)
 
-    return jsonify({
-        'requests': [serialize_connection_request(item) for item in requests_cursor]
-    })
+    requests_list = []
+
+    for item in requests_cursor:
+        request_data = serialize_connection_request(item)
+        requester_email = item.get('requester_email', '')
+        requester = users_collection.find_one({'email': requester_email}) if users_collection is not None else None
+
+        if requester:
+            public_requester = serialize_public_user(requester)
+            request_data['requester_name'] = public_requester.get('name', requester_email)
+            request_data['requester_institution'] = public_requester.get('institution', '')
+            request_data['requester_major'] = public_requester.get('major', '')
+        else:
+            request_data['requester_name'] = requester_email or 'Study Planner User'
+            request_data['requester_institution'] = ''
+            request_data['requester_major'] = ''
+
+        requests_list.append(request_data)
+
+    return jsonify({'requests': requests_list})
 
 
 @collaboration_bp.route('/api/collaboration/requests/outgoing', methods=['GET'])
 def get_outgoing_connection_requests():
     """Return pending requests sent by the current user."""
     current_user = get_current_user_email()
+
     if not current_user:
         return jsonify({'error': 'Not logged in'}), 401
 
@@ -198,6 +224,7 @@ def get_outgoing_connection_requests():
 def get_accepted_connections():
     """Return accepted connections for the current user."""
     current_user = get_current_user_email()
+
     if not current_user:
         return jsonify({'error': 'Not logged in'}), 401
 
@@ -221,10 +248,15 @@ def get_accepted_connections():
 def accept_connection_request(request_id):
     """Accept a pending connection request received by the current user."""
     current_user = get_current_user_email()
+
     if not current_user:
         return jsonify({'error': 'Not logged in'}), 401
 
+    if social_connections_collection is None:
+        return jsonify({'error': 'Database is not connected.'}), 503
+
     connection = get_request_by_id(request_id)
+
     if not connection:
         return jsonify({'error': 'Connection request not found.'}), 404
 
@@ -246,10 +278,15 @@ def accept_connection_request(request_id):
 def reject_connection_request(request_id):
     """Reject a pending connection request received by the current user."""
     current_user = get_current_user_email()
+
     if not current_user:
         return jsonify({'error': 'Not logged in'}), 401
 
+    if social_connections_collection is None:
+        return jsonify({'error': 'Database is not connected.'}), 503
+
     connection = get_request_by_id(request_id)
+
     if not connection:
         return jsonify({'error': 'Connection request not found.'}), 404
 
@@ -271,10 +308,15 @@ def reject_connection_request(request_id):
 def cancel_connection_request(request_id):
     """Cancel a pending connection request sent by the current user."""
     current_user = get_current_user_email()
+
     if not current_user:
         return jsonify({'error': 'Not logged in'}), 401
 
+    if social_connections_collection is None:
+        return jsonify({'error': 'Database is not connected.'}), 503
+
     connection = get_request_by_id(request_id)
+
     if not connection:
         return jsonify({'error': 'Connection request not found.'}), 404
 
