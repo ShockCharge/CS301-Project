@@ -4,26 +4,39 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Study Planner – Verify Login</title>
+
+  <!-- Bootstrap -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
   <style>
+
     body {
-      display: flex;
-      height: 100vh;
+      min-height: 100vh;
       margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: transparent;
+      padding: 20px;
+      overflow-x: hidden;
     }
 
+    /* Responsive mobile container */
     .mobile-frame {
-      width: 390px;
-      height: 844px;
-      overflow: hidden;
+      width: 100%;
+      max-width: 390px;
+      min-height: 100vh;
       background: #0d1b8c;
       display: flex;
       flex-direction: column;
       justify-content: center;
+      border-radius: 24px;
+      overflow: hidden;
+      position: relative;
     }
 
     .screen {
-      padding: 30px 28px;
+      padding: 40px 28px;
       color: white;
       text-align: center;
     }
@@ -36,71 +49,79 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      margin: 0 auto 20px;
+      margin: 0 auto 24px;
       font-size: 36px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.25);
     }
 
     h1 {
-      font-size: 22px;
-      font-weight: 600;
-      margin-bottom: 6px;
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 10px;
     }
 
     .subtitle {
-      font-size: 13px;
-      opacity: 0.75;
-      margin-bottom: 4px;
+      font-size: 14px;
+      opacity: 0.8;
+      margin-bottom: 6px;
     }
 
-    /* Shows the user which email the code was sent to */
     .email-badge {
       display: inline-block;
       background: rgba(255,255,255,0.15);
-      border-radius: 20px;
-      padding: 4px 14px;
-      font-size: 12px;
-      margin-bottom: 24px;
+      border-radius: 30px;
+      padding: 6px 16px;
+      font-size: 13px;
+      margin-bottom: 28px;
+      backdrop-filter: blur(5px);
     }
 
-    /* ── OTP digit boxes ── */
+    /* OTP boxes */
     .otp-row {
       display: flex;
       justify-content: center;
       gap: 10px;
-      margin-bottom: 20px;
+      margin-bottom: 24px;
+      flex-wrap: nowrap;
     }
 
     .otp-box {
-      width: 46px;
-      height: 56px;
-      border-radius: 12px;
+      width: 48px;
+      height: 58px;
+      border-radius: 14px;
       border: 2px solid rgba(255,255,255,0.35);
-      background: rgba(255,255,255,0.15);
-      color: #fff;
+      background: rgba(255,255,255,0.12);
+      color: white;
       font-size: 24px;
       font-weight: 700;
       text-align: center;
       outline: none;
-      transition: border-color 0.2s;
+      transition: all 0.2s ease;
       caret-color: #2ee6c9;
     }
 
     .otp-box:focus {
       border-color: #2ee6c9;
+      background: rgba(255,255,255,0.2);
+      transform: scale(1.05);
     }
 
     /* Verify button */
     .btn-verify {
       width: 100%;
-      border-radius: 25px;
-      padding: 11px;
+      border-radius: 30px;
+      padding: 13px;
       background: #cfd8dc;
       border: none;
       color: #333;
-      font-weight: 600;
-      font-size: 15px;
-      margin-bottom: 14px;
-      cursor: pointer;
+      font-weight: 700;
+      font-size: 16px;
+      margin-bottom: 16px;
+      transition: 0.2s;
+    }
+
+    .btn-verify:hover {
+      background: white;
     }
 
     .btn-verify:disabled {
@@ -108,142 +129,191 @@
       cursor: not-allowed;
     }
 
-    /* Alert boxes */
+    /* Alert messages */
     .alert-error {
-      background: rgba(255,80,80,0.25);
-      border: 1px solid rgba(255,100,100,0.5);
+      background: rgba(255,80,80,0.2);
+      border: 1px solid rgba(255,100,100,0.4);
       color: #ffd0d0;
-      border-radius: 12px;
-      padding: 10px 14px;
+      border-radius: 14px;
+      padding: 12px;
       font-size: 13px;
-      margin-bottom: 16px;
+      margin-bottom: 18px;
     }
 
     .alert-info {
-      background: rgba(46,230,201,0.2);
-      border: 1px solid rgba(46,230,201,0.4);
+      background: rgba(46,230,201,0.15);
+      border: 1px solid rgba(46,230,201,0.35);
       color: #c0fff5;
-      border-radius: 12px;
-      padding: 10px 14px;
+      border-radius: 14px;
+      padding: 12px;
       font-size: 13px;
-      margin-bottom: 16px;
+      margin-bottom: 18px;
     }
 
     .small-text {
       font-size: 13px;
-      opacity: 0.8;
-      margin-top: 6px;
+      opacity: 0.85;
+      margin-top: 10px;
     }
 
-    /* Resend button styled as a link */
     .resend-btn {
       background: none;
       border: none;
       padding: 0;
       color: #cfd8dc;
-      font-size: 13px;
       text-decoration: underline;
-      cursor: pointer;
+      font-size: 13px;
     }
 
     a {
       color: #cfd8dc;
-      font-size: 13px;
       text-decoration: underline;
+      font-size: 13px;
     }
 
     .timer {
       font-size: 12px;
-      opacity: 0.6;
-      margin-top: 8px;
+      opacity: 0.7;
+      margin-top: 10px;
     }
+
+    /* Responsive design */
+    @media (max-width: 576px) {
+
+      body {
+        padding: 0;
+      }
+
+      .mobile-frame {
+        max-width: 100%;
+        min-height: 100vh;
+        border-radius: 0;
+      }
+
+      .screen {
+        padding: 35px 22px;
+      }
+
+      .otp-box {
+        width: 44px;
+        height: 54px;
+        font-size: 22px;
+      }
+
+    }
+
   </style>
 </head>
+
 <body>
 
 <div class="mobile-frame">
   <div class="screen">
-
-    <div class="logo">&#128274;</div>
-
+    <div class="logo">
+      &#128274;
+    </div>
     <h1>Two-Step Verification</h1>
-    <p class="subtitle">We emailed a 6-digit code to</p>
-    <span class="email-badge">{{ email }}</span>
+    <p class="subtitle">
+      We emailed a 6-digit code to
+    </p>
 
-    <!-- Error message (wrong/expired code) -->
+    <span class="email-badge">
+      {{ email }}
+    </span>
+
+    <!-- Error -->
     {% if error %}
-    <div class="alert-error">{{ error }}</div>
+    <div class="alert-error">
+      {{ error }}
+    </div>
     {% endif %}
 
-    <!-- Info message (code resent) -->
+    <!-- Info -->
     {% if info %}
-    <div class="alert-info">{{ info }}</div>
+    <div class="alert-info">
+      {{ info }}
+    </div>
     {% endif %}
 
-    <!-- OTP form -->
+    <!-- OTP Form -->
     <form id="otp-form" action="/verify-2fa" method="POST">
 
-      <!-- 6 individual digit boxes (visual only) -->
       <div class="otp-row">
-        <input class="otp-box" maxlength="1" inputmode="numeric" pattern="[0-9]" autocomplete="one-time-code">
-        <input class="otp-box" maxlength="1" inputmode="numeric" pattern="[0-9]">
-        <input class="otp-box" maxlength="1" inputmode="numeric" pattern="[0-9]">
-        <input class="otp-box" maxlength="1" inputmode="numeric" pattern="[0-9]">
-        <input class="otp-box" maxlength="1" inputmode="numeric" pattern="[0-9]">
-        <input class="otp-box" maxlength="1" inputmode="numeric" pattern="[0-9]">
+        <input class="otp-box" maxlength="1" inputmode="numeric">
+        <input class="otp-box" maxlength="1" inputmode="numeric">
+        <input class="otp-box" maxlength="1" inputmode="numeric">
+        <input class="otp-box" maxlength="1" inputmode="numeric">
+        <input class="otp-box" maxlength="1" inputmode="numeric">
+        <input class="otp-box" maxlength="1" inputmode="numeric">
       </div>
 
-      <!-- Hidden input that collects all 6 digits as one string for Flask -->
       <input type="hidden" name="otp" id="otp-hidden">
 
-      <button type="submit" class="btn-verify" id="verify-btn" disabled>Verify</button>
+      <button type="submit"
+              class="btn btn-light btn-verify"
+              id="verify-btn"
+              disabled>
+
+        Verify
+
+      </button>
+
     </form>
 
-    <!-- Resend link -->
+    <!-- Resend -->
     <div class="small-text">
+
       Didn't receive a code?
-      <form action="/resend-2fa" method="POST" style="display:inline;">
-        <button type="submit" class="resend-btn">Resend</button>
+
+      <form action="/resend-2fa"
+            method="POST"
+            class="d-inline">
+
+        <button type="submit" class="resend-btn">
+          Resend
+        </button>
+
       </form>
+
     </div>
 
-    <!-- Live countdown timer -->
+    <!-- Timer -->
     <div class="timer">
-      Code expires in <span id="countdown">10:00</span>
+      Code expires in
+      <span id="countdown">10:00</span>
     </div>
 
-    <div class="mt-3">
+    <div class="mt-4">
       <a href="/">&#8592; Back to Login</a>
     </div>
 
   </div>
+
 </div>
 
 <script>
-  // ── Grab DOM elements ──
+
   const boxes     = document.querySelectorAll('.otp-box');
   const hidden    = document.getElementById('otp-hidden');
   const verifyBtn = document.getElementById('verify-btn');
   const form      = document.getElementById('otp-form');
 
-  // ── Keep the hidden input in sync with the 6 boxes ──
   function syncHidden() {
+
     const val = [...boxes].map(b => b.value).join('');
-    hidden.value     = val;
+    hidden.value = val;
     verifyBtn.disabled = val.length < 6;
   }
 
   boxes.forEach((box, i) => {
-    // Only allow digits; auto-advance to next box on input
     box.addEventListener('input', () => {
-      box.value = box.value.replace(/\D/g, '');           // strip non-digits
+      box.value = box.value.replace(/\\D/g, '');
       if (box.value && i < boxes.length - 1) {
-        boxes[i + 1].focus();                              // move forward
+        boxes[i + 1].focus();
       }
       syncHidden();
     });
 
-    // Backspace on an empty box moves focus back
     box.addEventListener('keydown', e => {
       if (e.key === 'Backspace' && !box.value && i > 0) {
         boxes[i - 1].focus();
@@ -252,35 +322,34 @@
       }
     });
 
-    // Paste a full 6-digit code anywhere — fills all boxes at once
     box.addEventListener('paste', e => {
       e.preventDefault();
       const pasted = (e.clipboardData || window.clipboardData)
-                       .getData('text')
-                       .replace(/\D/g, '')
-                       .slice(0, 6);
+        .getData('text')
+        .replace(/\\D/g, '')
+        .slice(0, 6);
       [...pasted].forEach((ch, idx) => {
-        if (boxes[idx]) boxes[idx].value = ch;
+        if (boxes[idx]) {
+          boxes[idx].value = ch;
+        }
       });
-      boxes[Math.min(pasted.length, 5)].focus();
       syncHidden();
     });
+
   });
 
-  // Auto-submit when the 6th digit is typed
   boxes[5].addEventListener('input', () => {
+
     if (hidden.value.length === 6) {
-      setTimeout(() => form.submit(), 120);   // tiny delay feels natural
+      setTimeout(() => form.submit(), 120);
     }
   });
 
-  // ── Countdown timer (10 minutes = 600 seconds) ──
-  let seconds        = 600;
-  const countdownEl  = document.getElementById('countdown');
-
+  // Countdown timer
+  let seconds = 600;
+  const countdownEl = document.getElementById('countdown');
   const tick = setInterval(() => {
     seconds--;
-
     if (seconds <= 0) {
       clearInterval(tick);
       countdownEl.textContent = '0:00';
@@ -293,8 +362,8 @@
     countdownEl.textContent = `${m}:${s}`;
   }, 1000);
 
-  // Focus the first box on page load
   boxes[0].focus();
+
 </script>
 
 </body>

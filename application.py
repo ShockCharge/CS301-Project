@@ -7,6 +7,7 @@ from flask_mail import Mail, Message
 from datetime import datetime, timedelta
 from bson import ObjectId
 import threading
+import random
 import warnings
 import redis
 from common import NZ_TZ, ZoneInfo, users_collection, schedules_collection, tasks_collection, exams_collection, classes_collection, vacations_collection, chain, llm
@@ -30,7 +31,6 @@ application = app
 
 app.secret_key = os.environ.get('SECRET_KEY', 'supersecretkey123-dev-only')
 
-
 app.register_blueprint(collaboration_bp)
 
 # Email configuration
@@ -43,6 +43,36 @@ mail = Mail(app)
 
 
 # HELPER FUNCTIONS
+
+def hash_password(password):
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
+def verify_password(password, hashed_password):
+    return bcrypt.checkpw(password.encode('utf-8'), hashed_password.encode('utf-8'))
+
+def generate_otp():
+    return str(random.randint(100000, 999999))
+
+def send_otp_email(user_email, otp_code):
+
+    try:
+        msg = Message(
+            subject='Study Planner Verification Code',
+            recipients=[user_email]
+        )
+
+        msg.body = f"""
+Your verification code is: {otp_code}
+
+This code expires in 5 minutes.
+"""
+
+        mail.send(msg)
+        return True
+
+    except Exception as e:
+        print(f"OTP Email Error: {e}")
+        return False
 
 def sanitize(value):
     """Strip HTML tags and dangerous characters to prevent XSS."""
@@ -285,7 +315,7 @@ def signup():
                 'first_name':  first_name,
                 'last_name':   last_name,
                 'email':       email,
-                'password':    generate_password_hash(password),
+                'password':    hash_password(password),
                 'phone':       phone,
                 'institution': institution,
                 'major':       major,
@@ -300,6 +330,41 @@ def verify_password(password, hashed):
     return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
 
 # PAGE ROUTES
+
+@app.route('/verify-2fa', methods=['GET', 'POST'])
+def verify_2fa():
+
+    if 'pending_user' not in session:
+        return redirect(url_for('login'))
+
+    if request.method == 'POST':
+
+        entered_otp = request.form.get('otp', '')
+
+        stored_otp = session.get('otp_code')
+        expiry = session.get('otp_expiry')
+
+        if not stored_otp or not expiry:
+            return render_template('verify.html', error='Verification session expired')
+
+        expiry = datetime.fromisoformat(expiry)
+
+        if datetime.utcnow() > expiry:
+            return render_template('verify.html', error='OTP expired')
+
+        if entered_otp == stored_otp:
+
+            session['user'] = session['pending_user']
+
+            session.pop('pending_user', None)
+            session.pop('otp_code', None)
+            session.pop('otp_expiry', None)
+
+            return redirect(url_for('dashboard'))
+
+        return render_template('verify.html', error='Invalid verification code')
+
+    return render_template('verify.html')
 
 @app.route('/dashboard')
 def dashboard():
@@ -1390,12 +1455,12 @@ def api_change_password():
         return jsonify({'error': 'New password must contain at least one number.'}), 400
 
     user = users_collection.find_one({'email': session['user']})
-    if not user or not check_password_hash(user.get('password', ''), current_password):
+    if not user or not verify_password(current_password, user.get('password', '')):
         return jsonify({'error': 'Current password is incorrect.'}), 403
 
     users_collection.update_one(
         {'email': session['user']},
-        {'$set': {'password': generate_password_hash(new_password)}}
+        {'$set': {'password': hash_password(new_password)}}
     )
     return jsonify({'success': True})
 
