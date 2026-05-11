@@ -3,159 +3,294 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
   <title>Study Planner – Profile</title>
+
+  <!-- Bootstrap -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+
+  <!-- Google Font -->
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      background: #1a1a2e;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      font-family: 'Nunito', sans-serif;
+    *{
+      box-sizing:border-box;
+      margin:0;
+      padding:0;
     }
 
-    /* ── Screen only – black border ── */
-    .phone-screen {
-      width: 360px;
-      height: 780px;
-      background: #1a2a9e;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      border-radius: 12px;
-      border: 6px solid #111;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+    body{
+      min-height:100vh;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      font-family:'Nunito', sans-serif;
+      background:transparent;
+      padding:20px;
+      overflow-x:hidden;
     }
 
-    /* ── Top Nav ── */
-    .top-nav {
-      background: #2244cc;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 18px 20px 14px;
-      flex-shrink: 0;
-    }
-    .top-nav .app-title { font-size: 18px; font-weight: 800; color: #fff; }
-    .top-nav .datetime  { text-align: center; line-height: 1.3; }
-    .top-nav .datetime .time { font-size: 17px; font-weight: 800; color: #fff; }
-    .top-nav .datetime .date { font-size: 10px; font-weight: 600; color: rgba(255,255,255,.85); }
-    .hamburger { display: flex; flex-direction: column; gap: 4px; cursor: pointer; }
-    .hamburger span { display: block; width: 22px; height: 2.5px; background: #fff; border-radius: 2px; }
-
-    /* ── Scrollable body ── */
-    .app-body {
-      flex: 1;
-      overflow-y: auto;
-      background: #1a2a9e;
-      padding: 28px 18px 24px;
-      scrollbar-width: none;
-    }
-    .app-body::-webkit-scrollbar { display: none; }
-
-    /* ── Avatar ── */
-    .avatar-wrap {
-      display: flex;
-      justify-content: center;
-      margin-bottom: 16px;
-      position: relative;
-    }
-    .avatar-circle {
-      width: 100px;
-      height: 100px;
-      border-radius: 50%;
-      background: #c8d4f8;
-      display: flex;
-      align-items: flex-end;
-      justify-content: center;
-      overflow: hidden;
-      border: 4px solid #8899ee;
-    }
-    .avatar-circle svg { width: 75px; height: 75px; }
-    .edit-badge {
-      position: absolute;
-      bottom: 0;
-      left: calc(50% + 28px);
-      width: 30px;
-      height: 30px;
-      background: #3355cc;
-      border-radius: 50%;
-      border: 2px solid #1a2a9e;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-    }
-    .edit-badge svg { width: 14px; height: 14px; stroke: #fff; fill: none; }
-
-    /* Email */
-    .profile-email {
-      text-align: center;
-      color: #fff;
-      font-size: 15px;
-      font-weight: 700;
-      margin-bottom: 24px;
+    /* Responsive phone container */
+    .phone-screen{
+      width:100%;
+      max-width:390px;
+      max-height:200vh;
+      background:#1a2a9e;
+      display:flex;
+      flex-direction:column;
+      overflow:hidden;
+      position:relative;
     }
 
-    /* ── Stat Cards Grid ── */
-    .stats-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      margin-bottom: 16px;
-    }
-    .stat-card {
-      background: #3355dd;
-      border-radius: 14px;
-      padding: 14px;
-    }
-    .stat-card .card-header-row {
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      margin-bottom: 10px;
-    }
-    .stat-card .card-icon  { font-size: 18px; line-height: 1; }
-    .stat-card .card-label { color: #c8d4ff; font-size: 12px; font-weight: 700; line-height: 1.2; }
-    .stat-card .card-value { color: #fff; font-size: 26px; font-weight: 800; margin-bottom: 4px; }
-    .stat-card .card-sub   { color: #99aaee; font-size: 10px; font-weight: 600; }
+    /* ───── Top Nav ───── */
 
-    /* ── Action Rows ── */
-    .action-row {
-      background: #3355dd;
-      border-radius: 14px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 15px 16px;
-      margin-bottom: 12px;
-      cursor: pointer;
-      transition: background .2s;
+    .top-nav{
+      background:#2244cc;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      padding:18px 20px 14px;
+      flex-shrink:0;
     }
-    .action-row:hover { background: #2a48cc; }
-    .action-row .row-left  { display: flex; align-items: center; gap: 10px; }
-    .action-row .row-icon  { font-size: 18px; line-height: 1; }
-    .action-row .row-label { color: #fff; font-size: 14px; font-weight: 700; }
-    .action-row .row-chevron { color: #8899ee; font-size: 20px; font-weight: 700; }
+
+    .top-nav .app-title{
+      font-size:18px;
+      font-weight:800;
+      color:white;
+    }
+
+    .datetime{
+      text-align:center;
+      line-height:1.3;
+    }
+
+    .datetime .time{
+      font-size:17px;
+      font-weight:800;
+      color:white;
+    }
+
+    .datetime .date{
+      font-size:10px;
+      font-weight:600;
+      color:rgba(255,255,255,.85);
+    }
+
+    .hamburger{
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+      cursor:pointer;
+    }
+
+    .hamburger span{
+      width:22px;
+      height:2.5px;
+      background:white;
+      border-radius:2px;
+    }
+
+    /* ───── Scrollable Body ───── */
+    .app-body{
+      flex:1;
+      overflow-y:auto;
+      padding:30px 18px 24px;
+      scrollbar-width:none;
+    }
+
+    .app-body::-webkit-scrollbar{
+      display:none;
+    }
+
+    /* ───── Avatar ───── */
+    .avatar-wrap{
+      display:flex;
+      justify-content:center;
+      margin-bottom:18px;
+      position:relative;
+    }
+
+    .avatar-circle{
+      width:110px;
+      height:110px;
+      border-radius:50%;
+      background:#c8d4f8;
+      display:flex;
+      align-items:flex-end;
+      justify-content:center;
+      overflow:hidden;
+      border:4px solid #8899ee;
+    }
+
+    .avatar-circle svg{
+      width:80px;
+      height:80px;
+    }
+
+    .edit-badge{
+      position:absolute;
+      bottom:0;
+      left:calc(50% + 30px);
+      width:34px;
+      height:34px;
+      background:#3355cc;
+      border-radius:50%;
+      border:2px solid #1a2a9e;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      cursor:pointer;
+    }
+
+    .edit-badge svg{
+      width:15px;
+      height:15px;
+      stroke:white;
+      fill:none;
+    }
+
+    /* ───── Profile Email ───── */
+    .profile-email{
+      text-align:center;
+      color:white;
+      font-size:15px;
+      font-weight:700;
+      margin-bottom:28px;
+      word-break:break-word;
+    }
+
+    /* ───── Stats Grid ───── */
+    .stats-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:14px;
+      margin-bottom:18px;
+    }
+
+    .stat-card{
+      background:#3355dd;
+      border-radius:16px;
+      padding:15px;
+      transition:0.2s;
+    }
+
+    .stat-card:hover{
+      transform:translateY(-2px);
+    }
+
+    .card-header-row{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      margin-bottom:10px;
+    }
+
+    .card-icon{
+      font-size:18px;
+    }
+
+    .card-label{
+      color:#c8d4ff;
+      font-size:12px;
+      font-weight:700;
+    }
+
+    .card-value{
+      color:white;
+      font-size:28px;
+      font-weight:800;
+      margin-bottom:4px;
+    }
+
+    .card-sub{
+      color:#99aaee;
+      font-size:10px;
+      font-weight:600;
+    }
+
+    /* ───── Action Rows ───── */
+    .action-row{
+      background:#3355dd;
+      border-radius:16px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:16px;
+      margin-bottom:14px;
+      cursor:pointer;
+      transition:0.2s;
+    }
+
+    .action-row:hover{
+      background:#2a48cc;
+    }
+
+    .row-left{
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+
+    .row-icon{
+      font-size:18px;
+    }
+
+    .row-label{
+      color:white;
+      font-size:14px;
+      font-weight:700;
+    }
+
+    .row-chevron{
+      color:#8899ee;
+      font-size:20px;
+      font-weight:700;
+    }
+
+    /* ───── Responsive ───── */
+    @media (max-width:576px){
+      body{
+        padding:0;
+      }
+
+      .phone-screen{
+        max-width: 100%;;
+        min-height:100vh;
+        border-radius:0;
+      }
+
+      .stats-grid{
+        gap:12px;
+      }
+
+      .card-value{
+        font-size:24px;
+      }
+    }
+
   </style>
 </head>
+
 <body>
 
 <div class="phone-screen">
 
   <!-- Top Nav -->
   <div class="top-nav">
-    <div class="app-title">Study Planner</div>
+
+    <div class="app-title">
+      Study Planner
+    </div>
+
     <div class="datetime text-center">
       <div class="time" id="liveTime"></div>
       <div class="date" id="liveDate"></div>
     </div>
+
     <div class="hamburger">
-      <span></span><span></span><span></span>
+      <span></span>
+      <span></span>
+      <span></span>
     </div>
   </div>
 
@@ -165,106 +300,169 @@
     <!-- Avatar -->
     <div class="avatar-wrap">
       <div class="avatar-circle">
+
         <svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
           <circle cx="40" cy="28" r="16" fill="#4d7ddd"/>
           <ellipse cx="40" cy="72" rx="28" ry="18" fill="#4d7ddd"/>
         </svg>
       </div>
+
       <div class="edit-badge">
-        <svg viewBox="0 0 24 24" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <svg viewBox="0 0 24 24"
+             stroke-width="2.2"
+             stroke-linecap="round"
+             stroke-linejoin="round">
           <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
           <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
         </svg>
       </div>
+
     </div>
 
-    <!-- Email -->
-    <div class="profile-email">TaukeNeupane11@gmail.com</div>
+    <!-- Logged In User Email -->
+    <div class="profile-email">
+      {{ session['user'] }}
+    </div>
 
     <!-- Stats Grid -->
     <div class="stats-grid">
+
       <div class="stat-card">
         <div class="card-header-row">
           <span class="card-icon">👀</span>
-          <span class="card-label">Pending Tasks</span>
+          <span class="card-label">
+            Pending Tasks
+          </span>
         </div>
-        <div class="card-value">0</div>
-        <div class="card-sub">Last 7 Days</div>
+        <div class="card-value">
+          0
+        </div>
+        <div class="card-sub">
+          Last 7 Days
+        </div>
       </div>
 
       <div class="stat-card">
         <div class="card-header-row">
           <span class="card-icon">⚠️</span>
-          <span class="card-label">Overdue Tasks</span>
+          <span class="card-label">
+            Overdue Tasks
+          </span>
         </div>
-        <div class="card-value">0</div>
-        <div class="card-sub">Total</div>
+        <div class="card-value">
+          0
+        </div>
+        <div class="card-sub">
+          Total
+        </div>
       </div>
 
       <div class="stat-card">
         <div class="card-header-row">
           <span class="card-icon">✨</span>
-          <span class="card-label">Tasks Completed</span>
+          <span class="card-label">
+            Tasks Completed
+          </span>
         </div>
-        <div class="card-value">0</div>
-        <div class="card-sub">Last 7 Days</div>
+        <div class="card-value">
+          0
+        </div>
+        <div class="card-sub">
+          Last 7 Days
+        </div>
       </div>
 
       <div class="stat-card">
         <div class="card-header-row">
           <span class="card-icon">🔥</span>
-          <span class="card-label">Study Streaks</span>
+          <span class="card-label">
+            Study Streaks
+          </span>
         </div>
-        <div class="card-value">0</div>
-        <div class="card-sub">Total Streak</div>
+        <div class="card-value">
+          0
+        </div>
+        <div class="card-sub">
+          Total Streak
+        </div>
       </div>
     </div>
 
     <!-- Action Rows -->
+
     <div class="action-row">
       <div class="row-left">
         <span class="row-icon">🚪</span>
-        <span class="row-label">Log Out</span>
+        <span class="row-label">
+          Log Out
+        </span>
       </div>
-      <span class="row-chevron">›</span>
+      <span class="row-chevron">
+        ›
+      </span>
     </div>
 
     <div class="action-row">
       <div class="row-left">
         <span class="row-icon">👑</span>
-        <span class="row-label">Premium Subscription</span>
+        <span class="row-label">
+          Premium Subscription
+        </span>
       </div>
-      <span class="row-chevron">›</span>
+      <span class="row-chevron">
+        ›
+      </span>
     </div>
 
     <div class="action-row">
       <div class="row-left">
         <span class="row-icon">🗑️</span>
-        <span class="row-label">Delete Account</span>
+        <span class="row-label">
+          Delete Account
+        </span>
       </div>
-      <span class="row-chevron">›</span>
+      <span class="row-chevron">
+        ›
+      </span>
     </div>
 
-  </div><!-- /app-body -->
-</div><!-- /phone-screen -->
+  </div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
 <script>
-  function updateClock() {
-    const now   = new Date();
-    let h       = now.getHours();
-    const m     = String(now.getMinutes()).padStart(2, '0');
-    const ampm  = h >= 12 ? 'pm' : 'am';
+
+  function updateClock(){
+    const now = new Date();
+    let h = now.getHours();
+    const m = String(now.getMinutes()).padStart(2,'0');
+    const ampm = h >= 12 ? 'pm' : 'am';
     h = h % 12 || 12;
-    document.getElementById('liveTime').textContent = `${h}.${m} ${ampm}`;
-    const days   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-    const months = ['January','February','March','April','May','June','July',
-                    'August','September','October','November','December'];
+    document.getElementById('liveTime').textContent =
+      `${h}.${m} ${ampm}`;
+
+    const days = [
+      'Sunday','Monday','Tuesday','Wednesday',
+      'Thursday','Friday','Saturday'
+    ];
+
+    const months = [
+      'January','February','March','April',
+      'May','June','July','August',
+      'September','October','November','December'
+    ];
+
     document.getElementById('liveDate').textContent =
       `${days[now.getDay()]}, ${now.getDate()} ${months[now.getMonth()]}`;
+
   }
+
   updateClock();
-  setInterval(updateClock, 1000);
+
+  setInterval(updateClock,1000);
+
 </script>
+
 </body>
 </html>
