@@ -47,11 +47,11 @@
                 <div>
                     <p class="eyebrow">Study together</p>
                     <h2>Collaboration Hub</h2>
-                    <p class="hero-copy">Find classmates and prepare the foundation for study groups, shared planning, and group chat. This first step is intentionally simple and safe.</p>
+                    <p class="hero-copy">Find classmates, connect with friends, and send simple study messages. Study groups and group chat can be added after this foundation is stable.</p>
                 </div>
                 <div class="hero-badge">
-                    <i class="bi bi-shield-check"></i>
-                    <span>Foundation Step</span>
+                    <i class="bi bi-people-fill"></i>
+                    <span>Friends & Messages</span>
                 </div>
             </header>
 
@@ -70,6 +70,57 @@
                 <div id="incomingRequestsList" class="requests-list" aria-live="polite"></div>
             </section>
 
+            <section class="collaboration-shell friends-chat-shell">
+                <aside class="collaboration-panel friends-panel">
+                    <div class="section-header">
+                        <div>
+                            <h3>My Friends</h3>
+                            <p class="panel-copy">Accepted connections appear here. Select a friend to open messages.</p>
+                        </div>
+                        <button class="btn btn-outline-primary btn-sm" type="button" id="refreshFriendsBtn">
+                            Refresh
+                        </button>
+                    </div>
+
+                    <div id="friendsStatus" class="status-text section-status">Loading friends...</div>
+                    <div id="friendsList" class="friends-list" aria-live="polite"></div>
+                </aside>
+
+                <section class="collaboration-panel chat-panel">
+                    <div class="chat-header">
+                        <div>
+                            <h3 id="chatTitle">Friend Messages</h3>
+                            <p id="chatSubtitle" class="panel-copy">Select a friend to start messaging.</p>
+                        </div>
+                        <button class="btn btn-outline-secondary btn-sm" type="button" id="refreshMessagesBtn" disabled>
+                            Refresh Chat
+                        </button>
+                    </div>
+
+                    <div id="messagesStatus" class="status-text section-status">No friend selected.</div>
+                    <div id="messagesList" class="messages-list" aria-live="polite">
+                        <div class="placeholder-card">
+                            <strong>Select a friend.</strong>
+                            <p>Your messages will appear here after you choose a friend from the My Friends list.</p>
+                        </div>
+                    </div>
+
+                    <form id="messageForm" class="message-form">
+                        <input
+                            id="messageInput"
+                            class="form-control"
+                            type="text"
+                            maxlength="1000"
+                            placeholder="Write a message to your friend..."
+                            disabled
+                        >
+                        <button id="sendMessageBtn" class="btn btn-primary" type="submit" disabled>
+                            Send
+                        </button>
+                    </form>
+                </section>
+            </section>
+
             <section class="collaboration-shell">
                 <aside class="collaboration-panel">
                     <h3>People</h3>
@@ -86,7 +137,7 @@
                     <div class="panel-heading">
                         <div>
                             <h3>Available Students</h3>
-                            <p class="panel-copy">Send connection requests now. Study groups and group chat will be added in the next steps.</p>
+                            <p class="panel-copy">Send connection requests to students you want to study with.</p>
                         </div>
                     </div>
                     <div id="peopleList" class="collaboration-list" aria-live="polite"></div>

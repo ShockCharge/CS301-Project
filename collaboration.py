@@ -5,6 +5,11 @@ import re
 
 from common import users_collection, social_connections_collection
 
+try:
+    from common import group_messages_collection
+except ImportError:
+    group_messages_collection = None
+
 
 collaboration_bp = Blueprint('collaboration_bp', __name__)
 
@@ -19,6 +24,11 @@ def sanitize(value):
 def get_current_user_email():
     """Return the logged-in user's email, or None when the user is not authenticated."""
     return session.get('user')
+
+
+def normalize_email(email):
+    """Return a clean lowercase email string."""
+    return sanitize(email or '').lower()
 
 
 def serialize_public_user(user):
@@ -48,6 +58,20 @@ def serialize_connection_request(connection):
     }
 
 
+def serialize_message(message, current_user):
+    """Return a safe JSON version of a direct message."""
+    sender_email = message.get('sender_email', '')
+
+    return {
+        'id': str(message.get('_id')),
+        'sender_email': sender_email,
+        'receiver_email': message.get('receiver_email', ''),
+        'body': sanitize(message.get('body', '') or ''),
+        'created_at': message.get('created_at').isoformat() if message.get('created_at') else '',
+        'is_mine': sender_email == current_user,
+    }
+
+
 def get_existing_connection(email_one, email_two):
     """Find an existing connection/request between two users in either direction."""
     if social_connections_collection is None:
@@ -72,9 +96,54 @@ def get_request_by_id(request_id):
         return None
 
 
+def are_connected(email_one, email_two):
+    """Return True when two users have an accepted social connection."""
+    if social_connections_collection is None:
+        return False
+
+    return social_connections_collection.find_one({
+        'status': 'accepted',
+        '$or': [
+            {'requester_email': email_one, 'receiver_email': email_two},
+            {'requester_email': email_two, 'receiver_email': email_one},
+        ]
+    }) is not None
+
+
+def direct_conversation_id(email_one, email_two):
+    """Create a stable conversation id for two users."""
+    emails = sorted([email_one.lower(), email_two.lower()])
+    return f"direct::{emails[0]}::{emails[1]}"
+
+
+def build_friend_from_connection(connection, current_user):
+    """Build a friend profile object from an accepted connection document."""
+    requester_email = connection.get('requester_email', '')
+    receiver_email = connection.get('receiver_email', '')
+    friend_email = receiver_email if requester_email == current_user else requester_email
+
+    friend_user = users_collection.find_one({'email': friend_email}) if users_collection is not None else None
+
+    if friend_user:
+        friend_profile = serialize_public_user(friend_user)
+    else:
+        friend_profile = {
+            'id': '',
+            'name': friend_email or 'Study Planner User',
+            'email': friend_email,
+            'institution': '',
+            'major': '',
+        }
+
+    friend_profile['connection_id'] = str(connection.get('_id'))
+    friend_profile['connected_at'] = connection.get('updated_at').isoformat() if connection.get('updated_at') else ''
+
+    return friend_profile
+
+
 @collaboration_bp.route('/collaboration')
 def collaboration():
-    """Render the collaboration hub foundation page."""
+    """Render the collaboration hub page."""
     if 'user' not in session:
         return redirect(url_for('login'))
     return render_template('collaboration.html')
@@ -121,7 +190,7 @@ def send_connection_request():
         return jsonify({'error': 'Database is not connected.'}), 503
 
     data = request.get_json(silent=True) or {}
-    receiver_email = sanitize(data.get('receiver_email', '')).lower()
+    receiver_email = normalize_email(data.get('receiver_email', ''))
 
     if not receiver_email:
         return jsonify({'error': 'Receiver email is required.'}), 400
@@ -222,7 +291,7 @@ def get_outgoing_connection_requests():
 
 @collaboration_bp.route('/api/collaboration/connections', methods=['GET'])
 def get_accepted_connections():
-    """Return accepted connections for the current user."""
+    """Return accepted friends for the current user."""
     current_user = get_current_user_email()
 
     if not current_user:
@@ -239,9 +308,9 @@ def get_accepted_connections():
         ]
     }).sort('updated_at', -1)
 
-    return jsonify({
-        'connections': [serialize_connection_request(item) for item in connections_cursor]
-    })
+    friends = [build_friend_from_connection(item, current_user) for item in connections_cursor]
+
+    return jsonify({'connections': friends})
 
 
 @collaboration_bp.route('/api/collaboration/requests/<request_id>/accept', methods=['POST'])
@@ -332,3 +401,89 @@ def cancel_connection_request(request_id):
     )
 
     return jsonify({'message': 'Connection request cancelled successfully.'})
+
+
+@collaboration_bp.route('/api/collaboration/messages', methods=['GET'])
+def get_direct_messages():
+    """Return direct messages between the current user and one accepted friend."""
+    current_user = get_current_user_email()
+
+    if not current_user:
+        return jsonify({'error': 'Not logged in'}), 401
+
+    if group_messages_collection is None:
+        return jsonify({'messages': [], 'message': 'Database is not connected.'})
+
+    friend_email = normalize_email(request.args.get('friend_email', ''))
+
+    if not friend_email:
+        return jsonify({'error': 'Friend email is required.'}), 400
+
+    if friend_email == current_user.lower():
+        return jsonify({'error': 'You cannot message yourself.'}), 400
+
+    if not are_connected(current_user, friend_email):
+        return jsonify({'error': 'You can only message accepted friends.'}), 403
+
+    conversation_id = direct_conversation_id(current_user, friend_email)
+
+    messages_cursor = group_messages_collection.find({
+        'conversation_type': 'direct',
+        'conversation_id': conversation_id,
+    }).sort('created_at', 1).limit(100)
+
+    return jsonify({
+        'messages': [serialize_message(message, current_user) for message in messages_cursor]
+    })
+
+
+@collaboration_bp.route('/api/collaboration/messages', methods=['POST'])
+def send_direct_message():
+    """Send a direct message to an accepted friend."""
+    current_user = get_current_user_email()
+
+    if not current_user:
+        return jsonify({'error': 'Not logged in'}), 401
+
+    if group_messages_collection is None:
+        return jsonify({'error': 'Database is not connected.'}), 503
+
+    data = request.get_json(silent=True) or {}
+    receiver_email = normalize_email(data.get('receiver_email', ''))
+    body = sanitize(data.get('body', '') or '')
+
+    if not receiver_email:
+        return jsonify({'error': 'Receiver email is required.'}), 400
+
+    if receiver_email == current_user.lower():
+        return jsonify({'error': 'You cannot message yourself.'}), 400
+
+    if not body:
+        return jsonify({'error': 'Message cannot be empty.'}), 400
+
+    if len(body) > 1000:
+        return jsonify({'error': 'Message is too long. Please keep it under 1000 characters.'}), 400
+
+    if not are_connected(current_user, receiver_email):
+        return jsonify({'error': 'You can only message accepted friends.'}), 403
+
+    now = datetime.utcnow()
+
+    message_doc = {
+        'conversation_type': 'direct',
+        'conversation_id': direct_conversation_id(current_user, receiver_email),
+        'sender_email': current_user,
+        'receiver_email': receiver_email,
+        'body': body,
+        'created_at': now,
+        'updated_at': now,
+        'read_at': None,
+    }
+
+    result = group_messages_collection.insert_one(message_doc)
+    message_doc['_id'] = result.inserted_id
+
+    return jsonify({
+        'message': 'Message sent successfully.',
+        'chat_message': serialize_message(message_doc, current_user)
+    }), 201
