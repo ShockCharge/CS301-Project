@@ -5,20 +5,6 @@
 }
 
 :root {
-    /* OLD */
-    /* --primary-color: #007bff;
-    --primary-dark: #0056b3;
-    --secondary-color: #6c757d;
-    --success-color: #28a745;
-    --danger-color: #dc3545;
-    --warning-color: #ffc107;
-    --light-bg: #f8f9fa;
-    --white: #ffffff;
-    --text-dark: #333333;
-    --text-light: #6c757d;
-    --shadow: 0 2px 8px rgba(0, 0, 0, 0.1); */
-
-    /* NEW */
     --success-color: #7ae582;
     --error-color: #d8315b;
     --warning-color: #ff8600;
@@ -81,6 +67,8 @@ body {
     cursor: pointer;
     color: var(--text-muted);
     line-height: 1;
+    background: none;
+    border: none;
 }
 
 .close:hover {
@@ -134,8 +122,74 @@ body {
     transition: opacity 0.2s;
     width: 100%;
     margin-top: 0.5rem;
+    font-family: "Lato", sans-serif;
 }
 
 .btn-primary:hover {
     opacity: 0.85;
 }
+
+/* ########## Toast ########## */
+.toast-msg {
+    padding: 0.75rem 1.25rem;
+    border-radius: 10px;
+    color: #fff;
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    animation: toastSlideIn 0.3s ease;
+}
+
+.toast-success { background: #28a745; }
+.toast-error   { background: #d8315b; }
+
+@keyframes toastSlideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to   { transform: translateX(0);   opacity: 1; }
+}
+
+/* ########## Group Divider ########## */
+.group-divider {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: #ff8fab;
+    font-size: 0.82rem;
+    font-weight: 700;
+    margin: 0.5rem 0;
+    padding: 0.25rem 0;
+}
+.group-divider::before,
+.group-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(255, 139, 171, 0.4);
+}
+
+/* ########## Urgency badges (used by exams/vacations) ########## */
+.urgency-badge {
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    white-space: nowrap;
+}
+
+.urgency-high     { background-color: rgba(216, 49, 91, 0.25);  color: #ff8fab; }
+.urgency-medium   { background-color: rgba(255, 134, 0, 0.25);  color: #ffb347; }
+.urgency-low      { background-color: rgba(122, 229, 130, 0.2); color: #7ae582; }
+.urgency-info     { background-color: rgba(63, 142, 252, 0.25); color: #87bfff; }
+.urgency-done     { background-color: rgba(255, 255, 255, 0.1); color: var(--text-muted); }
+.urgency-outdated { background-color: rgba(216, 49, 91, 0.3);   color: #ff8fab; }
+
+/* ########## Item card border accents ########## */
+.card-border-high     { border-left: 4px solid #e74c3c; }
+.card-border-medium   { border-left: 4px solid #f39c12; }
+.card-border-low      { border-left: 4px solid #27ae60; }
+.card-border-done     { border-left: 4px solid rgba(255,255,255,0.2); }
+.card-border-info     { border-left: 4px solid #3f8efc; }
+.card-border-outdated { border-left: 4px solid #e74c3c; opacity: 0.75; }

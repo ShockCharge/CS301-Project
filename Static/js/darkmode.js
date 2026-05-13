@@ -1,4 +1,3 @@
-
 (function () {
     'use strict';
     if (localStorage.getItem('darkMode') === 'true') {

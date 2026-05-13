@@ -1,6 +1,5 @@
 /* ============================================================
-   V2pages.css — Shared styles for V2tasks, V2classes, V2exams
-   Designed to match the V2 dashboard aesthetic
+   V2pages.css — Shared styles for tasks, exams, classes, vacations
    ============================================================ */
 
 /* ########## Page Top Header ########## */
@@ -22,12 +21,9 @@
     gap: 0.5rem;
 }
 
-.page-top-icon {
-    font-size: 1.6rem;
-    line-height: 1;
-}
+.page-top-icon { font-size: 1.6rem; line-height: 1; }
 
-/* ########## Add Button (top right) ########## */
+/* ########## Add Button ########## */
 .btn-add-top {
     padding: 0.45rem 1.1rem;
     background-color: rgba(255, 255, 255, 0.12);
@@ -42,9 +38,7 @@
     font-family: "Lato", sans-serif;
 }
 
-.btn-add-top:hover {
-    background-color: rgba(255, 255, 255, 0.22);
-}
+.btn-add-top:hover { background-color: rgba(255, 255, 255, 0.22); }
 
 /* ########## Tab Bar ########## */
 .tab-bar {
@@ -76,9 +70,7 @@
     color: var(--normal-text);
 }
 
-.tab-btn:hover:not(.active) {
-    color: var(--normal-text);
-}
+.tab-btn:hover:not(.active) { color: var(--normal-text); }
 
 /* ########## Items List ########## */
 .items-list {
@@ -94,11 +86,7 @@
     border-radius: 14px;
     border: 1px solid var(--border-color);
     padding: 1rem 1.25rem;
-    display: flex;
-    align-items: center;
-    gap: 1rem;
     transition: background-color 0.2s, transform 0.15s;
-    cursor: pointer;
 }
 
 .item-card:hover {
@@ -106,87 +94,86 @@
     transform: translateY(-1px);
 }
 
-/* Checkbox circle */
-.item-check {
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    border: 2px solid rgba(255, 255, 255, 0.35);
-    flex-shrink: 0;
+/* Card header: title + badge */
+.item-card-header {
     display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: border-color 0.2s, background-color 0.2s;
-    cursor: pointer;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.5rem;
+    gap: 0.75rem;
 }
 
-.item-check.checked {
-    background-color: var(--success-color);
-    border-color: var(--success-color);
-}
-
-.item-check.checked::after {
-    content: '✓';
-    color: var(--bg-dark);
-    font-size: 0.75rem;
-    font-weight: 900;
-}
-
-/* Item body (main text area) */
-.item-body {
-    flex: 1;
-    min-width: 0;
-}
-
-.item-title {
-    color: var(--normal-text);
-    font-size: 1.05rem;
+.item-card-header h4 {
+    font-size: 1rem;
     font-weight: 700;
-    margin: 0 0 0.2rem 0;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.item-sub {
-    color: var(--text-muted);
-    font-size: 0.85rem;
+    color: var(--normal-text);
     margin: 0;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    flex: 1;
 }
 
-/* Item right side (meta info or color swatch) */
-.item-right {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 0.25rem;
-    flex-shrink: 0;
-}
-
-/* Color swatch (tasks priority indicator) */
-.item-color-swatch {
-    width: 42px;
-    height: 42px;
-    border-radius: 8px;
-    flex-shrink: 0;
-}
-
-.swatch-red    { background-color: #e63946; }
-.swatch-yellow { background-color: #f4d03f; }
-.swatch-green  { background-color: #57cc99; }
-.swatch-blue   { background-color: #4fc3f7; }
-.swatch-purple { background-color: #9b5de5; }
-
-/* Room/time info (classes) */
-.item-room {
+/* Card body */
+.item-card-body {
     color: var(--text-muted);
-    font-size: 0.82rem;
-    text-align: right;
-    line-height: 1.4;
+    font-size: 0.88rem;
+    line-height: 1.5;
 }
+
+.item-card-body p { margin: 0 0 0.4rem 0; color: var(--text-muted); }
+
+.item-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+}
+
+.item-meta span { display: flex; align-items: center; gap: 4px; }
+.item-meta i { color: var(--bg-light); }
+
+/* Task checkbox */
+.task-checkbox { display: flex; align-items: center; }
+.task-checkbox input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: var(--bg-light);
+    margin-right: 0.5rem;
+}
+
+/* Action buttons inside cards */
+.item-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 0.75rem;
+}
+
+.btn-action {
+    padding: 5px 12px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.2s;
+    font-family: "Lato", sans-serif;
+    font-weight: 600;
+    position: relative;
+    z-index: 10;
+}
+
+.btn-edit   { background: rgba(63, 142, 252, 0.25); color: var(--bg-light); border: 1px solid rgba(63,142,252,0.3); }
+.btn-edit:hover   { background: rgba(63, 142, 252, 0.45); }
+.btn-delete { background: rgba(216, 49, 91, 0.2);  color: #ff8fab;        border: 1px solid rgba(216,49,91,0.3); }
+.btn-delete:hover { background: rgba(216, 49, 91, 0.4); }
+.btn-done   { background: rgba(122, 229, 130, 0.2); color: var(--success-color); border: 1px solid rgba(122,229,130,0.3); }
+.btn-done:hover   { background: rgba(122, 229, 130, 0.4); }
+.btn-undo   { background: rgba(255, 255, 255, 0.1); color: var(--text-muted); border: 1px solid var(--border-color); }
+.btn-undo:hover   { background: rgba(255, 255, 255, 0.2); }
 
 /* ########## Empty State ########## */
 .empty-state {
@@ -197,7 +184,10 @@
     margin: 0;
 }
 
-/* ########## Custom Delete Modal (from old version) ########## */
+.empty-state i { display: block; margin-bottom: 0.75rem; font-size: 2.5rem; }
+.empty-state p { margin: 0.3rem 0; }
+
+/* ########## Custom Delete Modal ########## */
 .custom-modal-overlay {
     display: none;
     position: fixed;
@@ -208,9 +198,7 @@
     justify-content: center;
 }
 
-.custom-modal-overlay.active {
-    display: flex;
-}
+.custom-modal-overlay.active { display: flex; }
 
 .custom-modal {
     background-color: var(--bg-medium);
@@ -232,28 +220,12 @@
     border-bottom: 1px solid var(--border-color);
 }
 
-.custom-modal-header.delete {
-    color: #ff8fab;
-}
+.custom-modal-header.delete { color: #ff8fab; }
+.custom-modal-header i      { font-size: 1.3rem; }
+.custom-modal-title         { font-size: 1rem; font-weight: 700; }
 
-.custom-modal-header i {
-    font-size: 1.3rem;
-}
-
-.custom-modal-title {
-    font-size: 1rem;
-    font-weight: 700;
-}
-
-.custom-modal-body {
-    padding: 1.25rem;
-}
-
-.custom-modal-body p {
-    color: var(--text-muted);
-    font-size: 0.9rem;
-    margin: 0;
-}
+.custom-modal-body { padding: 1.25rem; }
+.custom-modal-body p { color: var(--text-muted); font-size: 0.9rem; margin: 0; }
 
 .custom-modal-actions {
     display: flex;
@@ -278,58 +250,24 @@
     color: var(--normal-text);
 }
 
-.custom-modal-btn-cancel:hover {
-    background-color: rgba(255, 255, 255, 0.18);
-}
+.custom-modal-btn-cancel:hover { background-color: rgba(255, 255, 255, 0.18); }
 
 .custom-modal-btn-confirm {
     background-color: #d8315b;
     color: #fff;
 }
 
-.custom-modal-btn-confirm:hover {
-    opacity: 0.85;
-}
-
-/* ########## Content overrides for pages (no max-width cap needed) ########## */
-.content-inner {
-    display: flex;
-    flex-direction: column;
-}
+.custom-modal-btn-confirm:hover { opacity: 0.85; }
 
 /* ########## Responsive ########## */
 @media (max-width: 768px) {
-    .page-top-title {
-        font-size: 1.4rem;
-    }
-
-    .tab-bar {
-        width: 100%;
-    }
-
-    .tab-btn {
-        flex: 1;
-        text-align: center;
-        padding: 0.45rem 0.5rem;
-    }
-
-    .item-card {
-        padding: 0.875rem 1rem;
-    }
-
-    .item-color-swatch {
-        width: 34px;
-        height: 34px;
-    }
+    .page-top-title { font-size: 1.4rem; }
+    .tab-bar { width: 100%; }
+    .tab-btn { flex: 1; text-align: center; padding: 0.45rem 0.5rem; }
+    .item-card { padding: 0.875rem 1rem; }
 }
 
 @media (max-width: 480px) {
-    .page-top-title {
-        font-size: 1.2rem;
-    }
-
-    .btn-add-top {
-        font-size: 0.8rem;
-        padding: 0.4rem 0.85rem;
-    }
+    .page-top-title { font-size: 1.2rem; }
+    .btn-add-top { font-size: 0.8rem; padding: 0.4rem 0.85rem; }
 }
