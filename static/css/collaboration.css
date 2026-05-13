@@ -260,7 +260,6 @@
         flex: 1;
     }
 }
-
 /* Friends and direct messaging additions for Collaboration page */
 .friends-chat-shell {
     grid-template-columns: minmax(260px, 0.8fr) minmax(360px, 1.2fr);
@@ -415,4 +414,3 @@
         width: 100%;
     }
 }
-
