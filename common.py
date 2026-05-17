@@ -61,10 +61,8 @@ except Exception as e:
     social_connections_collection = study_groups_collection = \
         group_members_collection = group_messages_collection = None
 
-
-# ====================== LLM CHAIN ======================
 llm = ChatOllama(
-    model="qwen2.5:3b",      # You can change to llama3.2 or whatever you prefer
+    model="qwen2.5:3b",      # You can change to llama3.2 
     temperature=0.3,
     base_url="http://localhost:11434",
 )
@@ -86,7 +84,7 @@ If you don't know something, say so — don't guess.
 chain = prompt | llm | StrOutputParser()
 
 
-# ====================== UTILITY FUNCTIONS ======================
+
 def get_task_status(date_str):
     """Used by both Flask and Celery"""
     if not date_str:
