@@ -6,200 +6,352 @@
   <title>Study Planner – Verify Login</title>
 
   <!-- Bootstrap -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    rel="stylesheet">
+
+  <!-- Google Font -->
+  <link
+    href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap"
+    rel="stylesheet">
 
   <style>
 
-    body {
-      min-height: 100vh;
-      margin: 0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      background: transparent;
-      padding: 20px;
-      overflow-x: hidden;
+    *{
+      box-sizing:border-box;
+      margin:0;
+      padding:0;
     }
 
-    /* Responsive mobile container */
-    .mobile-frame {
-      width: 100%;
-      max-width: 390px;
-      min-height: 100vh;
-      background: #0d1b8c;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      border-radius: 24px;
-      overflow: hidden;
-      position: relative;
+    body{
+      min-height:100vh;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      font-family:'Nunito',sans-serif;
+      background:linear-gradient(135deg,#08145f,#0d1b8c,#1c33c7);
+      padding:20px;
+      overflow-x:hidden;
     }
 
-    .screen {
-      padding: 40px 28px;
-      color: white;
-      text-align: center;
+    /* Main Responsive Wrapper */
+
+    .verify-wrapper{
+      width:100%;
+      max-width:1600px;
+      display:flex;
+      justify-content:center;
+      align-items:center;
     }
 
-    .logo {
-      width: 90px;
-      height: 90px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #5f6cff, #2ee6c9);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto 24px;
-      font-size: 36px;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+    /* Main Verification Screen */
+
+    .mobile-frame{
+      width:100%;
+      max-width:1200px;
+      min-height:92vh;
+      background:linear-gradient(180deg,#1021a8,#1d39d6);
+      border-radius:32px;
+      overflow:hidden;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      box-shadow:0 18px 45px rgba(0,0,0,0.35);
+      position:relative;
     }
 
-    h1 {
-      font-size: 24px;
-      font-weight: 700;
-      margin-bottom: 10px;
+    /* Glass Overlay */
+
+    .mobile-frame::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:
+      radial-gradient(circle at top right,
+      rgba(255,255,255,0.12),
+      transparent 40%);
+      pointer-events:none;
     }
 
-    .subtitle {
-      font-size: 14px;
-      opacity: 0.8;
-      margin-bottom: 6px;
+    /* Main Content */
+
+    .screen{
+      width:100%;
+      max-width:650px;
+      padding:50px 40px;
+      color:white;
+      text-align:center;
+      z-index:2;
     }
 
-    .email-badge {
-      display: inline-block;
-      background: rgba(255,255,255,0.15);
-      border-radius: 30px;
-      padding: 6px 16px;
-      font-size: 13px;
-      margin-bottom: 28px;
-      backdrop-filter: blur(5px);
+    /* Logo */
+
+    .logo{
+      width:110px;
+      height:110px;
+      border-radius:50%;
+      background:linear-gradient(135deg,#5f6cff,#2ee6c9);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      margin:0 auto 28px;
+      font-size:44px;
+      box-shadow:0 12px 28px rgba(0,0,0,0.3);
     }
 
-    /* OTP boxes */
-    .otp-row {
-      display: flex;
-      justify-content: center;
-      gap: 10px;
-      margin-bottom: 24px;
-      flex-wrap: nowrap;
+    /* Title */
+
+    h1{
+      font-size:38px;
+      font-weight:800;
+      margin-bottom:12px;
     }
 
-    .otp-box {
-      width: 48px;
-      height: 58px;
-      border-radius: 14px;
-      border: 2px solid rgba(255,255,255,0.35);
-      background: rgba(255,255,255,0.12);
-      color: white;
-      font-size: 24px;
-      font-weight: 700;
-      text-align: center;
-      outline: none;
-      transition: all 0.2s ease;
-      caret-color: #2ee6c9;
+    .subtitle{
+      font-size:16px;
+      opacity:0.85;
+      margin-bottom:10px;
     }
 
-    .otp-box:focus {
-      border-color: #2ee6c9;
-      background: rgba(255,255,255,0.2);
-      transform: scale(1.05);
+    /* Email Badge */
+
+    .email-badge{
+      display:inline-block;
+      background:rgba(255,255,255,0.14);
+      border:1px solid rgba(255,255,255,0.12);
+      backdrop-filter:blur(10px);
+      border-radius:40px;
+      padding:10px 20px;
+      font-size:15px;
+      font-weight:600;
+      margin-bottom:35px;
     }
 
-    /* Verify button */
-    .btn-verify {
-      width: 100%;
-      border-radius: 30px;
-      padding: 13px;
-      background: #cfd8dc;
-      border: none;
-      color: #333;
-      font-weight: 700;
-      font-size: 16px;
-      margin-bottom: 16px;
-      transition: 0.2s;
+    /* Alerts */
+    .alert-error{
+      background:rgba(255,80,80,0.16);
+      border:1px solid rgba(255,100,100,0.35);
+      color:#ffdada;
+      border-radius:18px;
+      padding:14px;
+      font-size:14px;
+      margin-bottom:20px;
     }
 
-    .btn-verify:hover {
-      background: white;
+    .alert-info{
+      background:rgba(46,230,201,0.14);
+      border:1px solid rgba(46,230,201,0.3);
+      color:#d8fff9;
+      border-radius:18px;
+      padding:14px;
+      font-size:14px;
+      margin-bottom:20px;
     }
 
-    .btn-verify:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
+    /* OTP */
+
+    .otp-row{
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      gap:14px;
+      margin-bottom:32px;
+      flex-wrap:nowrap;
     }
 
-    /* Alert messages */
-    .alert-error {
-      background: rgba(255,80,80,0.2);
-      border: 1px solid rgba(255,100,100,0.4);
-      color: #ffd0d0;
-      border-radius: 14px;
-      padding: 12px;
-      font-size: 13px;
-      margin-bottom: 18px;
+    .otp-box{
+      width:65px;
+      height:75px;
+      border-radius:18px;
+      border:2px solid rgba(255,255,255,0.28);
+      background:rgba(255,255,255,0.12);
+      backdrop-filter:blur(10px);
+      color:white;
+      font-size:30px;
+      font-weight:800;
+      text-align:center;
+      outline:none;
+      transition:0.25s ease;
+      caret-color:#2ee6c9;
     }
 
-    .alert-info {
-      background: rgba(46,230,201,0.15);
-      border: 1px solid rgba(46,230,201,0.35);
-      color: #c0fff5;
-      border-radius: 14px;
-      padding: 12px;
-      font-size: 13px;
-      margin-bottom: 18px;
+    .otp-box:focus{
+      border-color:#2ee6c9;
+      background:rgba(255,255,255,0.18);
+      transform:translateY(-2px) scale(1.04);
+      box-shadow:0 0 18px rgba(46,230,201,0.35);
     }
 
-    .small-text {
-      font-size: 13px;
-      opacity: 0.85;
-      margin-top: 10px;
+    /* Verify Button */
+
+    .btn-verify{
+      width:100%;
+      border:none;
+      border-radius:40px;
+      padding:15px;
+      background:white;
+      color:#1021a8;
+      font-weight:800;
+      font-size:17px;
+      transition:0.25s ease;
+      margin-bottom:18px;
     }
 
-    .resend-btn {
-      background: none;
-      border: none;
-      padding: 0;
-      color: #cfd8dc;
-      text-decoration: underline;
-      font-size: 13px;
+    .btn-verify:hover{
+      background:#e9f1ff;
+      transform:translateY(-2px);
     }
 
-    a {
-      color: #cfd8dc;
-      text-decoration: underline;
-      font-size: 13px;
+    .btn-verify:disabled{
+      opacity:0.5;
+      cursor:not-allowed;
+      transform:none;
     }
 
-    .timer {
-      font-size: 12px;
-      opacity: 0.7;
-      margin-top: 10px;
+    /* Small Text */
+
+    .small-text{
+      font-size:15px;
+      opacity:0.9;
+      margin-top:10px;
     }
 
-    /* Responsive design */
-    @media (max-width: 576px) {
+    .resend-btn{
+      background:none;
+      border:none;
+      color:#ffffff;
+      text-decoration:underline;
+      font-weight:700;
+      padding:0;
+      transition:0.2s ease;
+    }
 
-      body {
-        padding: 0;
+    .resend-btn:hover{
+      opacity:0.8;
+    }
+
+    /* Timer */
+    .timer{
+      font-size:14px;
+      opacity:0.75;
+      margin-top:18px;
+    }
+
+    /* Back Link */
+    .back-link{
+      display:inline-block;
+      margin-top:32px;
+      color:white;
+      text-decoration:none;
+      font-weight:700;
+      transition:0.2s ease;
+    }
+
+    .back-link:hover{
+
+      opacity:0.8;
+    }
+
+    /* ───────── Responsive ───────── */
+
+    /* Large Desktop */
+
+    @media (min-width:1400px){
+
+      .mobile-frame{
+        max-width:1400px;
       }
 
-      .mobile-frame {
-        max-width: 100%;
-        min-height: 100vh;
-        border-radius: 0;
+      .screen{
+        max-width:720px;
       }
 
-      .screen {
-        padding: 35px 22px;
+      h1{
+        font-size:46px;
       }
 
-      .otp-box {
-        width: 44px;
-        height: 54px;
-        font-size: 22px;
+      .otp-box{
+        width:75px;
+        height:85px;
+        font-size:34px;
+      }
+    }
+
+    /* Tablet */
+
+    @media (max-width:992px){
+
+      .mobile-frame{
+        max-width:100%;
       }
 
+      .screen{
+        max-width:700px;
+      }
+    }
+
+    /* Mobile */
+
+    @media (max-width:768px){
+
+      body{
+        padding:0;
+      }
+
+      .mobile-frame{
+        max-width:100%;
+        min-height:100vh;
+        border-radius:0;
+      }
+
+      .screen{
+
+        padding:40px 24px;
+      }
+
+      h1{
+
+        font-size:30px;
+      }
+
+      .otp-row{
+        gap:10px;
+      }
+
+      .otp-box{
+        width:52px;
+        height:62px;
+        font-size:24px;
+      }
+    }
+
+    /* Small Mobile */
+
+    @media (max-width:576px){
+
+      .logo{
+        width:90px;
+        height:90px;
+        font-size:36px;
+      }
+
+      .otp-row{
+        gap:8px;
+      }
+
+      .otp-box{
+        width:46px;
+        height:56px;
+        font-size:22px;
+      }
+
+      .subtitle{
+        font-size:14px;
+      }
+
+      .email-badge{
+        font-size:13px;
+      }
     }
 
   </style>
@@ -207,150 +359,194 @@
 
 <body>
 
-<div class="mobile-frame">
-  <div class="screen">
-    <div class="logo">
-      &#128274;
-    </div>
-    <h1>Two-Step Verification</h1>
-    <p class="subtitle">
-      We emailed a 6-digit code to
-    </p>
+<div class="verify-wrapper">
+  <div class="mobile-frame">
+    <div class="screen">
 
-    <span class="email-badge">
-      {{ email }}
-    </span>
-
-    <!-- Error -->
-    {% if error %}
-    <div class="alert-error">
-      {{ error }}
-    </div>
-    {% endif %}
-
-    <!-- Info -->
-    {% if info %}
-    <div class="alert-info">
-      {{ info }}
-    </div>
-    {% endif %}
-
-    <!-- OTP Form -->
-    <form id="otp-form" action="/verify-2fa" method="POST">
-
-      <div class="otp-row">
-        <input class="otp-box" maxlength="1" inputmode="numeric">
-        <input class="otp-box" maxlength="1" inputmode="numeric">
-        <input class="otp-box" maxlength="1" inputmode="numeric">
-        <input class="otp-box" maxlength="1" inputmode="numeric">
-        <input class="otp-box" maxlength="1" inputmode="numeric">
-        <input class="otp-box" maxlength="1" inputmode="numeric">
+      <!-- Logo -->
+      <div class="logo">
+        🔒
       </div>
 
-      <input type="hidden" name="otp" id="otp-hidden">
+      <!-- Title -->
+      <h1>
+        Two-Step Verification
+      </h1>
 
-      <button type="submit"
-              class="btn btn-light btn-verify"
-              id="verify-btn"
-              disabled>
+      <p class="subtitle">
+        We emailed a 6-digit code to
+      </p>
 
-        Verify
+      <!-- Email -->
+      <span class="email-badge">
+        {{ email }}
+      </span>
 
-      </button>
+      <!-- Error -->
+      {% if error %}
 
-    </form>
+      <div class="alert-error">
+        {{ error }}
+      </div>
 
-    <!-- Resend -->
-    <div class="small-text">
+      {% endif %}
 
-      Didn't receive a code?
+      <!-- Info -->
+      {% if info %}
 
-      <form action="/resend-2fa"
-            method="POST"
-            class="d-inline">
+      <div class="alert-info">
+        {{ info }}
+      </div>
 
-        <button type="submit" class="resend-btn">
-          Resend
+      {% endif %}
+
+      <!-- OTP Form -->
+      <form
+        id="otp-form"
+        action="/verify-2fa"
+        method="POST">
+
+        <div class="otp-row">
+          <input
+            class="otp-box"
+            maxlength="1"
+            inputmode="numeric">
+
+          <input
+            class="otp-box"
+            maxlength="1"
+            inputmode="numeric">
+
+          <input
+            class="otp-box"
+            maxlength="1"
+            inputmode="numeric">
+
+          <input
+            class="otp-box"
+            maxlength="1"
+            inputmode="numeric">
+
+          <input
+            class="otp-box"
+            maxlength="1"
+            inputmode="numeric">
+
+          <input
+            class="otp-box"
+            maxlength="1"
+            inputmode="numeric">
+        </div>
+
+        <input
+          type="hidden"
+          name="otp"
+          id="otp-hidden">
+
+        <button 
+        type="submit" 
+        class="btn 
+        btn-verify" 
+        id="verify-btn" 
+        disabled>
+          Verify
         </button>
-
       </form>
 
-    </div>
+      <!-- Resend -->
+      <div class="small-text">
+        Didn't receive a code?
+        <form
+          action="/resend-2fa"
+          method="POST"
+          class="d-inline">
 
-    <!-- Timer -->
-    <div class="timer">
-      Code expires in
-      <span id="countdown">10:00</span>
-    </div>
+          <button
+            type="submit"
+            class="resend-btn">
+            Resend
+          </button>
+        </form>
+      </div>
 
-    <div class="mt-4">
-      <a href="/">&#8592; Back to Login</a>
-    </div>
+      <!-- Timer -->
+      <div class="timer">
+        Code expires in
+        <span id="countdown">10:00</span>
+      </div>
 
+      <!-- Back -->
+      <a href="/" class="back-link">
+        ← Back to Login
+      </a>
+    </div>
   </div>
-
 </div>
 
-<script>
+<!-- Bootstrap -->
 
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
   const boxes     = document.querySelectorAll('.otp-box');
   const hidden    = document.getElementById('otp-hidden');
   const verifyBtn = document.getElementById('verify-btn');
   const form      = document.getElementById('otp-form');
-
-  function syncHidden() {
-
+  function syncHidden(){
     const val = [...boxes].map(b => b.value).join('');
     hidden.value = val;
     verifyBtn.disabled = val.length < 6;
   }
 
-  boxes.forEach((box, i) => {
-    box.addEventListener('input', () => {
-      box.value = box.value.replace(/\\D/g, '');
-      if (box.value && i < boxes.length - 1) {
+  boxes.forEach((box,i) => {
+    box.addEventListener('input',() => {
+      box.value = box.value.replace(/\D/g,'');
+      if(box.value && i < boxes.length - 1){
         boxes[i + 1].focus();
       }
       syncHidden();
     });
 
-    box.addEventListener('keydown', e => {
-      if (e.key === 'Backspace' && !box.value && i > 0) {
+    box.addEventListener('keydown',e => {
+      if(e.key === 'Backspace' && !box.value && i > 0){
         boxes[i - 1].focus();
         boxes[i - 1].value = '';
         syncHidden();
       }
     });
 
-    box.addEventListener('paste', e => {
+    box.addEventListener('paste',e => {
       e.preventDefault();
       const pasted = (e.clipboardData || window.clipboardData)
         .getData('text')
-        .replace(/\\D/g, '')
-        .slice(0, 6);
-      [...pasted].forEach((ch, idx) => {
-        if (boxes[idx]) {
+        .replace(/\D/g,'')
+        .slice(0,6);
+
+      [...pasted].forEach((ch,idx) => {
+        if(boxes[idx]){
           boxes[idx].value = ch;
         }
       });
       syncHidden();
     });
-
   });
 
-  boxes[5].addEventListener('input', () => {
+  boxes[5].addEventListener('input',() => {
 
-    if (hidden.value.length === 6) {
-      setTimeout(() => form.submit(), 120);
+    if(hidden.value.length === 6){
+
+      setTimeout(() => form.submit(),120);
     }
   });
 
-  // Countdown timer
+  // Countdown Timer
   let seconds = 600;
+
   const countdownEl = document.getElementById('countdown');
+
   const tick = setInterval(() => {
     seconds--;
-    if (seconds <= 0) {
+    if(seconds <= 0){
       clearInterval(tick);
       countdownEl.textContent = '0:00';
       verifyBtn.disabled = true;
@@ -358,12 +554,12 @@
     }
 
     const m = Math.floor(seconds / 60);
-    const s = (seconds % 60).toString().padStart(2, '0');
+    const s = (seconds % 60)
+      .toString()
+      .padStart(2,'0');
     countdownEl.textContent = `${m}:${s}`;
-  }, 1000);
-
+  },1000);
   boxes[0].focus();
-
 </script>
 
 </body>
