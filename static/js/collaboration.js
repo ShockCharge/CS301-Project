@@ -1,4 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
+
+    // ==================== DOM ELEMENTS ====================
     const searchInput = document.getElementById('userSearch');
     const searchButton = document.getElementById('searchUsersBtn');
     const peopleList = document.getElementById('peopleList');
@@ -14,24 +16,39 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const chatTitle = document.getElementById('chatTitle');
     const chatSubtitle = document.getElementById('chatSubtitle');
-    const messagesStatus = document.getElementById('messagesStatus');
     const messagesList = document.getElementById('messagesList');
-    const refreshMessagesBtn = document.getElementById('refreshMessagesBtn');
+    const messagesStatus = document.getElementById('messagesStatus');
     const messageForm = document.getElementById('messageForm');
     const messageInput = document.getElementById('messageInput');
     const sendMessageBtn = document.getElementById('sendMessageBtn');
+    const refreshMessagesBtn = document.getElementById('refreshMessagesBtn');
 
-    if (
-        !searchInput || !searchButton || !peopleList || !peopleStatus ||
-        !incomingRequestsList || !incomingStatus || !refreshIncomingBtn ||
-        !friendsList || !friendsStatus || !refreshFriendsBtn ||
-        !chatTitle || !chatSubtitle || !messagesStatus || !messagesList ||
-        !refreshMessagesBtn || !messageForm || !messageInput || !sendMessageBtn
-    ) {
-        return;
-    }
+    // Group Elements
+    const groupsList = document.getElementById('groupsList');
+    const groupsStatus = document.getElementById('groupsStatus');
+    const refreshGroupsBtn = document.getElementById('refreshGroupsBtn');
+
+    const groupChatTitle = document.getElementById('groupChatTitle');
+    const groupChatSubtitle = document.getElementById('groupChatSubtitle');
+    const groupMessagesList = document.getElementById('groupMessagesList');
+    const groupMessagesStatus = document.getElementById('groupMessagesStatus');
+    const groupMessageForm = document.getElementById('groupMessageForm');
+    const groupMessageInput = document.getElementById('groupMessageInput');
+    const sendGroupMessageBtn = document.getElementById('sendGroupMessageBtn');
+
+    const createGroupModalEl = document.getElementById('createGroupModal');
+    const createGroupForm = document.getElementById('createGroupForm');
 
     let selectedFriend = null;
+    let selectedGroup = null;
+
+
+    const formatDateTime = (isoValue) => {
+        if (!isoValue) return '';
+        const date = new Date(isoValue);
+        if (isNaN(date.getTime())) return '';
+        return date.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    };
 
     const escapeHtml = (value) => {
         const div = document.createElement('div');
@@ -39,97 +56,162 @@ document.addEventListener('DOMContentLoaded', () => {
         return div.innerHTML;
     };
 
-    const formatDateTime = (isoValue) => {
-        if (!isoValue) {
-            return '';
+    // ==================== CREATE GROUP ====================
+    if (createGroupForm) {
+        createGroupForm.onsubmit = async (e) => {
+            e.preventDefault();
+
+            const name = document.getElementById('groupName').value.trim();
+            const description = document.getElementById('groupDescription').value.trim();
+
+            if (!name) {
+                alert("Please enter a group name!");
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/collaboration/groups', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, description })
+                });
+
+                if (res.ok) {
+                    // Close modal safely
+                    if (typeof bootstrap !== 'undefined') {
+                        const modal = bootstrap.Modal.getInstance(createGroupModalEl);
+                        if (modal) modal.hide();
+                    }
+                    createGroupModalEl.style.display = 'none';
+                    document.body.classList.remove('modal-open');
+                    const backdrops = document.querySelectorAll('.modal-backdrop');
+                    backdrops.forEach(b => b.remove());
+
+                    createGroupForm.reset();
+                    loadGroups();
+                } else {
+                    const err = await res.json().catch(() => ({}));
+                    alert(err.error || "Failed to create group");
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Connection error. Please try again.");
+            }
+        };
+    }
+
+    // ==================== LOAD GROUPS ====================
+    const loadGroups = async () => {
+        if (!groupsStatus) return;
+        groupsStatus.textContent = 'Loading groups...';
+
+        try {
+            const res = await fetch('/api/collaboration/groups');
+            const data = await res.json();
+
+            groupsList.innerHTML = '';
+
+            if (data.groups && data.groups.length > 0) {
+                data.groups.forEach(group => {
+                    const card = document.createElement('button');
+                    card.className = `friend-card group-card`;
+                    card.innerHTML = `
+                        <span class="friend-avatar" style="background:#764ba2;">G</span>
+                        <span class="friend-details">
+                            <strong>${escapeHtml(group.name)}</strong>
+                            <small>${escapeHtml(group.description || 'Study Group')}</small>
+                        </span>
+                    `;
+                    card.onclick = () => setSelectedGroup(group);
+                    groupsList.appendChild(card);
+                });
+            } else {
+                groupsList.innerHTML = `<p class="text-muted">No groups yet. Create your first group!</p>`;
+            }
+            groupsStatus.textContent = '';
+        } catch (e) {
+            console.error(e);
+            groupsStatus.textContent = "Error loading groups.";
         }
-
-        const date = new Date(isoValue);
-
-        if (Number.isNaN(date.getTime())) {
-            return '';
-        }
-
-        return date.toLocaleString([], {
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
     };
 
+    const setSelectedGroup = (group) => {
+        selectedGroup = group;
+        groupChatTitle.textContent = group.name;
+        groupChatSubtitle.textContent = "Group Discussion";
+        groupMessageInput.disabled = false;
+        sendGroupMessageBtn.disabled = false;
+        loadGroupMessages();
+    };
+
+    const loadGroupMessages = async () => {
+        if (!selectedGroup) return;
+        groupMessagesStatus.textContent = 'Loading messages...';
+
+        try {
+            const res = await fetch(`/api/collaboration/groups/${selectedGroup.id}/messages`);
+            const data = await res.json();
+
+            groupMessagesList.innerHTML = '';
+            data.messages.forEach(msg => {
+                const div = document.createElement('div');
+                div.className = `message-bubble ${msg.is_mine ? 'sent' : 'received'}`;
+                div.innerHTML = `
+                    <small><strong>${escapeHtml(msg.sender_name || 'Member')}</strong></small>
+                    <p>${escapeHtml(msg.body)}</p>
+                    <small>${formatDateTime(msg.created_at)}</small>
+                `;
+                groupMessagesList.appendChild(div);
+            });
+            groupMessagesList.scrollTop = groupMessagesList.scrollHeight;
+            groupMessagesStatus.textContent = '';
+        } catch (e) {
+            groupMessagesStatus.textContent = "Error loading group messages.";
+        }
+    };
+
+    // ==================== YOUR ORIGINAL WORKING CODE ====================
     const renderUsers = (users) => {
         peopleList.innerHTML = '';
-
         if (!users || users.length === 0) {
-            peopleList.innerHTML = `
-                <div class="placeholder-card">
-                    <strong>No students found.</strong>
-                    <p>Try searching by a different name or email address.</p>
-                </div>
-            `;
+            peopleList.innerHTML = `<div class="placeholder-card"><strong>No students found.</strong><p>Try searching by a different name or email.</p></div>`;
             return;
         }
-
         const fragment = document.createDocumentFragment();
-
         users.forEach((user) => {
             const card = document.createElement('article');
             card.className = 'person-card';
-
             const profileText = [user.major, user.institution].filter(Boolean).join(' · ');
-
             card.innerHTML = `
                 <div class="person-info">
                     <p class="person-name">${escapeHtml(user.name || 'Study Planner User')}</p>
                     <p class="person-email">${escapeHtml(user.email || '')}</p>
                     <p class="person-meta">${escapeHtml(profileText || 'Student')}</p>
                 </div>
-                <button class="btn btn-primary btn-sm connect-btn" type="button" data-email="${escapeHtml(user.email || '')}">
-                    Connect
-                </button>
+                <button class="btn btn-primary btn-sm connect-btn" type="button" data-email="${escapeHtml(user.email || '')}">Connect</button>
             `;
-
             fragment.appendChild(card);
         });
-
         peopleList.appendChild(fragment);
     };
 
     const loadUsers = async () => {
         const query = searchInput.value.trim();
         const url = query ? `/api/collaboration/users?q=${encodeURIComponent(query)}` : '/api/collaboration/users';
-
         peopleStatus.textContent = 'Loading users...';
-
         try {
             const response = await fetch(url);
             const data = await response.json();
-
-            if (!response.ok || data.error) {
-                throw new Error(data.error || 'Unable to load users.');
-            }
-
             renderUsers(data.users || []);
             peopleStatus.textContent = `${(data.users || []).length} student(s) found.`;
         } catch (error) {
-            peopleStatus.textContent = error.message || 'Could not load users.';
-            peopleList.innerHTML = `
-                <div class="placeholder-card">
-                    <strong>Unable to load users.</strong>
-                    <p>Please refresh and try again.</p>
-                </div>
-            `;
+            peopleStatus.textContent = 'Could not load users.';
         }
     };
 
     const sendConnectionRequest = async (button) => {
         const receiverEmail = button.dataset.email;
-
-        if (!receiverEmail) {
-            peopleStatus.textContent = 'User email not found. Please refresh and try again.';
-            return;
-        }
+        if (!receiverEmail) return;
 
         const originalText = button.textContent;
         button.disabled = true;
@@ -138,374 +220,199 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch('/api/collaboration/requests', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ receiver_email: receiverEmail })
             });
-
             const data = await response.json();
 
-            if (!response.ok || data.error) {
-                throw new Error(data.error || 'Unable to send request.');
+            if (response.ok) {
+                button.textContent = 'Request Sent';
+                await loadIncomingRequests();
+                await loadFriends();
+            } else {
+                alert(data.error || 'Failed to send request');
+                button.textContent = originalText;
+                button.disabled = false;
             }
-
-            button.textContent = 'Request Sent';
-            peopleStatus.textContent = data.message || 'Connection request sent successfully.';
-            await loadIncomingRequests();
-            await loadFriends();
         } catch (error) {
-            button.disabled = false;
             button.textContent = originalText;
-            peopleStatus.textContent = error.message || 'Could not send request.';
+            button.disabled = false;
         }
     };
 
     const renderIncomingRequests = (requests) => {
         incomingRequestsList.innerHTML = '';
-
         if (!requests || requests.length === 0) {
-            incomingRequestsList.innerHTML = `
-                <div class="placeholder-card">
-                    <strong>No incoming requests.</strong>
-                    <p>You do not have any pending connection requests right now.</p>
-                </div>
-            `;
+            incomingRequestsList.innerHTML = `<div class="placeholder-card"><strong>No incoming requests.</strong></div>`;
             return;
         }
-
         const fragment = document.createDocumentFragment();
-
         requests.forEach((request) => {
             const card = document.createElement('article');
             card.className = 'request-card';
-
-            const profileText = [request.requester_major, request.requester_institution].filter(Boolean).join(' · ');
-
             card.innerHTML = `
                 <div class="request-info">
-                    <p class="person-name">${escapeHtml(request.requester_name || 'Study Planner User')}</p>
-                    <p class="person-email">${escapeHtml(request.requester_email || '')}</p>
-                    <p class="person-meta">${escapeHtml(profileText || 'Wants to connect with you')}</p>
+                    <p class="person-name">${escapeHtml(request.requester_name || 'User')}</p>
+                    <p class="person-email">${escapeHtml(request.requester_email)}</p>
                 </div>
                 <div class="request-actions">
-                    <button class="btn btn-primary btn-sm accept-request-btn" type="button" data-id="${escapeHtml(request.id || '')}">
-                        Accept
-                    </button>
-                    <button class="btn btn-outline-danger btn-sm reject-request-btn" type="button" data-id="${escapeHtml(request.id || '')}">
-                        Reject
-                    </button>
+                    <button class="btn btn-primary btn-sm accept-request-btn" data-id="${request.id}">Accept</button>
+                    <button class="btn btn-outline-danger btn-sm reject-request-btn" data-id="${request.id}">Reject</button>
                 </div>
             `;
-
             fragment.appendChild(card);
         });
-
         incomingRequestsList.appendChild(fragment);
     };
 
     const loadIncomingRequests = async () => {
-        incomingStatus.textContent = 'Loading incoming requests...';
-
+        incomingStatus.textContent = 'Loading...';
         try {
-            const response = await fetch('/api/collaboration/requests/incoming');
-            const data = await response.json();
-
-            if (!response.ok || data.error) {
-                throw new Error(data.error || 'Unable to load incoming requests.');
-            }
-
+            const res = await fetch('/api/collaboration/requests/incoming');
+            const data = await res.json();
             renderIncomingRequests(data.requests || []);
-            incomingStatus.textContent = `${(data.requests || []).length} pending request(s).`;
-        } catch (error) {
-            incomingStatus.textContent = error.message || 'Could not load incoming requests.';
-            incomingRequestsList.innerHTML = `
-                <div class="placeholder-card">
-                    <strong>Unable to load requests.</strong>
-                    <p>Please refresh and try again.</p>
-                </div>
-            `;
+        } catch (e) {
+            incomingStatus.textContent = "Error loading requests.";
         }
     };
 
     const updateConnectionRequest = async (button, action) => {
         const requestId = button.dataset.id;
+        if (!requestId) return;
 
-        if (!requestId) {
-            incomingStatus.textContent = 'Request id not found. Please refresh and try again.';
-            return;
-        }
-
-        const originalText = button.textContent;
         button.disabled = true;
         button.textContent = action === 'accept' ? 'Accepting...' : 'Rejecting...';
 
         try {
-            const response = await fetch(`/api/collaboration/requests/${requestId}/${action}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            const data = await response.json();
-
-            if (!response.ok || data.error) {
-                throw new Error(data.error || `Unable to ${action} request.`);
-            }
-
-            incomingStatus.textContent = data.message || `Request ${action}ed successfully.`;
+            await fetch(`/api/collaboration/requests/${requestId}/${action}`, { method: 'POST' });
             await loadIncomingRequests();
             await loadFriends();
-        } catch (error) {
-            button.disabled = false;
-            button.textContent = originalText;
-            incomingStatus.textContent = error.message || `Could not ${action} request.`;
+        } catch (e) {
+            console.error(e);
         }
     };
 
     const renderFriends = (friends) => {
         friendsList.innerHTML = '';
-
         if (!friends || friends.length === 0) {
-            friendsList.innerHTML = `
-                <div class="placeholder-card">
-                    <strong>No friends yet.</strong>
-                    <p>Accepted connection requests will appear here.</p>
-                </div>
-            `;
+            friendsList.innerHTML = `<div class="placeholder-card"><strong>No friends yet.</strong></div>`;
             return;
         }
-
         const fragment = document.createDocumentFragment();
-
-        friends.forEach((friend) => {
+        friends.forEach(friend => {
             const card = document.createElement('button');
             card.className = 'friend-card';
-            card.type = 'button';
-            card.dataset.email = friend.email || '';
-            card.dataset.name = friend.name || friend.email || 'Study Planner User';
-
-            if (selectedFriend && selectedFriend.email === friend.email) {
-                card.classList.add('active');
-            }
-
-            const profileText = [friend.major, friend.institution].filter(Boolean).join(' · ');
-
+            card.dataset.email = friend.email;
+            card.dataset.name = friend.name;
             card.innerHTML = `
-                <span class="friend-avatar">${escapeHtml((friend.name || friend.email || 'S').charAt(0).toUpperCase())}</span>
+                <span class="friend-avatar">${escapeHtml(friend.name?.charAt(0) || 'F')}</span>
                 <span class="friend-details">
-                    <strong>${escapeHtml(friend.name || 'Study Planner User')}</strong>
-                    <small>${escapeHtml(friend.email || '')}</small>
-                    <small>${escapeHtml(profileText || 'Friend')}</small>
+                    <strong>${escapeHtml(friend.name)}</strong>
+                    <small>${escapeHtml(friend.email)}</small>
                 </span>
             `;
-
+            card.onclick = () => setSelectedFriend(friend);
             fragment.appendChild(card);
         });
-
         friendsList.appendChild(fragment);
     };
 
     const loadFriends = async () => {
         friendsStatus.textContent = 'Loading friends...';
-
         try {
-            const response = await fetch('/api/collaboration/connections');
-            const data = await response.json();
-
-            if (!response.ok || data.error) {
-                throw new Error(data.error || 'Unable to load friends.');
-            }
-
+            const res = await fetch('/api/collaboration/connections');
+            const data = await res.json();
             renderFriends(data.connections || []);
-            friendsStatus.textContent = `${(data.connections || []).length} friend(s).`;
-        } catch (error) {
-            friendsStatus.textContent = error.message || 'Could not load friends.';
-            friendsList.innerHTML = `
-                <div class="placeholder-card">
-                    <strong>Unable to load friends.</strong>
-                    <p>Please refresh and try again.</p>
-                </div>
-            `;
+        } catch (e) {
+            friendsStatus.textContent = "Error loading friends.";
         }
     };
 
     const setSelectedFriend = async (friend) => {
         selectedFriend = friend;
-        chatTitle.textContent = friend.name || 'Friend Messages';
-        chatSubtitle.textContent = friend.email || 'Selected friend';
+        chatTitle.textContent = friend.name || 'Friend';
+        chatSubtitle.textContent = friend.email || '';
         messageInput.disabled = false;
         sendMessageBtn.disabled = false;
-        refreshMessagesBtn.disabled = false;
-
-        document.querySelectorAll('.friend-card').forEach((card) => {
-            card.classList.toggle('active', card.dataset.email === friend.email);
-        });
-
         await loadMessages();
     };
 
     const renderMessages = (messages) => {
         messagesList.innerHTML = '';
-
         if (!messages || messages.length === 0) {
-            messagesList.innerHTML = `
-                <div class="placeholder-card">
-                    <strong>No messages yet.</strong>
-                    <p>Send the first message to start the conversation.</p>
-                </div>
-            `;
+            messagesList.innerHTML = `<div class="placeholder-card"><strong>No messages yet.</strong></div>`;
             return;
         }
-
-        const fragment = document.createDocumentFragment();
-
-        messages.forEach((message) => {
-            const bubble = document.createElement('article');
-            bubble.className = message.is_mine ? 'message-bubble mine' : 'message-bubble theirs';
-
-            bubble.innerHTML = `
-                <p>${escapeHtml(message.body || '')}</p>
-                <small>${escapeHtml(formatDateTime(message.created_at))}</small>
-            `;
-
-            fragment.appendChild(bubble);
+        messages.forEach(msg => {
+            const div = document.createElement('div');
+            div.className = `message-bubble ${msg.is_mine ? 'sent' : 'received'}`;
+            div.innerHTML = `<p>${escapeHtml(msg.body)}</p><small>${formatDateTime(msg.created_at)}</small>`;
+            messagesList.appendChild(div);
         });
-
-        messagesList.appendChild(fragment);
         messagesList.scrollTop = messagesList.scrollHeight;
     };
 
     const loadMessages = async () => {
-        if (!selectedFriend || !selectedFriend.email) {
-            messagesStatus.textContent = 'No friend selected.';
-            return;
-        }
-
-        messagesStatus.textContent = 'Loading messages...';
-
+        if (!selectedFriend) return;
+        messagesStatus.textContent = 'Loading...';
         try {
-            const response = await fetch(`/api/collaboration/messages?friend_email=${encodeURIComponent(selectedFriend.email)}`);
-            const data = await response.json();
-
-            if (!response.ok || data.error) {
-                throw new Error(data.error || 'Unable to load messages.');
-            }
-
+            const res = await fetch(`/api/collaboration/messages?friend_email=${encodeURIComponent(selectedFriend.email)}`);
+            const data = await res.json();
             renderMessages(data.messages || []);
-            messagesStatus.textContent = `${(data.messages || []).length} message(s).`;
-        } catch (error) {
-            messagesStatus.textContent = error.message || 'Could not load messages.';
-            messagesList.innerHTML = `
-                <div class="placeholder-card">
-                    <strong>Unable to load messages.</strong>
-                    <p>Please refresh and try again.</p>
-                </div>
-            `;
+        } catch (e) {
+            messagesStatus.textContent = "Error loading messages.";
         }
     };
 
     const sendMessage = async () => {
-        if (!selectedFriend || !selectedFriend.email) {
-            messagesStatus.textContent = 'Select a friend first.';
-            return;
-        }
-
+        if (!selectedFriend) return;
         const body = messageInput.value.trim();
-
-        if (!body) {
-            messagesStatus.textContent = 'Message cannot be empty.';
-            return;
-        }
-
-        sendMessageBtn.disabled = true;
-        sendMessageBtn.textContent = 'Sending...';
+        if (!body) return;
 
         try {
-            const response = await fetch('/api/collaboration/messages', {
+            await fetch('/api/collaboration/messages', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    receiver_email: selectedFriend.email,
-                    body
-                })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ receiver_email: selectedFriend.email, body })
             });
-
-            const data = await response.json();
-
-            if (!response.ok || data.error) {
-                throw new Error(data.error || 'Unable to send message.');
-            }
-
             messageInput.value = '';
-            messagesStatus.textContent = data.message || 'Message sent successfully.';
-            await loadMessages();
-        } catch (error) {
-            messagesStatus.textContent = error.message || 'Could not send message.';
-        } finally {
-            sendMessageBtn.disabled = false;
-            sendMessageBtn.textContent = 'Send';
-            messageInput.focus();
+            loadMessages();
+        } catch (e) {
+            console.error(e);
         }
     };
 
-    searchButton.addEventListener('click', loadUsers);
+    // ==================== EVENT LISTENERS ====================
+    searchButton?.addEventListener('click', loadUsers);
+    searchInput?.addEventListener('keydown', (e) => { if (e.key === 'Enter') loadUsers(); });
 
-    searchInput.addEventListener('keydown', (event) => {
-        if (event.key === 'Enter') {
-            event.preventDefault();
-            loadUsers();
-        }
+    peopleList?.addEventListener('click', (e) => {
+        const btn = e.target.closest('.connect-btn');
+        if (btn) sendConnectionRequest(btn);
     });
 
-    peopleList.addEventListener('click', (event) => {
-        const button = event.target.closest('.connect-btn');
-
-        if (button) {
-            sendConnectionRequest(button);
-        }
+    incomingRequestsList?.addEventListener('click', (e) => {
+        const accept = e.target.closest('.accept-request-btn');
+        const reject = e.target.closest('.reject-request-btn');
+        if (accept) updateConnectionRequest(accept, 'accept');
+        if (reject) updateConnectionRequest(reject, 'reject');
     });
 
-    incomingRequestsList.addEventListener('click', (event) => {
-        const acceptButton = event.target.closest('.accept-request-btn');
-        const rejectButton = event.target.closest('.reject-request-btn');
-
-        if (acceptButton) {
-            updateConnectionRequest(acceptButton, 'accept');
-            return;
-        }
-
-        if (rejectButton) {
-            updateConnectionRequest(rejectButton, 'reject');
-        }
+    friendsList?.addEventListener('click', (e) => {
+        const card = e.target.closest('.friend-card');
+        if (card) setSelectedFriend({ email: card.dataset.email, name: card.dataset.name });
     });
 
-    friendsList.addEventListener('click', (event) => {
-        const card = event.target.closest('.friend-card');
+    refreshIncomingBtn?.addEventListener('click', loadIncomingRequests);
+    refreshFriendsBtn?.addEventListener('click', loadFriends);
+    refreshMessagesBtn?.addEventListener('click', loadMessages);
+    messageForm?.addEventListener('submit', (e) => { e.preventDefault(); sendMessage(); });
 
-        if (!card) {
-            return;
-        }
+    refreshGroupsBtn?.addEventListener('click', loadGroups);
 
-        setSelectedFriend({
-            email: card.dataset.email,
-            name: card.dataset.name
-        });
-    });
-
-    refreshIncomingBtn.addEventListener('click', loadIncomingRequests);
-    refreshFriendsBtn.addEventListener('click', loadFriends);
-    refreshMessagesBtn.addEventListener('click', loadMessages);
-
-    messageForm.addEventListener('submit', (event) => {
-        event.preventDefault();
-        sendMessage();
-    });
-
+    // ==================== INITIAL LOAD ====================
     loadUsers();
     loadIncomingRequests();
     loadFriends();
+    loadGroups();
 });

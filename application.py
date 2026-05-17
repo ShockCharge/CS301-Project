@@ -10,8 +10,12 @@ import threading
 import random
 import warnings
 import redis
+
 from common import NZ_TZ, ZoneInfo, users_collection, schedules_collection, tasks_collection, exams_collection, classes_collection, vacations_collection, chain, llm
-from task import get_ai_suggestions_task, get_ai_study_plan_task
+
+from task import get_ai_study_plan_task     
+
+from task import get_ai_suggestions_task, get_ai_study_plan_task   # You can remove the old one if it's duplicate
 from celery import Celery
 from celery_app import celery_app
 from collaboration import collaboration_bp
@@ -217,7 +221,10 @@ def get_task_status(date_str):
         return 'current'
     try:
         task_date = datetime.strptime(date_str, '%Y-%m-%d').date()
-        today     = datetime.utcnow().date()
+        
+       
+        today = datetime.now(NZ_TZ).date()
+
         if task_date < today:
             return 'outdated'
         else:
@@ -650,10 +657,12 @@ def settings():
 def api_study_plan():
     if 'user' not in session:
         return jsonify({'error': 'Not authenticated'}), 401
+
     try:
         user_email = session['user']
-        today      = datetime.utcnow().strftime('%Y-%m-%d')
+        today = datetime.now(NZ_TZ).strftime('%Y-%m-%d')
 
+        # Gather user data (fast part - stays in Flask)
         upcoming_tasks = []
         if tasks_collection is not None:
             raw_tasks = list(tasks_collection.find({'user': user_email, 'completed': {'$ne': True}}))
@@ -667,7 +676,7 @@ def api_study_plan():
         if exams_collection is not None:
             raw_exams = list(exams_collection.find({'user': user_email, 'completed': {'$ne': True}}))
             upcoming_exams = [
-                {'name': e.get('subject'), 'date': e.get('date')}
+                {'name': e.get('subject', e.get('name')), 'date': e.get('date')}
                 for e in raw_exams
                 if get_task_status(e.get('date')) != 'outdated'
             ]
@@ -681,55 +690,34 @@ def api_study_plan():
                 if get_task_status(c.get('date')) != 'outdated'
             ]
 
-        all_due_dates = []
-        for item in upcoming_tasks + upcoming_exams + upcoming_classes:
-            if item.get('date'):
-                all_due_dates.append(item['date'])
+        # Offload the heavy AI work to Celery
+        task = get_ai_study_plan_task.delay(user_email)   # ← Only pass user_email
 
-        nearest_date = min(all_due_dates) if all_due_dates else None
-
-        if nearest_date:
-            question = (
-                f"Today is {today}. "
-                f"The student's nearest upcoming deadline is on {nearest_date}. "
-                f"Create a focused, day-by-day study plan ONLY from today ({today}) up to and including {nearest_date}. "
-                f"Do NOT plan any days beyond {nearest_date}. "
-                f"After the plan section, add a separate section titled 'Coming Up Next' "
-                f"that briefly lists all remaining tasks, exams, and classes due AFTER {nearest_date}, "
-                f"sorted by their due date. "
-                f"Keep the tone clear, practical, and motivating."
-            )
-        else:
-            question = (
-                f"Today is {today}. The student has no immediate deadlines. "
-                f"Create a general 7-day study plan to help them stay productive. "
-                f"Keep it clear and motivating."
-            )
-
-        user_context = (
-            f"Today's date: {today}\n"
-            f"Nearest deadline: {nearest_date if nearest_date else 'None'}\n"
-            f"Upcoming tasks: {upcoming_tasks}\n"
-            f"Upcoming exams: {upcoming_exams}\n"
-            f"Upcoming classes: {upcoming_classes}"
-        )
-
-        plan = chain.invoke({"question": question, "user_context": user_context})
-
-        if users_collection is not None:
-            users_collection.update_one(
-                {'email': user_email},
-                {'$set': {'last_study_plan': plan, 'last_study_plan_date': today}},
-                upsert=False
-            )
-
-        return jsonify({'plan': plan, 'generated_at': today, 'cached': False})
+        return jsonify({
+            'task_id': task.id,
+            'status': 'processing',
+            'message': 'Generating your personalized study plan... (this may take 15-40 seconds)'
+        }), 202   
 
     except Exception as e:
         import traceback
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
+    
 
+@app.route('/api/task/<task_id>')
+def task_status(task_id):
+    
+    task = get_ai_study_plan_task.AsyncResult(task_id)
+    
+    if task.state == 'PENDING':
+        return jsonify({"status": "pending", "message": "Still generating..."})
+    elif task.state == 'SUCCESS':
+        return jsonify({"status": "success", "result": task.result})
+    elif task.state == 'FAILURE':
+        return jsonify({"status": "failed", "error": str(task.info)})
+    else:
+        return jsonify({"status": task.state})
 
 @app.route('/api/settings', methods=['GET', 'POST'])
 def api_settings():
