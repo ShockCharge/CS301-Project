@@ -35,7 +35,10 @@ application = app
 
 app.secret_key = os.environ.get('SECRET_KEY', 'supersecretkey123-dev-only')
 
-app.register_blueprint(collaboration_bp)
+app.register_blueprint(
+    collaboration_bp,
+    url_prefix='/api/collaboration'
+)
 
 # Email configuration
 app.config['MAIL_SERVER']   = 'smtp.gmail.com'

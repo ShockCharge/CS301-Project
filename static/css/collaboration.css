@@ -417,3 +417,115 @@
 .modal-backdrop {
     opacity: 0.5 !important;
 }
+/* Study Groups additions for Collaboration page */
+.study-groups-shell {
+    grid-template-columns: minmax(260px, 0.8fr) minmax(360px, 1.2fr);
+    align-items: stretch;
+}
+
+.groups-panel {
+    min-height: 420px;
+}
+
+.group-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.groups-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.group-card {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    gap: 0.75rem;
+    padding: 0.85rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    background: #ffffff;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.group-card:hover,
+.group-card.active {
+    border-color: #2563eb;
+    box-shadow: 0 8px 20px rgba(37, 99, 235, 0.12);
+    transform: translateY(-1px);
+}
+
+.group-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: #6b7280;
+    color: #ffffff;
+    font-weight: 700;
+    flex: 0 0 auto;
+}
+
+.group-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
+}
+
+.group-details strong,
+.group-details small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.group-details small {
+    color: #6b7280;
+}
+
+.group-chat-panel {
+    min-height: 420px;
+}
+
+/* Modal specific styles */
+#createGroupModal .modal-body {
+    padding: 1.5rem;
+}
+
+#createGroupModal .form-check {
+    margin-bottom: 0.5rem;
+}
+
+#inviteFriendsList {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 0.75rem;
+    background-color: #f9fafb;
+}
+
+#inviteFriendsList .form-check-label {
+    width: 100%;
+    cursor: pointer;
+    padding: 0.25rem 0;
+}
+
+#inviteFriendsList .form-check-input {
+    margin-right: 0.75rem;
+}
+
+@media (max-width: 900px) {
+    .study-groups-shell {
+        grid-template-columns: 1fr;
+    }
+}

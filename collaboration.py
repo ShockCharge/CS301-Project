@@ -10,480 +10,504 @@ try:
 except ImportError:
     group_messages_collection = None
 
+try:
+    from common import study_groups_collection
+except ImportError:
+    study_groups_collection = None
 
-collaboration_bp = Blueprint('collaboration_bp', __name__)
+try:
+    from common import group_members_collection
+except ImportError:
+    group_members_collection = None
+
+
+collaboration_bp = Blueprint("collaboration_bp", __name__)
 
 
 def sanitize(value):
     """Basic sanitization helper for user-provided values."""
     if not isinstance(value, str):
         return value
-    return re.sub(r'[<>"\']', '', value).strip()
+    return re.sub(r"[<>\"\\]", "", value).strip()
 
 
 def get_current_user_email():
     """Return the logged-in user's email, or None when the user is not authenticated."""
-    return session.get('user')
-
-
-def normalize_email(email):
-    """Return a clean lowercase email string."""
-    return sanitize(email or '').lower()
+    return session.get("user")
 
 
 def serialize_public_user(user):
     """Return only safe public profile fields for collaboration user listing."""
-    first_name = sanitize(user.get('first_name', '') or '')
-    last_name = sanitize(user.get('last_name', '') or '')
-    full_name = f"{first_name} {last_name}".strip() or user.get('email', 'Study Planner User')
+    first_name = sanitize(user.get("first_name", "") or "")
+    last_name = sanitize(user.get("last_name", "") or "")
+    full_name = f"{first_name} {last_name}".strip() or user.get("email", "Study Planner User")
 
     return {
-        'id': str(user.get('_id')),
-        'name': full_name,
-        'email': user.get('email', ''),
-        'institution': sanitize(user.get('institution', '') or ''),
-        'major': sanitize(user.get('major', '') or ''),
+        "email": sanitize(user.get("email")), # Email is public for collaboration
+        "name": full_name,
+        "major": sanitize(user.get("major", "")), # Public profile field
+        "institution": sanitize(user.get("institution", "")), # Public profile field
     }
 
 
-def serialize_connection_request(connection):
-    """Return a safe JSON version of a connection request."""
-    return {
-        'id': str(connection.get('_id')),
-        'requester_email': connection.get('requester_email', ''),
-        'receiver_email': connection.get('receiver_email', ''),
-        'status': connection.get('status', ''),
-        'created_at': connection.get('created_at').isoformat() if connection.get('created_at') else '',
-        'updated_at': connection.get('updated_at').isoformat() if connection.get('updated_at') else '',
-    }
+@collaboration_bp.route("/collaboration")
+def collaboration():
+    if "user" not in session:
+        return redirect(url_for("login"))
+    return render_template("collaboration.html")
 
 
-def serialize_message(message, current_user):
-    """Return a safe JSON version of a direct message."""
-    sender_email = message.get('sender_email', '')
+@collaboration_bp.route("/api/collaboration/users")
+def list_users():
+    current_user_email = get_current_user_email()
+    if not current_user_email:
+        return jsonify({"error": "Unauthorized"}), 401
 
-    return {
-        'id': str(message.get('_id')),
-        'sender_email': sender_email,
-        'receiver_email': message.get('receiver_email', ''),
-        'body': sanitize(message.get('body', '') or ''),
-        'created_at': message.get('created_at').isoformat() if message.get('created_at') else '',
-        'is_mine': sender_email == current_user,
-    }
-
-
-def get_existing_connection(email_one, email_two):
-    """Find an existing connection/request between two users in either direction."""
-    if social_connections_collection is None:
-        return None
-
-    return social_connections_collection.find_one({
-        '$or': [
-            {'requester_email': email_one, 'receiver_email': email_two},
-            {'requester_email': email_two, 'receiver_email': email_one},
+    query = request.args.get("q", "").strip()
+    search_filter = {}
+    if query:
+        # Search by email or name (case-insensitive regex)
+        search_filter["$or"] = [
+            {"email": {"$regex": query, "$options": "i"}},
+            {"first_name": {"$regex": query, "$options": "i"}},
+            {"last_name": {"$regex": query, "$options": "i"}}
         ]
+
+    # Exclude current user from search results
+    search_filter["email"] = {"$ne": current_user_email}
+
+    users = users_collection.find(search_filter, {"password": 0})
+    serialized_users = [serialize_public_user(user) for user in users]
+
+    # Filter out users who already have a pending or accepted connection with the current user
+    existing_connections = social_connections_collection.find({
+        "$or": [
+            {"requester_email": current_user_email},
+            {"receiver_email": current_user_email}
+        ],
+        "status": {"$in": ["pending", "accepted"]}
     })
 
+    connected_emails = set()
+    for conn in existing_connections:
+        if conn["requester_email"] == current_user_email:
+            connected_emails.add(conn["receiver_email"])
+        else:
+            connected_emails.add(conn["requester_email"])
 
-def get_request_by_id(request_id):
-    """Safely find a connection request by MongoDB ObjectId."""
-    if social_connections_collection is None:
-        return None
+    filtered_users = [user for user in serialized_users if user["email"] not in connected_emails]
+
+    return jsonify({"users": filtered_users})
+
+
+@collaboration_bp.route("/api/collaboration/requests", methods=["POST"])
+def send_connection_request():
+    current_user_email = get_current_user_email()
+    if not current_user_email:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    data = request.get_json()
+    receiver_email = sanitize(data.get("receiver_email"))
+
+    if not receiver_email:
+        return jsonify({"error": "Receiver email is required"}), 400
+
+    if current_user_email == receiver_email:
+        return jsonify({"error": "Cannot send a connection request to yourself"}), 400
+
+    # Check if receiver exists
+    receiver = users_collection.find_one({"email": receiver_email})
+    if not receiver:
+        return jsonify({"error": "Receiver not found"}), 404
+
+    # Check for existing request (pending or accepted)
+    existing_request = social_connections_collection.find_one({
+        "$or": [
+            {"requester_email": current_user_email, "receiver_email": receiver_email},
+            {"requester_email": receiver_email, "receiver_email": current_user_email}
+        ],
+        "status": {"$in": ["pending", "accepted"]}
+    })
+
+    if existing_request:
+        if existing_request["status"] == "pending":
+            return jsonify({"error": "A pending request already exists with this user"}), 409
+        else:
+            return jsonify({"error": "You are already connected with this user"}), 409
+
+    social_connections_collection.insert_one({
+        "requester_email": current_user_email,
+        "receiver_email": receiver_email,
+        "status": "pending",
+        "created_at": datetime.utcnow()
+    })
+
+    return jsonify({"message": "Connection request sent successfully"}), 201
+
+
+@collaboration_bp.route("/api/collaboration/requests/incoming")
+def get_incoming_requests():
+    current_user_email = get_current_user_email()
+    if not current_user_email:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    incoming_requests = social_connections_collection.find({
+        "receiver_email": current_user_email,
+        "status": "pending"
+    })
+
+    requests_data = []
+    for req in incoming_requests:
+        requester = users_collection.find_one({"email": req["requester_email"]})
+        if requester:
+            requests_data.append({
+                "id": str(req["_id"]),
+                "requester_email": req["requester_email"],
+                "requester_name": serialize_public_user(requester).get("name", "Study Planner User"),
+                "requester_major": serialize_public_user(requester).get("major", ""),
+                "requester_institution": serialize_public_user(requester).get("institution", ""),
+                "created_at": req["created_at"].isoformat()
+            })
+    return jsonify({"requests": requests_data})
+
+
+@collaboration_bp.route("/api/collaboration/requests/<request_id>/<action>", methods=["POST"])
+def handle_connection_request(request_id, action):
+    current_user_email = get_current_user_email()
+    if not current_user_email:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    if action not in ["accept", "reject"]:
+        return jsonify({"error": "Invalid action"}), 400
 
     try:
-        return social_connections_collection.find_one({'_id': ObjectId(request_id)})
-    except Exception:
-        return None
+        obj_id = ObjectId(request_id)
+    except:
+        return jsonify({"error": "Invalid request ID"}), 400
+
+    request_doc = social_connections_collection.find_one({"_id": obj_id, "receiver_email": current_user_email, "status": "pending"})
+
+    if not request_doc:
+        return jsonify({"error": "Request not found or already handled"}), 404
+
+    if action == "accept":
+        social_connections_collection.update_one({"_id": obj_id}, {"$set": {"status": "accepted", "accepted_at": datetime.utcnow()}})
+        message = "Connection request accepted"
+    else: # reject
+        social_connections_collection.update_one({"_id": obj_id}, {"$set": {"status": "rejected", "rejected_at": datetime.utcnow()}})
+        message = "Connection request rejected"
+
+    return jsonify({"message": message})
 
 
-def are_connected(email_one, email_two):
-    """Return True when two users have an accepted social connection."""
-    if social_connections_collection is None:
-        return False
+@collaboration_bp.route("/api/collaboration/connections")
+def get_connections():
+    current_user_email = get_current_user_email()
+    if not current_user_email:
+        return jsonify({"error": "Unauthorized"}), 401
 
-    return social_connections_collection.find_one({
-        'status': 'accepted',
-        '$or': [
-            {'requester_email': email_one, 'receiver_email': email_two},
-            {'requester_email': email_two, 'receiver_email': email_one},
-        ]
-    }) is not None
+    accepted_connections = social_connections_collection.find({
+        "$or": [
+            {"requester_email": current_user_email},
+            {"receiver_email": current_user_email}
+        ],
+        "status": "accepted"
+    })
+
+    connections_data = []
+    for conn in accepted_connections:
+        other_user_email = conn["receiver_email"] if conn["requester_email"] == current_user_email else conn["requester_email"]
+        other_user = users_collection.find_one({"email": other_user_email})
+        if other_user:
+            connections_data.append(serialize_public_user(other_user))
+
+    return jsonify({"connections": connections_data})
 
 
-def direct_conversation_id(email_one, email_two):
-    """Create a stable conversation id for two users."""
-    emails = sorted([email_one.lower(), email_two.lower()])
-    return f"direct::{emails[0]}::{emails[1]}"
+@collaboration_bp.route("/api/collaboration/messages", methods=["GET", "POST"])
+def handle_direct_messages():
+    current_user_email = get_current_user_email()
+    if not current_user_email:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    if not group_messages_collection:
+        return jsonify({"error": "Database is not connected for messages"}), 500
+
+    if request.method == "POST":
+        data = request.get_json()
+        receiver_email = sanitize(data.get("receiver_email"))
+        body = sanitize(data.get("body"))
+
+        if not receiver_email or not body:
+            return jsonify({"error": "Receiver email and message body are required"}), 400
+
+        # Check if they are connected
+        is_connected = social_connections_collection.find_one({
+            "$or": [
+                {"requester_email": current_user_email, "receiver_email": receiver_email, "status": "accepted"},
+                {"requester_email": receiver_email, "receiver_email": current_user_email, "status": "accepted"}
+            ]
+        })
+
+        if not is_connected:
+            return jsonify({"error": "You are not connected with this user"}), 403
+
+        group_messages_collection.insert_one({
+            "sender_email": current_user_email,
+            "receiver_email": receiver_email,
+            "body": body,
+            "created_at": datetime.utcnow(),
+            "message_type": "direct" # Differentiate from group messages
+        })
+        return jsonify({"message": "Message sent successfully"}), 201
+
+    else: # GET request
+        friend_email = request.args.get("friend_email")
+        if not friend_email:
+            return jsonify({"error": "Friend email is required"}), 400
+
+        # Check if they are connected
+        is_connected = social_connections_collection.find_one({
+            "$or": [
+                {"requester_email": current_user_email, "receiver_email": friend_email, "status": "accepted"},
+                {"requester_email": friend_email, "receiver_email": current_user_email, "status": "accepted"}
+            ]
+        })
+
+        if not is_connected:
+            return jsonify({"error": "You are not connected with this user"}), 403
+
+        messages = group_messages_collection.find({
+            "$or": [
+                {"sender_email": current_user_email, "receiver_email": friend_email},
+                {"sender_email": friend_email, "receiver_email": current_user_email}
+            ],
+            "message_type": "direct"
+        }).sort("created_at", 1)
+
+        messages_data = []
+        for msg in messages:
+            messages_data.append({
+                "sender_email": msg["sender_email"],
+                "body": msg["body"],
+                "created_at": msg["created_at"].isoformat(),
+                "is_mine": msg["sender_email"] == current_user_email
+            })
+        return jsonify({"messages": messages_data})
 
 
-def build_friend_from_connection(connection, current_user):
-    """Build a friend profile object from an accepted connection document."""
-    requester_email = connection.get('requester_email', '')
-    receiver_email = connection.get('receiver_email', '')
-    friend_email = receiver_email if requester_email == current_user else requester_email
+# --- Study Group Routes ---
+@collaboration_bp.route('/api/collaboration/groups', methods=['GET'])
+def get_groups():
+    """Return collaboration groups"""
 
-    friend_user = users_collection.find_one({'email': friend_email}) if users_collection is not None else None
+    current_user = get_current_user_email()
 
-    if friend_user:
-        friend_profile = serialize_public_user(friend_user)
-    else:
-        friend_profile = {
-            'id': '',
-            'name': friend_email or 'Study Planner User',
-            'email': friend_email,
-            'institution': '',
-            'major': '',
+    if not current_user:
+        return jsonify({'error': 'Not logged in'}), 401
+
+    # Temporary empty groups list
+    groups = []
+
+    return jsonify({
+        'groups': groups
+    })
+
+
+
+
+@collaboration_bp.route("/api/collaboration/groups", methods=["GET", "POST"])
+def handle_study_groups():
+    current_user_email = get_current_user_email()
+    if not current_user_email:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    if not study_groups_collection or not group_members_collection:
+        return jsonify({"error": "Database is not connected for study groups"}), 500
+
+    if request.method == "POST":
+        data = request.get_json()
+        group_name = sanitize(data.get("name"))
+        group_description = sanitize(data.get("description", ""))
+
+        if not group_name:
+            return jsonify({"error": "Group name is required"}), 400
+
+        # Create the group
+        new_group = {
+            "name": group_name,
+            "description": group_description,
+            "created_by": current_user_email,
+            "created_at": datetime.utcnow()
         }
+        result = study_groups_collection.insert_one(new_group)
+        group_id = result.inserted_id
 
-    friend_profile['connection_id'] = str(connection.get('_id'))
-    friend_profile['connected_at'] = connection.get('updated_at').isoformat() if connection.get('updated_at') else ''
+        # Add creator as a member
+        group_members_collection.insert_one({
+            "group_id": group_id,
+            "member_email": current_user_email,
+            "joined_at": datetime.utcnow(),
+            "role": "admin" # Creator is admin
+        })
 
-    return friend_profile
+        return jsonify({"message": "Study group created successfully", "group_id": str(group_id)}), 201
+
+    else: # GET request - list groups current user is a member of
+        member_of_groups = group_members_collection.find({"member_email": current_user_email})
+        group_ids = [member["group_id"] for member in member_of_groups]
+
+        groups_data = []
+        for group_id in group_ids:
+            group = study_groups_collection.find_one({"_id": group_id})
+            if group:
+                groups_data.append({
+                    "id": str(group["_id"]),
+                    "name": group["name"],
+                    "description": group.get("description", ""),
+                    "created_by": group["created_by"],
+                    "created_at": group["created_at"].isoformat()
+                })
+        return jsonify({"groups": groups_data})
 
 
-@collaboration_bp.route('/collaboration')
-def collaboration():
-    """Render the collaboration hub page."""
-    if 'user' not in session:
-        return redirect(url_for('login'))
-    return render_template('collaboration.html')
+@collaboration_bp.route("/api/collaboration/groups/<group_id>/members")
+def get_group_members(group_id):
+    current_user_email = get_current_user_email()
+    if not current_user_email:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    if not group_members_collection:
+        return jsonify({"error": "Database is not connected for group members"}), 500
+
+    try:
+        obj_group_id = ObjectId(group_id)
+    except:
+        return jsonify({"error": "Invalid group ID"}), 400
+
+    # Check if current user is a member of this group
+    is_member = group_members_collection.find_one({"group_id": obj_group_id, "member_email": current_user_email})
+    if not is_member:
+        return jsonify({"error": "Not a member of this group"}), 403
+
+    members = group_members_collection.find({"group_id": obj_group_id})
+    members_data = []
+    for member in members:
+        user = users_collection.find_one({"email": member["member_email"]})
+        if user:
+            members_data.append({
+                "email": user["email"],
+                "name": serialize_public_user(user).get("name", "Study Planner User"),
+                "role": member.get("role", "member"),
+                "joined_at": member["joined_at"].isoformat()
+            })
+    return jsonify({"members": members_data})
 
 
-@collaboration_bp.route('/api/collaboration/users', methods=['GET'])
-def api_collaboration_users():
-    """Return safe public user records for the collaboration people list."""
-    current_user = get_current_user_email()
+@collaboration_bp.route("/api/collaboration/groups/<group_id>/invite", methods=["POST"])
+def invite_to_group(group_id):
+    current_user_email = get_current_user_email()
+    if not current_user_email:
+        return jsonify({"error": "Unauthorized"}), 401
 
-    if not current_user:
-        return jsonify({'error': 'Not logged in'}), 401
+    if not group_members_collection or not study_groups_collection:
+        return jsonify({"error": "Database is not connected for group invitations"}), 500
 
-    if users_collection is None:
-        return jsonify({'users': [], 'message': 'Database is not connected.'})
+    try:
+        obj_group_id = ObjectId(group_id)
+    except:
+        return jsonify({"error": "Invalid group ID"}), 400
 
-    search_query = sanitize(request.args.get('q', '')).lower()
-    mongo_filter = {'email': {'$ne': current_user}}
+    data = request.get_json()
+    invitee_email = sanitize(data.get("invitee_email"))
 
-    if search_query:
-        mongo_filter['$or'] = [
-            {'first_name': {'$regex': search_query, '$options': 'i'}},
-            {'last_name': {'$regex': search_query, '$options': 'i'}},
-            {'email': {'$regex': search_query, '$options': 'i'}},
+    if not invitee_email:
+        return jsonify({"error": "Invitee email is required"}), 400
+
+    # Check if current user is an admin of this group
+    is_admin = group_members_collection.find_one({"group_id": obj_group_id, "member_email": current_user_email, "role": "admin"})
+    if not is_admin:
+        return jsonify({"error": "Only group admins can invite members"}), 403
+
+    # Check if invitee is an existing user and a friend
+    invitee_user = users_collection.find_one({"email": invitee_email})
+    if not invitee_user:
+        return jsonify({"error": "Invitee user not found"}), 404
+
+    is_friend = social_connections_collection.find_one({
+        "$or": [
+            {"requester_email": current_user_email, "receiver_email": invitee_email, "status": "accepted"},
+            {"requester_email": invitee_email, "receiver_email": current_user_email, "status": "accepted"}
         ]
+    })
+    if not is_friend:
+        return jsonify({"error": "You can only invite friends to a group"}), 403
 
-    users = users_collection.find(
-        mongo_filter,
-        {'password': 0, 'settings': 0, 'phone': 0}
-    ).sort('first_name', 1).limit(25)
+    # Check if invitee is already a member
+    already_member = group_members_collection.find_one({"group_id": obj_group_id, "member_email": invitee_email})
+    if already_member:
+        return jsonify({"error": "User is already a member of this group"}), 409
 
-    return jsonify({'users': [serialize_public_user(user) for user in users]})
-
-
-@collaboration_bp.route('/api/collaboration/requests', methods=['POST'])
-def send_connection_request():
-    """Send a pending connection request to another student."""
-    current_user = get_current_user_email()
-
-    if not current_user:
-        return jsonify({'error': 'Not logged in'}), 401
-
-    if users_collection is None or social_connections_collection is None:
-        return jsonify({'error': 'Database is not connected.'}), 503
-
-    data = request.get_json(silent=True) or {}
-    receiver_email = normalize_email(data.get('receiver_email', ''))
-
-    if not receiver_email:
-        return jsonify({'error': 'Receiver email is required.'}), 400
-
-    if receiver_email == current_user.lower():
-        return jsonify({'error': 'You cannot send a request to yourself.'}), 400
-
-    receiver = users_collection.find_one({'email': receiver_email})
-
-    if not receiver:
-        return jsonify({'error': 'User not found.'}), 404
-
-    existing_connection = get_existing_connection(current_user, receiver_email)
-
-    if existing_connection:
-        existing_status = existing_connection.get('status', 'pending')
-        return jsonify({
-            'error': f'A connection or request already exists with status: {existing_status}.'
-        }), 409
-
-    now = datetime.utcnow()
-
-    connection_doc = {
-        'requester_email': current_user,
-        'receiver_email': receiver_email,
-        'status': 'pending',
-        'created_at': now,
-        'updated_at': now,
-    }
-
-    result = social_connections_collection.insert_one(connection_doc)
-    connection_doc['_id'] = result.inserted_id
-
-    return jsonify({
-        'message': 'Connection request sent successfully.',
-        'request': serialize_connection_request(connection_doc)
-    }), 201
-
-
-@collaboration_bp.route('/api/collaboration/requests/incoming', methods=['GET'])
-def get_incoming_connection_requests():
-    """Return pending requests received by the current user."""
-    current_user = get_current_user_email()
-
-    if not current_user:
-        return jsonify({'error': 'Not logged in'}), 401
-
-    if social_connections_collection is None:
-        return jsonify({'requests': [], 'message': 'Database is not connected.'})
-
-    requests_cursor = social_connections_collection.find({
-        'receiver_email': current_user,
-        'status': 'pending'
-    }).sort('created_at', -1)
-
-    requests_list = []
-
-    for item in requests_cursor:
-        request_data = serialize_connection_request(item)
-        requester_email = item.get('requester_email', '')
-        requester = users_collection.find_one({'email': requester_email}) if users_collection is not None else None
-
-        if requester:
-            public_requester = serialize_public_user(requester)
-            request_data['requester_name'] = public_requester.get('name', requester_email)
-            request_data['requester_institution'] = public_requester.get('institution', '')
-            request_data['requester_major'] = public_requester.get('major', '')
-        else:
-            request_data['requester_name'] = requester_email or 'Study Planner User'
-            request_data['requester_institution'] = ''
-            request_data['requester_major'] = ''
-
-        requests_list.append(request_data)
-
-    return jsonify({'requests': requests_list})
-
-
-@collaboration_bp.route('/api/collaboration/requests/outgoing', methods=['GET'])
-def get_outgoing_connection_requests():
-    """Return pending requests sent by the current user."""
-    current_user = get_current_user_email()
-
-    if not current_user:
-        return jsonify({'error': 'Not logged in'}), 401
-
-    if social_connections_collection is None:
-        return jsonify({'requests': [], 'message': 'Database is not connected.'})
-
-    requests_cursor = social_connections_collection.find({
-        'requester_email': current_user,
-        'status': 'pending'
-    }).sort('created_at', -1)
-
-    return jsonify({
-        'requests': [serialize_connection_request(item) for item in requests_cursor]
+    group_members_collection.insert_one({
+        "group_id": obj_group_id,
+        "member_email": invitee_email,
+        "joined_at": datetime.utcnow(),
+        "role": "member"
     })
 
-
-@collaboration_bp.route('/api/collaboration/connections', methods=['GET'])
-def get_accepted_connections():
-    """Return accepted friends for the current user."""
-    current_user = get_current_user_email()
-
-    if not current_user:
-        return jsonify({'error': 'Not logged in'}), 401
-
-    if social_connections_collection is None:
-        return jsonify({'connections': [], 'message': 'Database is not connected.'})
-
-    connections_cursor = social_connections_collection.find({
-        'status': 'accepted',
-        '$or': [
-            {'requester_email': current_user},
-            {'receiver_email': current_user},
-        ]
-    }).sort('updated_at', -1)
-
-    friends = [build_friend_from_connection(item, current_user) for item in connections_cursor]
-
-    return jsonify({'connections': friends})
+    return jsonify({"message": f"{invitee_email} invited to the group successfully"}), 200
 
 
-@collaboration_bp.route('/api/collaboration/requests/<request_id>/accept', methods=['POST'])
-def accept_connection_request(request_id):
-    """Accept a pending connection request received by the current user."""
-    current_user = get_current_user_email()
+@collaboration_bp.route("/api/collaboration/groups/<group_id>/messages", methods=["GET", "POST"])
+def handle_group_messages(group_id):
+    current_user_email = get_current_user_email()
+    if not current_user_email:
+        return jsonify({"error": "Unauthorized"}), 401
 
-    if not current_user:
-        return jsonify({'error': 'Not logged in'}), 401
+    if not group_messages_collection or not group_members_collection:
+        return jsonify({"error": "Database is not connected for group messages"}), 500
 
-    if social_connections_collection is None:
-        return jsonify({'error': 'Database is not connected.'}), 503
+    try:
+        obj_group_id = ObjectId(group_id)
+    except:
+        return jsonify({"error": "Invalid group ID"}), 400
 
-    connection = get_request_by_id(request_id)
+    # Check if current user is a member of this group
+    is_member = group_members_collection.find_one({"group_id": obj_group_id, "member_email": current_user_email})
+    if not is_member:
+        return jsonify({"error": "Not a member of this group"}), 403
 
-    if not connection:
-        return jsonify({'error': 'Connection request not found.'}), 404
+    if request.method == "POST":
+        data = request.get_json()
+        body = sanitize(data.get("body"))
 
-    if connection.get('receiver_email') != current_user:
-        return jsonify({'error': 'You can only accept requests sent to you.'}), 403
+        if not body:
+            return jsonify({"error": "Message body is required"}), 400
 
-    if connection.get('status') != 'pending':
-        return jsonify({'error': 'Only pending requests can be accepted.'}), 400
+        group_messages_collection.insert_one({
+            "group_id": obj_group_id,
+            "sender_email": current_user_email,
+            "body": body,
+            "created_at": datetime.NZ_TZ(),
+            "message_type": "group"
+        })
+        return jsonify({"message": "Group message sent successfully"}), 201
 
-    social_connections_collection.update_one(
-        {'_id': connection['_id']},
-        {'$set': {'status': 'accepted', 'updated_at': datetime.utcnow()}}
-    )
+    else: # GET request
+        messages = group_messages_collection.find({
+            "group_id": obj_group_id,
+            "message_type": "group"
+        }).sort("created_at", 1)
 
-    return jsonify({'message': 'Connection request accepted successfully.'})
-
-
-@collaboration_bp.route('/api/collaboration/requests/<request_id>/reject', methods=['POST'])
-def reject_connection_request(request_id):
-    """Reject a pending connection request received by the current user."""
-    current_user = get_current_user_email()
-
-    if not current_user:
-        return jsonify({'error': 'Not logged in'}), 401
-
-    if social_connections_collection is None:
-        return jsonify({'error': 'Database is not connected.'}), 503
-
-    connection = get_request_by_id(request_id)
-
-    if not connection:
-        return jsonify({'error': 'Connection request not found.'}), 404
-
-    if connection.get('receiver_email') != current_user:
-        return jsonify({'error': 'You can only reject requests sent to you.'}), 403
-
-    if connection.get('status') != 'pending':
-        return jsonify({'error': 'Only pending requests can be rejected.'}), 400
-
-    social_connections_collection.update_one(
-        {'_id': connection['_id']},
-        {'$set': {'status': 'rejected', 'updated_at': datetime.utcnow()}}
-    )
-
-    return jsonify({'message': 'Connection request rejected successfully.'})
-
-
-@collaboration_bp.route('/api/collaboration/requests/<request_id>/cancel', methods=['POST'])
-def cancel_connection_request(request_id):
-    """Cancel a pending connection request sent by the current user."""
-    current_user = get_current_user_email()
-
-    if not current_user:
-        return jsonify({'error': 'Not logged in'}), 401
-
-    if social_connections_collection is None:
-        return jsonify({'error': 'Database is not connected.'}), 503
-
-    connection = get_request_by_id(request_id)
-
-    if not connection:
-        return jsonify({'error': 'Connection request not found.'}), 404
-
-    if connection.get('requester_email') != current_user:
-        return jsonify({'error': 'You can only cancel requests you sent.'}), 403
-
-    if connection.get('status') != 'pending':
-        return jsonify({'error': 'Only pending requests can be cancelled.'}), 400
-
-    social_connections_collection.update_one(
-        {'_id': connection['_id']},
-        {'$set': {'status': 'cancelled', 'updated_at': datetime.utcnow()}}
-    )
-
-    return jsonify({'message': 'Connection request cancelled successfully.'})
-
-
-@collaboration_bp.route('/api/collaboration/messages', methods=['GET'])
-def get_direct_messages():
-    """Return direct messages between the current user and one accepted friend."""
-    current_user = get_current_user_email()
-
-    if not current_user:
-        return jsonify({'error': 'Not logged in'}), 401
-
-    if group_messages_collection is None:
-        return jsonify({'messages': [], 'message': 'Database is not connected.'})
-
-    friend_email = normalize_email(request.args.get('friend_email', ''))
-
-    if not friend_email:
-        return jsonify({'error': 'Friend email is required.'}), 400
-
-    if friend_email == current_user.lower():
-        return jsonify({'error': 'You cannot message yourself.'}), 400
-
-    if not are_connected(current_user, friend_email):
-        return jsonify({'error': 'You can only message accepted friends.'}), 403
-
-    conversation_id = direct_conversation_id(current_user, friend_email)
-
-    messages_cursor = group_messages_collection.find({
-        'conversation_type': 'direct',
-        'conversation_id': conversation_id,
-    }).sort('created_at', 1).limit(100)
-
-    return jsonify({
-        'messages': [serialize_message(message, current_user) for message in messages_cursor]
-    })
-
-
-@collaboration_bp.route('/api/collaboration/messages', methods=['POST'])
-def send_direct_message():
-    """Send a direct message to an accepted friend."""
-    current_user = get_current_user_email()
-
-    if not current_user:
-        return jsonify({'error': 'Not logged in'}), 401
-
-    if group_messages_collection is None:
-        return jsonify({'error': 'Database is not connected.'}), 503
-
-    data = request.get_json(silent=True) or {}
-    receiver_email = normalize_email(data.get('receiver_email', ''))
-    body = sanitize(data.get('body', '') or '')
-
-    if not receiver_email:
-        return jsonify({'error': 'Receiver email is required.'}), 400
-
-    if receiver_email == current_user.lower():
-        return jsonify({'error': 'You cannot message yourself.'}), 400
-
-    if not body:
-        return jsonify({'error': 'Message cannot be empty.'}), 400
-
-    if len(body) > 1000:
-        return jsonify({'error': 'Message is too long. Please keep it under 1000 characters.'}), 400
-
-    if not are_connected(current_user, receiver_email):
-        return jsonify({'error': 'You can only message accepted friends.'}), 403
-
-    now = datetime.utcnow()
-
-    message_doc = {
-        'conversation_type': 'direct',
-        'conversation_id': direct_conversation_id(current_user, receiver_email),
-        'sender_email': current_user,
-        'receiver_email': receiver_email,
-        'body': body,
-        'created_at': now,
-        'updated_at': now,
-        'read_at': None,
-    }
-
-    result = group_messages_collection.insert_one(message_doc)
-    message_doc['_id'] = result.inserted_id
-
-    return jsonify({
-        'message': 'Message sent successfully.',
-        'chat_message': serialize_message(message_doc, current_user)
-    }), 201
+        messages_data = []
+        for msg in messages:
+            sender_user = users_collection.find_one({"email": msg["sender_email"]})
+            sender_name = serialize_public_user(sender_user).get("name", "Study Planner User") if sender_user else "Unknown User"
+            messages_data.append({
+                "sender_email": msg["sender_email"],
+                "sender_name": sender_name,
+                "body": msg["body"],
+                "created_at": msg["created_at"].isoformat(),
+                "is_mine": msg["sender_email"] == current_user_email
+            })
+        return jsonify({"messages": messages_data})
