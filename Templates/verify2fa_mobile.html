@@ -6,14 +6,10 @@
   <title>Study Planner – Verify Login</title>
 
   <!-- Bootstrap -->
-  <link
-    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
-    rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 
   <!-- Google Font -->
-  <link
-    href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap"
-    rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
 
   <style>
 
@@ -35,7 +31,6 @@
     }
 
     /* Main Responsive Wrapper */
-
     .verify-wrapper{
       width:100%;
       max-width:1600px;
@@ -45,7 +40,6 @@
     }
 
     /* Main Verification Screen */
-
     .mobile-frame{
       width:100%;
       max-width:1200px;
@@ -61,7 +55,6 @@
     }
 
     /* Glass Overlay */
-
     .mobile-frame::before{
       content:"";
       position:absolute;
@@ -74,7 +67,6 @@
     }
 
     /* Main Content */
-
     .screen{
       width:100%;
       max-width:650px;
@@ -85,7 +77,6 @@
     }
 
     /* Logo */
-
     .logo{
       width:110px;
       height:110px;
@@ -100,7 +91,6 @@
     }
 
     /* Title */
-
     h1{
       font-size:38px;
       font-weight:800;
@@ -114,7 +104,6 @@
     }
 
     /* Email Badge */
-
     .email-badge{
       display:inline-block;
       background:rgba(255,255,255,0.14);
@@ -149,7 +138,6 @@
     }
 
     /* OTP */
-
     .otp-row{
       display:flex;
       justify-content:center;
@@ -183,7 +171,6 @@
     }
 
     /* Verify Button */
-
     .btn-verify{
       width:100%;
       border:none;
@@ -209,27 +196,34 @@
     }
 
     /* Small Text */
-
     .small-text{
       font-size:15px;
       opacity:0.9;
       margin-top:10px;
     }
-
-    /* Responsive design */
-    @media (max-width: 1024px) {
-
+    
+    .resend-btn{
+      background:none;
+      border:none;
+      color:#2ee6c9;
+      font-weight:700;
+      cursor:pointer;
+      padding:0;
+      margin-left:4px;
+      transition:0.2s ease;
+    }
+    
     .resend-btn:hover{
       opacity:0.8;
     }
-
+    
     /* Timer */
     .timer{
       font-size:14px;
       opacity:0.75;
       margin-top:18px;
     }
-
+    
     /* Back Link */
     .back-link{
       display:inline-block;
@@ -241,16 +235,12 @@
     }
 
     .back-link:hover{
-
       opacity:0.8;
     }
-
     /* ───────── Responsive ───────── */
-
     /* Large Desktop */
 
     @media (min-width:1400px){
-
       .mobile-frame{
         max-width:1400px;
       }
@@ -273,7 +263,6 @@
     /* Tablet */
 
     @media (max-width:992px){
-
       .mobile-frame{
         max-width:100%;
       }
@@ -319,7 +308,6 @@
     }
 
     /* Small Mobile */
-
     @media (max-width:576px){
 
       .logo{
@@ -438,8 +426,7 @@
 
         <button 
         type="submit" 
-        class="btn 
-        btn-verify" 
+        class="btn btn-verify"
         id="verify-btn" 
         disabled>
           Verify
@@ -531,7 +518,7 @@
       setTimeout(() => form.submit(),120);
     }
   });
-
+  
   // Countdown Timer
   let seconds = 600;
 
@@ -544,15 +531,15 @@
       countdownEl.textContent = '0:00';
       verifyBtn.disabled = true;
       return;
-    }
+  }
 
     const m = Math.floor(seconds / 60);
     const s = (seconds % 60)
       .toString()
       .padStart(2,'0');
-    countdownEl.textContent = `${m}:${s}`;
-  },1000);
+    countdownEl.textContent = `${m}:${s}`;},1000);
   boxes[0].focus();
+
 </script>
 
 </body>

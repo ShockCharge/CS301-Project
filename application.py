@@ -10,11 +10,8 @@ import threading
 import random
 import warnings
 import redis
-
 from common import NZ_TZ, ZoneInfo, users_collection, schedules_collection, tasks_collection, exams_collection, classes_collection, vacations_collection, chain, llm
-
 from task import get_ai_study_plan_task     
-
 from task import get_ai_suggestions_task, get_ai_study_plan_task   # You can remove the old one if it's duplicate
 from celery import Celery
 from celery_app import celery_app
@@ -337,7 +334,6 @@ def verify_password(password, hashed):
     return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
 
 # PAGE ROUTES
-
 @app.route('/verify-2fa', methods=['GET', 'POST'])
 def verify_2fa():
 
@@ -352,7 +348,7 @@ def verify_2fa():
         expiry = session.get('otp_expiry')
 
         if not stored_otp or not expiry:
-            return render_template('verify.html', error='Verification session expired')
+            return render_template('verify.html', error='Verification session expired. Please try again!')
 
         expiry = datetime.fromisoformat(expiry)
 
@@ -369,7 +365,7 @@ def verify_2fa():
 
             return redirect(url_for('dashboard'))
 
-        return render_template('verify.html', error='Invalid verification code')
+        return render_template('verify.html', error='Invalid verification code. Please try again!')
 
     return render_template('verify.html')
 
