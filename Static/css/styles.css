@@ -273,6 +273,20 @@ body {
 /* ────────────────────────────────────────────
    TOGGLE SWITCH
 ──────────────────────────────────────────── */
+.toggle-switch { position:relative; display:inline-block; width:50px; height:26px; flex-shrink:0; }
+.toggle-switch input { opacity:0; width:0; height:0; }
+.toggle-slider {
+    position:absolute; cursor:pointer; inset:0;
+    background:var(--toggle-track-off);
+    border-radius:26px; transition:background 0.3s;
+}
+.toggle-slider::before {
+    position:absolute; content:"";
+    height:20px; width:20px; left:3px; bottom:3px;
+    background:var(--toggle-knob); border-radius:50%; transition:transform 0.3s;
+}
+.toggle-switch input:checked + .toggle-slider { background:var(--toggle-track-on); }
+.toggle-switch input:checked + .toggle-slider::before { transform:translateX(24px); }
 
 /* ────────────────────────────────────────────
    TOAST
