@@ -3,7 +3,13 @@ from bson import ObjectId
 from datetime import datetime
 import re
 
-from common import users_collection, social_connections_collection
+from common import (
+    users_collection, 
+    social_connections_collection,
+    study_groups_collection,
+    group_members_collection,
+    group_messages_collection
+)
 
 try:
     from common import group_messages_collection, study_groups_collection, group_members_collection
@@ -159,7 +165,7 @@ def collaboration():
     return render_template('collaboration.html')
 
 
-@collaboration_bp.route('/api/collaboration/users', methods=['GET'])
+@collaboration_bp.route('/collaboration/users', methods=['GET'])
 def api_collaboration_users():
     """Return safe public user records for the collaboration people list."""
     current_user = get_current_user_email()
