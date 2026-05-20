@@ -11,7 +11,7 @@ import random
 import warnings
 import redis
 
-from common import NZ_TZ, ZoneInfo, users_collection, schedules_collection, tasks_collection, exams_collection, classes_collection, vacations_collection, chain, llm
+from common import NZ_TZ, ZoneInfo, users_collection, schedules_collection, tasks_collection, exams_collection, classes_collection, vacations_collection, chain, llm, social_connections_collection, study_groups_collection, group_members_collection, group_messages_collection
 
 from task import get_ai_study_plan_task     
 
@@ -37,7 +37,7 @@ app.secret_key = os.environ.get('SECRET_KEY', 'supersecretkey123-dev-only')
 
 app.register_blueprint(
     collaboration_bp,
-    url_prefix='/api/collaboration'
+    url_prefix='/api'
 )
 
 # Email configuration
