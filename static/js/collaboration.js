@@ -39,7 +39,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const groupMessageForm = document.getElementById("groupMessageForm");
     const groupMessageInput = document.getElementById("groupMessageInput");
     const sendGroupMessageBtn = document.getElementById("sendGroupMessageBtn");
-
+    
+    
+    let selectedFriend = null;
+    let selectedGroup = null;
 
     if (
         !searchInput || !searchButton || !peopleList || !peopleStatus ||
@@ -51,13 +54,7 @@ document.addEventListener("DOMContentLoaded", () => {
         !groupsList || !groupsStatus || !refreshGroupsBtn ||
         !groupChatTitle || !groupChatSubtitle || !groupMessagesStatus || !groupMessagesList ||
         !refreshGroupMessagesBtn || !groupMessageForm || !groupMessageInput || !sendGroupMessageBtn
-    ) {
-        console.error("One or more required DOM elements not found. Collaboration features may not work correctly.");
-        return;
-    }
-
-    let selectedFriend = null;
-    let selectedGroup = null;
+    )
 
     const escapeHtml = (value) => {
         const div = document.createElement("div");
