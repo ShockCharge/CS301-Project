@@ -5,71 +5,54 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Study Planner | Profile</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700;900&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-     <link rel="stylesheet" href="{{ url_for('static', filename='css/OLD_styles.css') }}">
-     <link rel="stylesheet" href="{{ url_for('static', filename='css/profile.css') }}">
-    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/profile.css') }}">
 </head>
 <body>
-    <div class="app-container">
+<div class="app-wrapper">
+
+    <!-- Header -->
+    <nav class="header">
+        <span class="header-title">Study Planner</span>
+        <div class="header-content">
+            <div class="header-time" id="header-time"></div>
+            <div class="header-date" id="header-date"></div>
+        </div>
+        <button class="menu" id="sidebar-toggle">
+            <span></span><span></span><span></span>
+        </button>
+    </nav>
+
+    <div class="app-body">
+
         <!-- Sidebar -->
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <h1 class="sidebar-brand">Study Planner</h1>
-            </div>
+        <aside class="sidebar collapsed" id="sidebar">
             <nav class="sidebar-nav">
                 <ul>
-                    <li><a href="{{ url_for('dashboard') }}" class="nav-link">
-                        <i class="bi bi-grid"></i>
-                        <span>Dashboard</span>
-                    </a></li>
-                    <li><a href="{{ url_for('schedule') }}" class="nav-link">
-                        <i class="bi bi-calendar3"></i>
-                        <span>Schedule</span>
-                    </a></li>
-                
+                    <li><a href="{{ url_for('dashboard') }}" class="nav-link"><i class="bi bi-grid"></i><span>Dashboard</span></a></li>
+                    <li><a href="{{ url_for('schedule') }}"  class="nav-link"><i class="bi bi-calendar3"></i><span>Schedule</span></a></li>
                     <li>
                         <a href="#" class="nav-link" id="activities-toggle">
-                            <i class="bi bi-list-task"></i>
-                            <span>Activities</span>
-                            <i class="bi bi-chevron-down submenu-arrow"></i>
+                            <i class="bi bi-list-task"></i><span>Activities</span>
+                            <i class="bi bi-chevron-down submenu-arrow" id="activities-arrow"></i>
                         </a>
                         <ul class="submenu" id="activities-submenu">
-                            <li><a href="{{ url_for('tasks') }}" class="nav-link">
-                                <i class="bi bi-check-square"></i>
-                                <span>Tasks</span>
-                            </a></li>
-                            <li><a href="{{ url_for('exams') }}" class="nav-link">
-                                <i class="bi bi-book"></i>
-                                <span>Exams</span>
-                            </a></li>
-                            <li><a href="{{ url_for('classes') }}" class="nav-link">
-                                <i class="bi bi-mortarboard"></i>
-                                <span>Classes</span>
-                            </a></li>
-                            <li><a href="{{ url_for('vacations') }}" class="nav-link">
-                                <i class="bi bi-airplane"></i>
-                                <span>Vacations</span>
-                            </a></li>
+                            <li><a href="{{ url_for('tasks') }}"     class="nav-link"><i class="bi bi-check-square"></i><span>Tasks</span></a></li>
+                            <li><a href="{{ url_for('exams') }}"     class="nav-link"><i class="bi bi-book"></i><span>Exams</span></a></li>
+                            <li><a href="{{ url_for('classes') }}"   class="nav-link"><i class="bi bi-mortarboard"></i><span>Classes</span></a></li>
+                            <li><a href="{{ url_for('vacations') }}" class="nav-link"><i class="bi bi-airplane"></i><span>Vacations</span></a></li>
                         </ul>
                     </li>
-                    <li><a href="{{ url_for('chatbot') }}" class="nav-link">
-                        <i class="bi bi-chat-dots"></i>
-                        <span>Chatbot</span> 
-                    </a></li>
-                    <li><a href="{{ url_for('collaboration_bp.collaboration') }}" class="nav-link active"><i class="bi bi-people"></i><span>Collaboration</span></a></li>
-
-                    
-                    <li><a href="{{ url_for('settings') }}" class="nav-link">
-                        <i class="bi bi-gear"></i>
-                        <span>Settings</span>
-                    </a></li>
-                    <li><a href="{{ url_for('profile') }}" class="nav-link active">
-                        <i class="bi bi-person-circle"></i>
-                        <span>Profile</span>
-                    </a></li>
+                    <li><a href="{{ url_for('chatbot') }}"  class="nav-link"><i class="bi bi-chat-dots"></i><span>Chatbot</span></a></li>
+                    <li><a href="{{ url_for('settings') }}" class="nav-link"><i class="bi bi-gear"></i><span>Settings</span></a></li>
+                    <li><a href="{{ url_for('profile') }}"  class="nav-link active"><i class="bi bi-person-circle"></i><span>Profile</span></a></li>
                 </ul>
             </nav>
             <div class="sidebar-footer">
@@ -77,358 +60,379 @@
             </div>
         </aside>
 
+        <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
         <!-- Main Content -->
-        <main class="main-content">
-            <header class="header">
-                <h2 class="page-title">My Profile</h2>
-            </header>
+        <main class="content">
+            <div class="content-inner">
 
-            <div class="profile-page">
-                <!-- Profile Picture Section -->
-                <div class="profile-section">
-                    <h3 class="section-title">Profile Picture</h3>
-                    <div class="profile-picture-container">
-                        <div class="profile-picture-wrapper">
-                            <img id="profile-pic" src="{{ url_for('static', filename='css/images/studyplanner_icon.png') }}" alt="Profile Picture" class="profile-picture">
-                            <label for="profile-upload" class="upload-overlay">
-                                <i class="bi bi-camera"></i>
-                                <span>Change Photo</span>
-                            </label>
-                            <input type="file" id="profile-upload" accept="image/*" style="display: none;">
+                <!-- ── Hero Banner ── -->
+                <div class="profile-hero">
+                    <div class="profile-avatar-wrap">
+                        <img id="profile-pic"
+                             src="{{ url_for('static', filename='css/images/studyplanner_icon.png') }}"
+                             alt="Profile Picture" class="profile-avatar-img">
+                        <label for="profile-upload" class="profile-avatar-edit" title="Change photo">
+                            <i class="bi bi-pencil-fill"></i>
+                        </label>
+                        <input type="file" id="profile-upload" accept="image/*" style="display:none;">
+                    </div>
+                    <div class="profile-hero-info">
+                        <h2 class="profile-name">
+                            {{ (user.first_name ~ ' ' ~ user.last_name) if user and user.first_name else session.user }}
+                        </h2>
+                        <p class="profile-email">{{ session.user }}</p>
+                        {% if user and user.institution %}
+                        <p class="profile-institution"><i class="bi bi-mortarboard-fill"></i> {{ user.institution }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- ── Stats Row (like the reference image) ── -->
+                <div class="profile-stats-row">
+                    <div class="profile-stat-card">
+                        <i class="bi bi-clock-history profile-stat-icon"></i>
+                        <div class="profile-stat-body">
+                            <span class="profile-stat-value">{{ stats.total_study_time if stats else 0 }}</span>
+                            <span class="profile-stat-label">Study Hours</span>
                         </div>
-                        <div class="profile-picture-actions">
-                            <button class="btn btn-primary" onclick="document.getElementById('profile-upload').click()">
-                                <i class="bi bi-upload"></i> Upload New Photo
+                    </div>
+                    <div class="profile-stat-card">
+                        <i class="bi bi-check-circle-fill profile-stat-icon success"></i>
+                        <div class="profile-stat-body">
+                            <span class="profile-stat-value">{{ stats.completed_tasks if stats else 0 }}/{{ stats.total_tasks if stats else 0 }}</span>
+                            <span class="profile-stat-label">Tasks Done</span>
+                        </div>
+                    </div>
+                    <div class="profile-stat-card">
+                        <i class="bi bi-journal-bookmark-fill profile-stat-icon warning"></i>
+                        <div class="profile-stat-body">
+                            <span class="profile-stat-value">{{ stats.upcoming_exams if stats else 0 }}</span>
+                            <span class="profile-stat-label">Upcoming Exams</span>
+                        </div>
+                    </div>
+                    <div class="profile-stat-card">
+                        <i class="bi bi-fire profile-stat-icon danger"></i>
+                        <div class="profile-stat-body">
+                            <span class="profile-stat-value">{{ stats.current_streak if stats else 0 }}</span>
+                            <span class="profile-stat-label">Day Streak</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ── Personal Information ── -->
+                <div class="profile-card">
+                    <div class="profile-card-header">
+                        <i class="bi bi-person-fill"></i>
+                        <span>Personal Information</span>
+                    </div>
+                    <div class="profile-card-body">
+                        <form id="personal-info-form">
+                            <div class="pf-grid-2">
+                                <div class="pf-field">
+                                    <label>First Name</label>
+                                    <input type="text" name="first_name" class="form-input"
+                                           value="{{ user.first_name if user and user.first_name else '' }}"
+                                           placeholder="Enter first name">
+                                </div>
+                                <div class="pf-field">
+                                    <label>Last Name</label>
+                                    <input type="text" name="last_name" class="form-input"
+                                           value="{{ user.last_name if user and user.last_name else '' }}"
+                                           placeholder="Enter last name">
+                                </div>
+                                <div class="pf-field">
+                                    <label>Email Address</label>
+                                    <input type="email" class="form-input"
+                                           value="{{ session.user }}" readonly>
+                                </div>
+                                <div class="pf-field">
+                                    <label>Phone Number</label>
+                                    <input type="tel" name="phone" class="form-input"
+                                           value="{{ user.phone if user and user.phone else '' }}"
+                                           placeholder="Enter phone number">
+                                </div>
+                                <div class="pf-field">
+                                    <label>Date of Birth</label>
+                                    <input type="date" name="date_of_birth" class="form-input"
+                                           value="{{ user.date_of_birth if user and user.date_of_birth else '' }}">
+                                </div>
+                                <div class="pf-field">
+                                    <label>Gender</label>
+                                    <select name="gender" class="form-input">
+                                        <option value="">Select gender</option>
+                                        <option value="male"   {% if user and user.gender == 'male'   %}selected{% endif %}>Male</option>
+                                        <option value="female" {% if user and user.gender == 'female' %}selected{% endif %}>Female</option>
+                                        <option value="other"  {% if user and user.gender == 'other'  %}selected{% endif %}>Other</option>
+                                        <option value="prefer-not-to-say" {% if user and user.gender == 'prefer-not-to-say' %}selected{% endif %}>Prefer not to say</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="pf-field">
+                                <label>Address</label>
+                                <textarea name="address" class="form-input" rows="2"
+                                          placeholder="Enter your address">{{ user.address if user and user.address else '' }}</textarea>
+                            </div>
+                            <div class="pf-actions">
+                                <button type="submit" class="pf-btn-save">
+                                    <i class="bi bi-save"></i> Save Changes
+                                </button>
+                                <button type="reset" class="pf-btn-cancel">
+                                    <i class="bi bi-x-circle"></i> Cancel
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- ── Study Information ── -->
+                <div class="profile-card">
+                    <div class="profile-card-header">
+                        <i class="bi bi-book-fill"></i>
+                        <span>Study Information</span>
+                    </div>
+                    <div class="profile-card-body">
+                        <form id="study-info-form">
+                            <div class="pf-grid-2">
+                                <div class="pf-field">
+                                    <label>Institution / University</label>
+                                    <input type="text" name="institution" class="form-input"
+                                           value="{{ user.institution if user and user.institution else '' }}"
+                                           placeholder="Enter institution name">
+                                </div>
+                                <div class="pf-field">
+                                    <label>Student ID</label>
+                                    <input type="text" name="student_id" class="form-input"
+                                           value="{{ user.student_id if user and user.student_id else '' }}"
+                                           placeholder="Enter student ID">
+                                </div>
+                                <div class="pf-field">
+                                    <label>Major / Field of Study</label>
+                                    <input type="text" name="major" class="form-input"
+                                           value="{{ user.major if user and user.major else '' }}"
+                                           placeholder="Enter your major">
+                                </div>
+                                <div class="pf-field">
+                                    <label>Year Level</label>
+                                    <select name="year_level" class="form-input">
+                                        <option value="">Select year level</option>
+                                        {% for y in [1,2,3,4,5] %}
+                                        <option value="{{ y }}" {% if user and user.year_level == y|string %}selected{% endif %}>Year {{ y }}{% if y == 5 %}+{% endif %}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="pf-field">
+                                    <label>Daily Study Goal (hours)</label>
+                                    <input type="number" name="daily_study_goal" class="form-input"
+                                           min="0" max="24" step="0.5"
+                                           value="{{ user.daily_study_goal if user and user.daily_study_goal else '' }}"
+                                           placeholder="e.g. 4">
+                                </div>
+                                <div class="pf-field">
+                                    <label>Preferred Study Time</label>
+                                    <select name="preferred_study_time" class="form-input">
+                                        <option value="">Select time</option>
+                                        <option value="morning"   {% if user and user.preferred_study_time == 'morning'   %}selected{% endif %}>Morning (6AM–12PM)</option>
+                                        <option value="afternoon" {% if user and user.preferred_study_time == 'afternoon' %}selected{% endif %}>Afternoon (12PM–6PM)</option>
+                                        <option value="evening"   {% if user and user.preferred_study_time == 'evening'   %}selected{% endif %}>Evening (6PM–12AM)</option>
+                                        <option value="night"     {% if user and user.preferred_study_time == 'night'     %}selected{% endif %}>Night (12AM–6AM)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="pf-actions">
+                                <button type="submit" class="pf-btn-save">
+                                    <i class="bi bi-save"></i> Save Study Info
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- ── Change Password ── -->
+                <div class="profile-card">
+                    <div class="profile-card-header">
+                        <i class="bi bi-shield-lock-fill"></i>
+                        <span>Change Password</span>
+                    </div>
+                    <div class="profile-card-body">
+                        <form id="change-password-form">
+                            <div class="pf-grid-1">
+                                <div class="pf-field">
+                                    <label>Current Password</label>
+                                    <input type="password" id="current-password" class="form-input" placeholder="Enter current password" required>
+                                </div>
+                                <div class="pf-field">
+                                    <label>New Password</label>
+                                    <input type="password" id="new-password" class="form-input" placeholder="Min 8 chars, 1 uppercase, 1 number" required>
+                                </div>
+                                <div class="pf-field">
+                                    <label>Confirm New Password</label>
+                                    <input type="password" id="confirm-new-password" class="form-input" placeholder="Repeat new password" required>
+                                </div>
+                            </div>
+                            <div id="pw-error" class="pf-error" style="display:none;"></div>
+                            <div class="pf-actions">
+                                <button type="submit" class="pf-btn-save">
+                                    <i class="bi bi-key-fill"></i> Update Password
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- ── Account Actions ── -->
+                <div class="profile-card">
+                    <div class="profile-card-header">
+                        <i class="bi bi-gear-fill"></i>
+                        <span>Account</span>
+                    </div>
+                    <div class="profile-card-body">
+                        <div class="profile-action-row" id="logoutRow">
+                            <div class="profile-action-left">
+                                <i class="bi bi-box-arrow-right profile-action-icon"></i>
+                                <div>
+                                    <strong>Log Out</strong>
+                                    <p>Sign out of your account on this device</p>
+                                </div>
+                            </div>
+                            <a href="{{ url_for('logout') }}" class="profile-action-btn neutral">
+                                Log Out <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </div>
+                        <div class="profile-action-row">
+                            <div class="profile-action-left">
+                                <i class="bi bi-crown-fill profile-action-icon warning"></i>
+                                <div>
+                                    <strong>Premium Subscription</strong>
+                                    <p>Upgrade for advanced features</p>
+                                </div>
+                            </div>
+                            <button class="profile-action-btn warning" onclick="alert('Premium coming soon!')">
+                                Upgrade <i class="bi bi-chevron-right"></i>
                             </button>
-                            <button class="btn btn-secondary" onclick="removeProfilePicture()">
-                                <i class="bi bi-trash"></i> Remove Photo
+                        </div>
+                        <div class="profile-action-row danger-row">
+                            <div class="profile-action-left">
+                                <i class="bi bi-trash3-fill profile-action-icon danger"></i>
+                                <div>
+                                    <strong>Delete Account</strong>
+                                    <p>Permanently remove your account and all data</p>
+                                </div>
+                            </div>
+                            <button class="profile-action-btn danger" onclick="confirmDeleteAccount()">
+                                Delete <i class="bi bi-chevron-right"></i>
                             </button>
                         </div>
                     </div>
                 </div>
 
-                <!-- Personal Information Section -->
-                <div class="profile-section">
-                    <h3 class="section-title">Personal Information</h3>
-                    <form id="personal-info-form" class="profile-form">
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="first-name">First Name</label>
-                                <input type="text" id="first-name" name="first_name" class="form-control" value="{{ user.first_name if user and user.first_name else '' }}" placeholder="Enter first name">
-                            </div>
-                            <div class="form-group">
-                                <label for="last-name">Last Name</label>
-                                <input type="text" id="last-name" name="last_name" class="form-control" value="{{ user.last_name if user and user.last_name else '' }}" placeholder="Enter last name">
-                            </div>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="email">Email Address</label>
-                                <input type="email" id="email" name="email" class="form-control" value="{{ session.user if session.user else '' }}" readonly>
-                            </div>
-                            <div class="form-group">
-                                <label for="phone">Phone Number</label>
-                                <input type="tel" id="phone" name="phone" class="form-control" placeholder="Enter phone number">
-                            </div>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="date-of-birth">Date of Birth</label>
-                                <input type="date" id="date-of-birth" name="date_of_birth" class="form-control">
-                            </div>
-                            <div class="form-group">
-                                <label for="gender">Gender</label>
-                                <select id="gender" name="gender" class="form-control">
-                                    <option value="">Select gender</option>
-                                    <option value="male">Male</option>
-                                    <option value="female">Female</option>
-                                    <option value="other">Other</option>
-                                    <option value="prefer-not-to-say">Prefer not to say</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label for="address">Address</label>
-                            <textarea id="address" name="address" class="form-control" rows="2" placeholder="Enter your address"></textarea>
-                        </div>
-                        <div class="form-actions">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="bi bi-save"></i> Save Changes
-                            </button>
-                            <button type="reset" class="btn btn-secondary">
-                                <i class="bi bi-x-circle"></i> Cancel
-                            </button>
-                        </div>
-                    </form>
-                </div>
+                <footer>&copy; 2025 Study Planner</footer>
 
-                <!-- Study Information Section -->
-                <div class="profile-section">
-                    <h3 class="section-title">Study Information</h3>
-                    <form id="study-info-form" class="profile-form">
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="institution">Institution/University</label>
-                                <input type="text" id="institution" name="institution" class="form-control" value="{{ user.institution if user and user.institution else '' }}" placeholder="Enter institution name">
-                            </div>
-                            <div class="form-group">
-                                <label for="student-id">Student ID</label>
-                                <input type="text" id="student-id" name="student_id" class="form-control" placeholder="Enter student ID">
-                            </div>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="major">Major/Field of Study</label>
-                                <input type="text" id="major" name="major" class="form-control" value="{{ user.major if user and user.major else '' }}" placeholder="Enter your major">
-                            </div>
-                            <div class="form-group">
-                                <label for="year-level">Year Level</label>
-                                <select id="year-level" name="year_level" class="form-control">
-                                    <option value="">Select year level</option>
-                                    <option value="1">Year 1</option>
-                                    <option value="2">Year 2</option>
-                                    <option value="3">Year 3</option>
-                                    <option value="4">Year 4</option>
-                                    <option value="5">Year 5+</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="daily-study-goal">Daily Study Goal (hours)</label>
-                                <input type="number" id="daily-study-goal" name="daily_study_goal" class="form-control" min="0" max="24" step="0.5" placeholder="e.g., 4">
-                            </div>
-                            <div class="form-group">
-                                <label for="preferred-study-time">Preferred Study Time</label>
-                                <select id="preferred-study-time" name="preferred_study_time" class="form-control">
-                                    <option value="">Select time</option>
-                                    <option value="morning">Morning (6AM - 12PM)</option>
-                                    <option value="afternoon">Afternoon (12PM - 6PM)</option>
-                                    <option value="evening">Evening (6PM - 12AM)</option>
-                                    <option value="night">Night (12AM - 6AM)</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="form-actions">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="bi bi-save"></i> Save Study Info
-                            </button>
-                        </div>
-                    </form>
-                </div>
-
-                <!-- Change Password Section -->
-                <div class="profile-section">
-                    <h3 class="section-title">Change Password</h3>
-                    <form id="change-password-form" class="profile-form">
-                        <div class="form-group">
-                            <label for="current-password">Current Password</label>
-                            <input type="password" id="current-password" name="current_password" class="form-control" placeholder="Enter current password" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="new-password">New Password</label>
-                            <input type="password" id="new-password" name="new_password" class="form-control" placeholder="Enter new password" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="confirm-new-password">Confirm New Password</label>
-                            <input type="password" id="confirm-new-password" name="confirm_new_password" class="form-control" placeholder="Confirm new password" required>
-                        </div>
-                        <div class="form-actions">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="bi bi-key"></i> Update Password
-                            </button>
-                        </div>
-                    </form>
-                </div>
-
-                <!-- Account Statistics Section -->
-                <div class="stat-box">
-    <i class="bi bi-clock-history stat-icon"></i>
-    <div class="stat-content">
-        <h4>Total Study Time</h4>
-        <p class="stat-value">{{ stats.total_study_time if stats else 0 }} hours</p>
-    </div>
-</div>
-<div class="stat-box">
-    <i class="bi bi-check-circle stat-icon"></i>
-    <div class="stat-content">
-        <h4>Completed Tasks</h4>
-        <p class="stat-value">{{ stats.completed_tasks if stats else 0 }} / {{ stats.total_tasks if stats else 0 }}</p>
-    </div>
-</div>
-<div class="stat-box">
-    <i class="bi bi-calendar-event stat-icon"></i>
-    <div class="stat-content">
-        <h4>Upcoming Exams</h4>
-        <p class="stat-value">{{ stats.upcoming_exams if stats else 0 }}</p>
-    </div>
-</div>
-<div class="stat-box">
-    <i class="bi bi-fire stat-icon"></i>
-    <div class="stat-content">
-        <h4>Current Streak</h4>
-        <p class="stat-value">{{ stats.current_streak if stats else 0 }} days</p>
-    </div>
-</div>
-
-                <!-- Delete Account Section -->
-                <div class="profile-section danger-zone">
-                    <h3 class="section-title">Danger Zone</h3>
-                    <div class="danger-content">
-                        <p>Once you delete your account, there is no going back. Please be certain.</p>
-                        <button class="btn btn-danger" onclick="confirmDeleteAccount()">
-                            <i class="bi bi-exclamation-triangle"></i> Delete Account
-                        </button>
-                    </div>
-                </div>
-            </div>
+            </div><!-- /content-inner -->
         </main>
     </div>
+</div>
 
-    <script>
-        // Load saved profile picture on page load
-        window.addEventListener('DOMContentLoaded', function() {
-            const savedPic = localStorage.getItem('profilePicture');
-            if (savedPic) {
-                document.getElementById('profile-pic').src = savedPic;
-            }
-        });
+<!-- Toast container -->
+<div id="toastContainer" style="position:fixed;bottom:1.5rem;right:1.5rem;z-index:9999;"></div>
 
-        // Profile picture preview and save
-        document.getElementById('profile-upload').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const imageData = e.target.result;
-                    document.getElementById('profile-pic').src = imageData;
-                    // Save to localStorage
-                    localStorage.setItem('profilePicture', imageData);
-                };
-                reader.readAsDataURL(file);
-            }
-        });
+<script src="{{ url_for('static', filename='js/script.js') }}"></script>
+<script src="{{ url_for('static', filename='js/darkmode.js') }}"></script>
+<script>
+    /* ── Clock ── */
+    function updateTime() {
+        const now = new Date();
+        document.getElementById('header-time').textContent = now.toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' });
+        document.getElementById('header-date').textContent = now.toLocaleDateString('en-US', { weekday:'long', day:'numeric', month:'long' });
+    }
+    updateTime(); setInterval(updateTime, 1000);
 
-        // Remove profile picture
-        function removeProfilePicture() {
-            if (confirm('Are you sure you want to remove your profile picture?')) {
-                document.getElementById('profile-pic').src = "{{ url_for('static', filename='css/images/studyplanner_icon.png') }}";
-                document.getElementById('profile-upload').value = '';
-                // Remove from localStorage
-                localStorage.removeItem('profilePicture');
-            }
-        }
-
-        // Personal info form
-        document.getElementById('personal-info-form').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const formData = new FormData(e.target);
-            const data = {};
-            formData.forEach((value, key) => {
-                data[key] = value;
-            });
-            
-            try {
-                const response = await fetch('/api/profile', {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(data)
-                });
-                
-                const result = await response.json();
-                if (result.success) {
-                    alert('Personal information updated successfully!');
-                } else {
-                    alert('Failed to update personal information.');
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('An error occurred while updating your information.');
-            }
-        });
-
-        // Study info form
-        document.getElementById('study-info-form').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const formData = new FormData(e.target);
-            const data = {};
-            formData.forEach((value, key) => {
-                data[key] = value;
-            });
-            
-            try {
-                const response = await fetch('/api/profile', {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(data)
-                });
-                
-                const result = await response.json();
-                if (result.success) {
-                    alert('Study information updated successfully!');
-                } else {
-                    alert('Failed to update study information.');
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('An error occurred while updating your information.');
-            }
-        });
-
-        // Change password form
-   document.getElementById('change-password-form').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    const newPassword = document.getElementById('new-password').value;
-    const confirmPassword = document.getElementById('confirm-new-password').value;
-
-    if (newPassword !== confirmPassword) {
-        alert('New passwords do not match!');
-        return;
+    /* ── Toast ── */
+    function showToast(msg, type) {
+        const c = document.getElementById('toastContainer') || document.body;
+        const t = document.createElement('div');
+        t.className   = `toast-msg toast-${type}`;
+        t.textContent = msg;
+        c.appendChild(t);
+        setTimeout(() => { t.style.opacity='0'; t.style.transition='opacity 0.3s'; setTimeout(()=>{ if(t.parentNode) t.parentNode.removeChild(t); },300); }, 3000);
     }
 
-    const response = await fetch('/api/change_password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            current_password: document.getElementById('current-password').value,
-            new_password: newPassword
-        })
+    /* ── Profile picture ── */
+    window.addEventListener('DOMContentLoaded', function() {
+        const saved = localStorage.getItem('profilePicture');
+        if (saved) document.getElementById('profile-pic').src = saved;
     });
-    const result = await response.json();
-    if (result.success) {
-        alert('Password updated successfully!');
-        e.target.reset();
-    } else {
-        alert(result.error || 'Failed to update password.');
+
+    document.getElementById('profile-upload').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const data = e.target.result;
+            document.getElementById('profile-pic').src = data;
+            localStorage.setItem('profilePicture', data);
+            showToast('Profile photo updated!', 'success');
+        };
+        reader.readAsDataURL(file);
+    });
+
+    /* ── Personal info ── */
+    document.getElementById('personal-info-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const data = Object.fromEntries(new FormData(e.target));
+        try {
+            const res = await fetch('/api/profile', { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });
+            const r   = await res.json();
+            if (r.success) showToast('Personal information saved!', 'success');
+            else           showToast('Failed to save changes.', 'error');
+        } catch { showToast('Network error.', 'error'); }
+    });
+
+    /* ── Study info ── */
+    document.getElementById('study-info-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const data = Object.fromEntries(new FormData(e.target));
+        try {
+            const res = await fetch('/api/profile', { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });
+            const r   = await res.json();
+            if (r.success) showToast('Study information saved!', 'success');
+            else           showToast('Failed to save changes.', 'error');
+        } catch { showToast('Network error.', 'error'); }
+    });
+
+    /* ── Change password ── */
+    document.getElementById('change-password-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const cur     = document.getElementById('current-password').value;
+        const newPw   = document.getElementById('new-password').value;
+        const confirm = document.getElementById('confirm-new-password').value;
+        const errEl   = document.getElementById('pw-error');
+
+        if (newPw !== confirm) { errEl.textContent='Passwords do not match.'; errEl.style.display='block'; return; }
+        if (newPw.length < 8)  { errEl.textContent='Password must be at least 8 characters.'; errEl.style.display='block'; return; }
+        if (!/[A-Z]/.test(newPw)) { errEl.textContent='Needs at least one uppercase letter.'; errEl.style.display='block'; return; }
+        if (!/[0-9]/.test(newPw)) { errEl.textContent='Needs at least one number.'; errEl.style.display='block'; return; }
+        errEl.style.display = 'none';
+
+        try {
+            const res = await fetch('/api/change_password', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ current_password:cur, new_password:newPw }) });
+            const r   = await res.json();
+            if (r.success) { showToast('Password updated!', 'success'); e.target.reset(); }
+            else { errEl.textContent = r.error || 'Failed to update password.'; errEl.style.display='block'; }
+        } catch { errEl.textContent='Network error.'; errEl.style.display='block'; }
+    });
+
+    /* ── Delete account ── */
+    function confirmDeleteAccount() {
+        if (!confirm('Are you absolutely sure? This will permanently delete your account and all data.')) return;
+        if (!confirm('Last warning — this cannot be undone. Continue?')) return;
+        fetch('/api/account', { method:'DELETE' })
+            .then(r => r.json())
+            .then(d => {
+                if (d.success) { showToast('Account deleted.', 'success'); setTimeout(()=>{ window.location.href="{{ url_for('logout') }}"; }, 1500); }
+                else showToast('Failed to delete account.', 'error');
+            }).catch(() => showToast('Network error.', 'error'));
     }
-});
-
-
-function confirmDeleteAccount() {
-    if (confirm('Are you absolutely sure you want to delete your account? This action cannot be undone.')) {
-        if (confirm('This will permanently delete all your data. Continue?')) {
-            fetch('/api/account', { method: 'DELETE' })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        alert('Account deleted successfully.');
-                        window.location.href = "{{ url_for('logout') }}";
-                    } else {
-                        alert('Failed to delete account.');
-                    }
-                })
-                .catch(err => alert('Network error occurred.'));
-        }
-    }
-}
-    </script>
-        <script src="{{ url_for('static', filename='js/script.js') }}"></script>
-
+</script>
 </body>
 </html>
