@@ -71,7 +71,7 @@ def serialize_message(message, current_user):
     sender_email = message.get('sender_email', '')
     
     sender_name = sender_email
-    if users_collection:
+    if users_collection is not None:
         sender = users_collection.find_one({'email': sender_email})
         if sender:
             first = sanitize(sender.get('first_name', '') or '')
@@ -81,7 +81,7 @@ def serialize_message(message, current_user):
     return {
         'id': str(message.get('_id')),
         'sender_email': sender_email,
-        'sender_name': sender_name,           # ← Added for frontend
+        'sender_name': sender_name,
         'receiver_email': message.get('receiver_email', ''),
         'body': sanitize(message.get('body', '') or ''),
         'created_at': message.get('created_at').isoformat() if message.get('created_at') else '',
@@ -194,7 +194,7 @@ def api_collaboration_users():
     return jsonify({'users': [serialize_public_user(user) for user in users]})
 
 
-@collaboration_bp.route('/api/collaboration/requests', methods=['POST'])
+@collaboration_bp.route('/collaboration/requests', methods=['POST'])
 def send_connection_request():
     """Send a pending connection request to another student."""
     current_user = get_current_user_email()
@@ -246,7 +246,7 @@ def send_connection_request():
     }), 201
 
 
-@collaboration_bp.route('/api/collaboration/requests/incoming', methods=['GET'])
+@collaboration_bp.route('/collaboration/requests/incoming', methods=['GET'])
 def get_incoming_connection_requests():
     """Return pending requests received by the current user."""
     current_user = get_current_user_email()
@@ -284,7 +284,7 @@ def get_incoming_connection_requests():
     return jsonify({'requests': requests_list})
 
 
-@collaboration_bp.route('/api/collaboration/requests/outgoing', methods=['GET'])
+@collaboration_bp.route('/collaboration/requests/outgoing', methods=['GET'])
 def get_outgoing_connection_requests():
     """Return pending requests sent by the current user."""
     current_user = get_current_user_email()
@@ -305,7 +305,7 @@ def get_outgoing_connection_requests():
     })
 
 
-@collaboration_bp.route('/api/collaboration/connections', methods=['GET'])
+@collaboration_bp.route('/collaboration/connections', methods=['GET'])
 def get_accepted_connections():
     """Return accepted friends for the current user."""
     current_user = get_current_user_email()
@@ -329,7 +329,7 @@ def get_accepted_connections():
     return jsonify({'connections': friends})
 
 
-@collaboration_bp.route('/api/collaboration/requests/<request_id>/accept', methods=['POST'])
+@collaboration_bp.route('/collaboration/requests/<request_id>/accept', methods=['POST'])
 def accept_connection_request(request_id):
     """Accept a pending connection request received by the current user."""
     current_user = get_current_user_email()
@@ -359,7 +359,7 @@ def accept_connection_request(request_id):
     return jsonify({'message': 'Connection request accepted successfully.'})
 
 
-@collaboration_bp.route('/api/collaboration/requests/<request_id>/reject', methods=['POST'])
+@collaboration_bp.route('/collaboration/requests/<request_id>/reject', methods=['POST'])
 def reject_connection_request(request_id):
     """Reject a pending connection request received by the current user."""
     current_user = get_current_user_email()
@@ -389,7 +389,7 @@ def reject_connection_request(request_id):
     return jsonify({'message': 'Connection request rejected successfully.'})
 
 
-@collaboration_bp.route('/api/collaboration/requests/<request_id>/cancel', methods=['POST'])
+@collaboration_bp.route('/collaboration/requests/<request_id>/cancel', methods=['POST'])
 def cancel_connection_request(request_id):
     """Cancel a pending connection request sent by the current user."""
     current_user = get_current_user_email()
@@ -419,7 +419,7 @@ def cancel_connection_request(request_id):
     return jsonify({'message': 'Connection request cancelled successfully.'})
 
 
-@collaboration_bp.route('/api/collaboration/messages', methods=['GET'])
+@collaboration_bp.route('/collaboration/messages', methods=['GET'])
 def get_direct_messages():
     """Return direct messages between the current user and one accepted friend."""
     current_user = get_current_user_email()
@@ -447,13 +447,12 @@ def get_direct_messages():
         'conversation_type': 'direct',
         'conversation_id': conversation_id,
     }).sort('created_at', 1).limit(100)
-
     return jsonify({
-        'messages': [serialize_message(message, current_user, ) for message in messages_cursor]
+       'messages': [serialize_message(message, current_user ) for message in messages_cursor]
     })
 
 
-@collaboration_bp.route('/api/collaboration/messages', methods=['POST'])
+@collaboration_bp.route('/collaboration/messages', methods=['POST'])
 def send_direct_message():
     """Send a direct message to an accepted friend."""
     current_user = get_current_user_email()
@@ -507,7 +506,7 @@ def send_direct_message():
 
 # ====================== GROUP ROUTES ======================
 
-@collaboration_bp.route('/api/collaboration/groups', methods=['GET'])
+@collaboration_bp.route('/collaboration/groups', methods=['GET'])
 def get_groups():
     """Get all groups the current user is a member of."""
     current_user = get_current_user_email()
@@ -550,7 +549,7 @@ def get_groups():
     return jsonify({'groups': result})
 
 
-@collaboration_bp.route('/api/collaboration/groups', methods=['POST'])
+@collaboration_bp.route('/collaboration/groups', methods=['POST'])
 def create_group():
     """Create a new study group."""
     current_user = get_current_user_email()
@@ -582,13 +581,13 @@ def create_group():
     group_id = result.inserted_id
 
     # Add creator to group_members_collection
-    if group_members_collection:
-        group_members_collection.insert_one({
-            'group_id': group_id,
-            'user_email': current_user,
-            'role': 'admin',
-            'joined_at': now
-        })
+    if group_members_collection is not None:
+     group_members_collection.insert_one({
+        'group_id': group_id,
+        'user_email': current_user,
+        'role': 'admin',
+        'joined_at': now
+    })
 
     return jsonify({
         'message': 'Group created successfully',
@@ -600,7 +599,7 @@ def create_group():
     }), 201
 
 
-@collaboration_bp.route('/api/collaboration/groups/<group_id>/messages', methods=['GET'])
+@collaboration_bp.route('/collaboration/groups/<group_id>/messages', methods=['GET'])
 def get_group_messages(group_id):
     """Get messages for a specific group."""
     current_user = get_current_user_email()
@@ -628,7 +627,7 @@ def get_group_messages(group_id):
     })
 
 
-@collaboration_bp.route('/api/collaboration/groups/<group_id>/messages', methods=['POST'])
+@collaboration_bp.route('/collaboration/groups/<group_id>/messages', methods=['POST'])
 def send_group_message(group_id):
     """Send a message to a group."""
     current_user = get_current_user_email()
@@ -657,5 +656,13 @@ def send_group_message(group_id):
     }
 
     group_messages_collection.insert_one(message_doc)
+
+    membership = group_members_collection.find_one({
+    'group_id': ObjectId(group_id),
+    'user_email': current_user
+})
+
+    if not membership:
+      return jsonify({'error': 'You are not a member of this group'}), 403
 
     return jsonify({'message': 'Message sent successfully'}), 201

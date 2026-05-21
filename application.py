@@ -30,15 +30,16 @@ celery_app = Celery(
 
 redis_client = redis.Redis(host='localhost', port=6379, db=0)
 
+
+
 app = Flask(__name__)
 application = app
 
+
+
 app.secret_key = os.environ.get('SECRET_KEY', 'supersecretkey123-dev-only')
 
-app.register_blueprint(
-    collaboration_bp,
-    url_prefix='/api'
-)
+app.register_blueprint( collaboration_bp, url_prefix='/api' )
 
 # Email configuration
 app.config['MAIL_SERVER']   = 'smtp.gmail.com'
