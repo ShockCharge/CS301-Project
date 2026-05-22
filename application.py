@@ -1,5 +1,6 @@
 import os
 import re
+import secrets
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, Response
 from werkzeug.security import generate_password_hash, check_password_hash
 import json
@@ -35,20 +36,32 @@ app.secret_key = os.environ.get('SECRET_KEY', 'supersecretkey123-dev-only')
 app.register_blueprint( collaboration_bp, url_prefix='/api' )
 
 # Email configuration
-app.config['MAIL_SERVER']   = 'smtp.gmail.com'
-app.config['MAIL_PORT']     = 587
-app.config['MAIL_USE_TLS']  = True
-app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
-app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
+# Gmail app passwords are often displayed with spaces; SMTP expects the compact value.
+mail_username = (os.environ.get('MAIL_USERNAME') or '').strip()
+mail_password = (os.environ.get('MAIL_PASSWORD') or '').replace(' ', '').strip()
+
+app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
+app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', 587))
+app.config['MAIL_USE_TLS'] = os.environ.get('MAIL_USE_TLS', 'true').lower() == 'true'
+app.config['MAIL_USE_SSL'] = os.environ.get('MAIL_USE_SSL', 'false').lower() == 'true'
+app.config['MAIL_USERNAME'] = mail_username
+app.config['MAIL_PASSWORD'] = mail_password
+app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER') or mail_username
+app.config['MAIL_TIMEOUT'] = int(os.environ.get('MAIL_TIMEOUT', 20))
 mail = Mail(app)
 
 
 # HELPER FUNCTIONS
 
 def generate_otp():
-    return str(random.randint(100000, 999999))
+    """Generate a secure 6-digit verification code."""
+    return ''.join(str(secrets.randbelow(10)) for _ in range(6))
 
 def send_otp_email(user_email, otp_code):
+    """Send a login verification code by email."""
+    if not app.config.get('MAIL_USERNAME') or not app.config.get('MAIL_PASSWORD'):
+        print('OTP Email Error: MAIL_USERNAME or MAIL_PASSWORD is not configured.')
+        return False
 
     try:
         msg = Message(
@@ -57,9 +70,9 @@ def send_otp_email(user_email, otp_code):
         )
 
         msg.body = f"""
-Your verification code is: {otp_code}
+Your Study Planner verification code is: {otp_code}
 
-This code expires in 5 minutes.
+This code expires in 10 minutes. If you did not try to log in, you can ignore this email.
 """
 
         mail.send(msg)
@@ -68,6 +81,29 @@ This code expires in 5 minutes.
     except Exception as e:
         print(f"OTP Email Error: {e}")
         return False
+
+
+def login_2fa_enabled():
+    """Return True when email OTP verification should be required at login."""
+    return os.environ.get('LOGIN_2FA_ENABLED', 'true').strip().lower() in ('1', 'true', 'yes', 'on')
+
+
+def start_2fa_session(user_email, user_name=''):
+    """Create a pending login session and send the user's OTP email."""
+    otp_code = generate_otp()
+    session['pending_user'] = user_email
+    session['pending_user_name'] = user_name
+    session['otp_code'] = otp_code
+    session['otp_expiry'] = (datetime.utcnow() + timedelta(minutes=10)).isoformat()
+
+    if send_otp_email(user_email, otp_code):
+        return True
+
+    session.pop('pending_user', None)
+    session.pop('pending_user_name', None)
+    session.pop('otp_code', None)
+    session.pop('otp_expiry', None)
+    return False
 
 def sanitize(value):
     """Strip HTML tags and dangerous characters to prevent XSS."""
@@ -192,15 +228,31 @@ You have {len(upcoming_items)} deadline(s) tomorrow ({tomorrow_str}).
 
 Check your Study Planner.
 """
-                    # send_sms(phone, sms_message)
-                    print(f"SMS sent to {phone}")
+                    sms_sent = send_sms(phone, sms_message)
+                    if not sms_sent:
+                        print(f"SMS not delivered to {phone}")
             except Exception as e:
                 print(f"SMS failed for {email}: {e}")
 
+deadline_checker_started = False
+
+
 def start_deadline_checker():
-    """Run deadline checker every 24 hours."""
-    check_upcoming_deadlines()
-    threading.Timer(86400, start_deadline_checker).start()
+    """Run deadline checker every 24 hours with a duplicate-start guard."""
+    global deadline_checker_started
+    if deadline_checker_started:
+        print("Deadline checker is already running.")
+        return
+
+    deadline_checker_started = True
+
+    def run_check_loop():
+        check_upcoming_deadlines()
+        timer = threading.Timer(86400, run_check_loop)
+        timer.daemon = True
+        timer.start()
+
+    run_check_loop()
 
 
 def get_task_status(date_str):
@@ -229,12 +281,23 @@ def get_task_status(date_str):
 
 @app.route('/test_email')
 def test_email():
+    """Send a controlled test email to the currently logged-in user only."""
+    if 'user' not in session:
+        return redirect(url_for('login'))
+
+    if not app.config.get('MAIL_USERNAME') or not app.config.get('MAIL_PASSWORD'):
+        return "Email is not configured. Please set MAIL_USERNAME and MAIL_PASSWORD in .env.", 500
+
     try:
-        msg = Message(subject="Test Email", recipients=["1bikramp@gmail.com"], body="This is a test.")
+        msg = Message(
+            subject="Study Planner Test Email",
+            recipients=[session['user']],
+            body="This is a Study Planner test email. If you received this, your email setup is working."
+        )
         mail.send(msg)
-        return "Email sent!"
+        return f"Test email sent to {session['user']}!"
     except Exception as e:
-        return f"Failed: {str(e)}"
+        return f"Failed: {str(e)}", 500
 
 
 # AUTH ROUTES
@@ -260,8 +323,18 @@ def login():
             user = {'email': email} if email == 'test@example.com' and password == 'password' else None
 
         if user:
+            user_name = f"{user.get('first_name', '')} {user.get('last_name', '')}".strip()
+
+            if login_2fa_enabled():
+                if start_2fa_session(email, user_name):
+                    return redirect(url_for('verify_2fa'))
+                return render_template(
+                    'login.html',
+                    error='Login details are correct, but the verification email could not be sent. Please check your email settings or try again later.'
+                )
+
             session['user']      = email
-            session['user_name'] = f"{user.get('first_name', '')} {user.get('last_name', '')}".strip()
+            session['user_name'] = user_name
             return redirect(url_for('dashboard'))
         else:
             return render_template('login.html', error='Invalid email or password.')
@@ -341,8 +414,10 @@ def verify_2fa():
         if entered_otp == stored_otp:
 
             session['user'] = session['pending_user']
+            session['user_name'] = session.get('pending_user_name', '')
 
             session.pop('pending_user', None)
+            session.pop('pending_user_name', None)
             session.pop('otp_code', None)
             session.pop('otp_expiry', None)
 
@@ -351,6 +426,24 @@ def verify_2fa():
         return render_template('verify2fa_mobile.html', error='Invalid verification code', email=session.get('pending_user'))
 
     return render_template('verify2fa_mobile.html', email=session.get('pending_user'))
+
+
+@app.route('/resend-2fa', methods=['POST'])
+def resend_2fa():
+    """Resend the login verification email for the pending user."""
+    pending_user = session.get('pending_user')
+    if not pending_user:
+        return redirect(url_for('login'))
+
+    otp_code = generate_otp()
+    session['otp_code'] = otp_code
+    session['otp_expiry'] = (datetime.utcnow() + timedelta(minutes=10)).isoformat()
+
+    if send_otp_email(pending_user, otp_code):
+        return render_template('verify2fa_mobile.html', email=pending_user, info='A new verification code has been sent to your email.')
+
+    return render_template('verify2fa_mobile.html', email=pending_user, error='Could not resend the verification code. Please try again later.')
+
 
 @app.route('/dashboard')
 def dashboard():
@@ -1474,7 +1567,16 @@ def api_delete_account():
 @app.route('/logout')
 def logout():
     session.pop('user', None)
+    session.pop('user_name', None)
+    session.pop('pending_user', None)
+    session.pop('pending_user_name', None)
+    session.pop('otp_code', None)
+    session.pop('otp_expiry', None)
     return redirect(url_for('login'))
+
+
+if os.environ.get('START_DEADLINE_CHECKER', 'false').strip().lower() in ('1', 'true', 'yes', 'on'):
+    start_deadline_checker()
 
 
 if __name__ == '__main__':

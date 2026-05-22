@@ -3,70 +3,172 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Study Planner | Welcome</title>
 
-    <!-- Page Title -->
-    <title>Study Planner | Login</title>
-
-    <!-- CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/OLD_styles.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
 </head>
 <body>
-    <div class="auth-container">
-        <div class="auth-card">
-            <h1 class="brand-title">Study Planner</h1>
-            <h2 class="auth-subtitle">Welcome back!</h2>
-            <p class="auth-description">Organize your classes, assignments, and exams with AI assistance.</p>
-            
-            <form method="POST" action="/" class="auth-form">
-                <div class="form-group">
-                    <input type="email" name="email" placeholder="Email" required class="form-input">
+    <main class="index-page">
+        <nav class="index-navbar" aria-label="Main navigation">
+            <a href="{{ url_for('login') }}" class="index-brand" aria-label="Study Planner home">
+                <span class="index-brand-icon"><i class="bi bi-mortarboard-fill"></i></span>
+                <span>Study Planner</span>
+            </a>
+            <div class="index-nav-actions">
+                <a href="#features" class="index-nav-link">Features</a>
+                <a href="#login-panel" class="index-nav-link">Log in</a>
+                <a href="{{ url_for('signup') }}" class="index-nav-button">Sign up</a>
+            </div>
+        </nav>
+
+        <section class="index-hero">
+            <div class="index-hero-content">
+                <span class="index-eyebrow"><i class="bi bi-stars"></i> Student productivity workspace</span>
+                <h1>Plan smarter, study better, and stay ahead of every deadline.</h1>
+                <p class="index-hero-text">Study Planner brings your classes, tasks, exams, schedule, collaboration tools, and AI study support into one clean workspace designed for everyday student life.</p>
+
+                <div class="index-hero-actions">
+                    <a href="{{ url_for('signup') }}" class="index-primary-cta"><i class="bi bi-person-plus"></i> Create free account</a>
+                    <a href="#login-panel" class="index-secondary-cta"><i class="bi bi-box-arrow-in-right"></i> Log in now</a>
                 </div>
-                <div class="form-group">
-                    <input type="password" name="password" placeholder="Password" required class="form-input">
+
+                <div class="index-trust-row" aria-label="Study Planner highlights">
+                    <div>
+                        <strong>AI</strong>
+                        <span>study guidance</span>
+                    </div>
+                    <div>
+                        <strong>360°</strong>
+                        <span>student planning</span>
+                    </div>
+                    <div>
+                        <strong>24/7</strong>
+                        <span>organized access</span>
+                    </div>
                 </div>
-                
+            </div>
+
+            <aside class="index-login-card" id="login-panel" aria-label="Login form">
+                <div class="login-card-header">
+                    <span class="login-card-icon"><i class="bi bi-shield-lock"></i></span>
+                    <div>
+                        <h2>Welcome back</h2>
+                        <p>Log in to continue planning your studies.</p>
+                    </div>
+                </div>
+
                 {% if error %}
-                    <p class="error-message">{{ error }}</p>
+                <div class="index-error-message" role="alert">
+                    <i class="bi bi-exclamation-circle"></i>
+                    <span>{{ error }}</span>
+                </div>
                 {% endif %}
-                
-                <button type="submit" class="btn-primary">Log in</button>
-            </form>
-            
-            <p class="auth-link"><a href="#" class="link">Forgot password?</a></p>
-            <p class="auth-link">Don't have an account? <a href="{{ url_for('signup') }}" class="link">Sign up</a></p>
-        </div>
-    </div>
 
-    # mobile screen
-    
-    <div class="mobile-frame">
-  
-        <div class="screen">
-            <div class="logo">
-                🎓
-            </div>
-            <h1>Study Planner</h1>
-            <h2>Welcome Back!</h2>
-            <p>Organize your class, assignment,and exam</p>
-    
-            <form method="POST" action="/">
-                <input type="text"     name="email"    class="form-control" placeholder="Username">
-                <input type="password"  name="password"  class="form-control" placeholder="Password">
-                <button type="submit" class="btn btn-login">Log In</button>
-            </form>
-    
-            <div class="mt-3">
-                <a href="#">Forgot Password?</a>
-            </div>
-    
-            <div class="small-text">
-                Don’t have an account? <a href="#">Sign up</a>
-            </div>
-        </div>
-    </div>
+                <form method="POST" action="/" class="index-auth-form">
+                    <div class="index-form-group">
+                        <label for="login-email">Email address</label>
+                        <div class="index-input-wrap">
+                            <i class="bi bi-envelope"></i>
+                            <input type="email" id="login-email" name="email" placeholder="you@example.com" required autocomplete="email">
+                        </div>
+                    </div>
 
+                    <div class="index-form-group">
+                        <label for="login-password">Password</label>
+                        <div class="index-input-wrap">
+                            <i class="bi bi-lock"></i>
+                            <input type="password" id="login-password" name="password" placeholder="Enter your password" required autocomplete="current-password">
+                        </div>
+                    </div>
+
+                    <div class="index-form-meta">
+                        <label class="remember-check">
+                            <input type="checkbox" name="remember">
+                            <span>Remember me</span>
+                        </label>
+                        <a href="#" class="index-small-link">Forgot password?</a>
+                    </div>
+
+                    <button type="submit" class="index-login-button"><i class="bi bi-arrow-right-circle"></i> Log in</button>
+                </form>
+
+                <p class="index-signup-note">New to Study Planner? <a href="{{ url_for('signup') }}">Create an account</a></p>
+            </aside>
+        </section>
+
+        <section class="index-preview-section" aria-label="Study Planner preview">
+            <div class="preview-window">
+                <div class="preview-window-top">
+                    <span></span><span></span><span></span>
+                </div>
+                <div class="preview-grid">
+                    <article class="preview-main-card">
+                        <div class="preview-card-title">
+                            <i class="bi bi-calendar3"></i>
+                            <span>Today&apos;s Focus</span>
+                        </div>
+                        <h3>Build a balanced study plan</h3>
+                        <p>Track upcoming sessions, exams, and tasks from one simple dashboard.</p>
+                        <div class="preview-progress">
+                            <span style="width: 72%;"></span>
+                        </div>
+                    </article>
+                    <article class="preview-mini-card">
+                        <i class="bi bi-check2-square"></i>
+                        <strong>Tasks</strong>
+                        <span>5 active</span>
+                    </article>
+                    <article class="preview-mini-card">
+                        <i class="bi bi-people"></i>
+                        <strong>Collaboration</strong>
+                        <span>2 unread</span>
+                    </article>
+                    <article class="preview-mini-card">
+                        <i class="bi bi-robot"></i>
+                        <strong>AI Advice</strong>
+                        <span>Ready</span>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section class="index-features" id="features">
+            <div class="section-heading">
+                <span>Why students use it</span>
+                <h2>Everything important is organized before the pressure builds.</h2>
+            </div>
+            <div class="feature-grid">
+                <article class="feature-card">
+                    <i class="bi bi-calendar-week"></i>
+                    <h3>Clear scheduling</h3>
+                    <p>View study sessions and class plans through week, month, and day calendar layouts.</p>
+                </article>
+                <article class="feature-card">
+                    <i class="bi bi-list-check"></i>
+                    <h3>Task control</h3>
+                    <p>Keep assignments and priorities visible so important work does not get missed.</p>
+                </article>
+                <article class="feature-card">
+                    <i class="bi bi-book"></i>
+                    <h3>Exam preparation</h3>
+                    <p>Plan revision earlier with a dedicated place for exams, study reminders, and dates.</p>
+                </article>
+                <article class="feature-card">
+                    <i class="bi bi-chat-dots"></i>
+                    <h3>AI study help</h3>
+                    <p>Use built-in study support to get suggestions, organize your plan, and reduce confusion.</p>
+                </article>
+            </div>
+        </section>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{{ url_for('static', filename='js/darkmode.js') }}"></script>
-
 </body>
 </html>
-
