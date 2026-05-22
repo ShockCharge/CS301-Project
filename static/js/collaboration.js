@@ -22,6 +22,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const messageInput = document.getElementById('messageInput');
     const sendMessageBtn = document.getElementById('sendMessageBtn');
     const refreshMessagesBtn = document.getElementById('refreshMessagesBtn');
+    const directChatPopup = document.getElementById('directChatPopup');
+    const closeDirectChatBtn = document.getElementById('closeDirectChatBtn');
 
     // Group Elements
     const groupsList = document.getElementById('groupsList');
@@ -36,12 +38,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const groupMessageForm = document.getElementById('groupMessageForm');
     const groupMessageInput = document.getElementById('groupMessageInput');
     const sendGroupMessageBtn = document.getElementById('sendGroupMessageBtn');
+    const groupMembersBox = document.getElementById('groupMembersBox');
+    const groupMembersList = document.getElementById('groupMembersList');
+    const groupMembersStatus = document.getElementById('groupMembersStatus');
+    const groupMemberSelect = document.getElementById('groupMemberSelect');
+    const addGroupMemberBtn = document.getElementById('addGroupMemberBtn');
 
-    const createGroupModalEl = document.getElementById('createGroupModal');
+    const openCreateGroupBtn = document.getElementById('openCreateGroupBtn');
+    const cancelCreateGroupBtn = document.getElementById('cancelCreateGroupBtn');
+    const createGroupBox = document.getElementById('createGroupBox');
     const createGroupForm = document.getElementById('createGroupForm');
+    const refreshGroupMessagesBtn = document.getElementById('refreshGroupMessagesBtn');
+    const closeGroupChatBtn = document.getElementById('closeGroupChatBtn');
 
     let selectedFriend = null;
     let selectedGroup = null;
+    let acceptedFriends = [];
+    let selectedGroupMembers = [];
 
     // ==================== HELPER FUNCTIONS ====================
     const formatDateTime = (isoValue) => {
@@ -60,6 +73,36 @@ document.addEventListener('DOMContentLoaded', () => {
         const div = document.createElement('div');
         div.textContent = value || '';
         return div.innerHTML;
+    };
+
+    const openDirectChatPopup = () => {
+        directChatPopup?.classList.add('open');
+        directChatPopup?.setAttribute('aria-hidden', 'false');
+        groupChatShell?.classList.remove('open');
+        groupChatShell?.setAttribute('aria-hidden', 'true');
+        document.querySelectorAll('#groupsList .group-card').forEach(card => card.classList.remove('active'));
+        setTimeout(() => messageInput?.focus(), 120);
+    };
+
+    const openGroupChatPopup = () => {
+        groupChatShell?.classList.add('open');
+        groupChatShell?.setAttribute('aria-hidden', 'false');
+        directChatPopup?.classList.remove('open');
+        directChatPopup?.setAttribute('aria-hidden', 'true');
+        document.querySelectorAll('#friendsList .friend-card').forEach(card => card.classList.remove('active'));
+        setTimeout(() => groupMessageInput?.focus(), 120);
+    };
+
+    const closeDirectChatPopup = () => {
+        directChatPopup?.classList.remove('open');
+        directChatPopup?.setAttribute('aria-hidden', 'true');
+        document.querySelectorAll('#friendsList .friend-card').forEach(card => card.classList.remove('active'));
+    };
+
+    const closeGroupChatPopup = () => {
+        groupChatShell?.classList.remove('open');
+        groupChatShell?.setAttribute('aria-hidden', 'true');
+        document.querySelectorAll('#groupsList .group-card').forEach(card => card.classList.remove('active'));
     };
 
     // ==================== CREATE GROUP ====================
@@ -81,13 +124,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     body: JSON.stringify({ name, description })
                 });
 
+                const data = await res.json().catch(() => ({}));
                 if (res.ok) {
-                    bootstrap.Modal.getInstance(createGroupModalEl)?.hide();
                     createGroupForm.reset();
-                    loadGroups();
+                    if (createGroupBox) createGroupBox.style.display = 'none';
+                    await loadGroups();
+                    if (data.group) setSelectedGroup(data.group);
                 } else {
-                    const err = await res.json().catch(() => ({}));
-                    alert(err.error || "Failed to create group");
+                    alert(data.error || "Failed to create group");
                 }
             } catch (err) {
                 console.error(err);
@@ -107,38 +151,134 @@ document.addEventListener('DOMContentLoaded', () => {
 
             groupsList.innerHTML = '';
             if (data.groups && data.groups.length > 0) {
+                const unreadGroups = data.groups.filter(group => Number(group.unread_count || 0) > 0);
+                groupsStatus.textContent = unreadGroups.length > 0
+                    ? `${unreadGroups.length} group(s) have unread messages.`
+                    : '';
                 data.groups.forEach(group => {
                     const card = document.createElement('button');
-                    card.className = 'friend-card group-card';
+                    const unreadCount = Number(group.unread_count || 0);
+                    card.className = `friend-card group-card${unreadCount > 0 ? ' unread-card' : ''}`;
+                    card.dataset.id = group.id;
+                    card.dataset.name = group.name;
+                    card.dataset.description = group.description || '';
                     card.innerHTML = `
                         <span class="friend-avatar" style="background:#764ba2;">G</span>
                         <span class="friend-details">
                             <strong>${escapeHtml(group.name)}</strong>
-                            <small>${escapeHtml(group.description || 'Study Group')}</small>
+                            <small>${escapeHtml(group.description || 'Study Group')} • ${group.member_count || 1} member(s)</small>
                         </span>
+                        ${unreadCount > 0 ? `<span class="conversation-unread-badge" title="Unread group messages">${unreadCount}</span>` : ''}
                     `;
-                    card.onclick = () => setSelectedGroup(group);
                     groupsList.appendChild(card);
                 });
+                if (selectedGroup?.id) {
+                    document.querySelector(`#groupsList .group-card[data-id="${CSS.escape(selectedGroup.id || '')}"]`)?.classList.add('active');
+                }
             } else {
+                groupsStatus.textContent = '';
                 groupsList.innerHTML = `<p class="text-muted">No groups yet. Create your first group!</p>`;
             }
         } catch (e) {
             console.error(e);
             groupsStatus.textContent = "Error loading groups.";
-        } finally {
-            groupsStatus.textContent = '';
         }
     };
 
     const setSelectedGroup = (group) => {
         selectedGroup = group;
+        document.querySelectorAll('#groupsList .group-card').forEach(card => card.classList.remove('active'));
+        document.querySelector(`#groupsList .group-card[data-id="${CSS.escape(group.id || '')}"]`)?.classList.add('active');
         groupChatTitle.textContent = group.name;
         groupChatSubtitle.textContent = "Group Discussion";
         groupMessageInput.disabled = false;
         sendGroupMessageBtn.disabled = false;
-        if (groupChatShell) groupChatShell.style.display = 'flex';
+        if (refreshGroupMessagesBtn) refreshGroupMessagesBtn.disabled = false;
+        openGroupChatPopup();
+        if (groupMembersBox) groupMembersBox.style.display = 'block';
+        if (groupMemberSelect) groupMemberSelect.disabled = false;
+        if (addGroupMemberBtn) addGroupMemberBtn.disabled = false;
+        populateGroupMemberSelect();
+        loadGroupMembers();
         loadGroupMessages();
+    };
+
+    const renderGroupMembers = (members) => {
+        selectedGroupMembers = members || [];
+        if (!groupMembersList) return;
+        if (!selectedGroupMembers.length) {
+            groupMembersList.innerHTML = '<span class="text-muted">No members found.</span>';
+            return;
+        }
+        groupMembersList.innerHTML = selectedGroupMembers.map(member => `
+            <span class="badge bg-secondary me-1 mb-1">${escapeHtml(member.name || member.email)} (${escapeHtml(member.role || 'member')})</span>
+        `).join('');
+        populateGroupMemberSelect();
+    };
+
+    const loadGroupMembers = async () => {
+        if (!selectedGroup || !groupMembersStatus) return;
+        groupMembersStatus.textContent = 'Loading...';
+        try {
+            const res = await fetch(`/api/collaboration/groups/${selectedGroup.id}/members`);
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                groupMembersStatus.textContent = data.error || 'Could not load members.';
+                return;
+            }
+            renderGroupMembers(data.members || []);
+            groupMembersStatus.textContent = `${(data.members || []).length} member(s)`;
+        } catch (e) {
+            console.error(e);
+            groupMembersStatus.textContent = 'Error loading members.';
+        }
+    };
+
+    const populateGroupMemberSelect = () => {
+        if (!groupMemberSelect) return;
+        const memberEmails = new Set((selectedGroupMembers || []).map(m => (m.email || '').toLowerCase()));
+        const availableFriends = (acceptedFriends || []).filter(friend => !memberEmails.has((friend.email || '').toLowerCase()));
+        groupMemberSelect.innerHTML = '<option value="">Select a friend to add...</option>';
+        availableFriends.forEach(friend => {
+            const option = document.createElement('option');
+            option.value = friend.email;
+            option.textContent = `${friend.name || friend.email} (${friend.email})`;
+            groupMemberSelect.appendChild(option);
+        });
+        if (!availableFriends.length) {
+            const option = document.createElement('option');
+            option.value = '';
+            option.textContent = selectedGroup ? 'No available friends to add' : 'Select a group first';
+            groupMemberSelect.appendChild(option);
+        }
+    };
+
+    const addGroupMember = async () => {
+        if (!selectedGroup || !groupMemberSelect) return;
+        const userEmail = groupMemberSelect.value;
+        if (!userEmail) {
+            alert('Please select a friend to add.');
+            return;
+        }
+        try {
+            const res = await fetch(`/api/collaboration/groups/${selectedGroup.id}/members`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_email: userEmail })
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                alert(data.error || 'Failed to add member.');
+                return;
+            }
+            groupMemberSelect.value = '';
+            await loadGroupMembers();
+            await loadGroups();
+            alert('Member added successfully.');
+        } catch (e) {
+            console.error(e);
+            alert('Connection error while adding member.');
+        }
     };
 
     const loadGroupMessages = async () => {
@@ -161,6 +301,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 groupMessagesList.appendChild(div);
             });
             groupMessagesList.scrollTop = groupMessagesList.scrollHeight;
+            await loadGroups();
+            window.refreshCollaborationNotifications?.();
         } catch (e) {
             console.error(e);
             groupMessagesStatus.textContent = "Error loading group messages.";
@@ -286,6 +428,7 @@ document.addEventListener('DOMContentLoaded', () => {
             await fetch(`/api/collaboration/requests/${requestId}/${action}`, { method: 'POST' });
             await loadIncomingRequests();
             await loadFriends();
+            window.refreshCollaborationNotifications?.();
         } catch (e) {
             console.error(e);
         }
@@ -299,8 +442,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         const fragment = document.createDocumentFragment();
         friends.forEach(friend => {
+            const unreadCount = Number(friend.unread_count || 0);
             const card = document.createElement('button');
-            card.className = 'friend-card';
+            card.className = `friend-card${unreadCount > 0 ? ' unread-card' : ''}`;
             card.dataset.email = friend.email;
             card.dataset.name = friend.name;
             card.innerHTML = `
@@ -309,8 +453,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     <strong>${escapeHtml(friend.name)}</strong>
                     <small>${escapeHtml(friend.email)}</small>
                 </span>
+                ${unreadCount > 0 ? `<span class="conversation-unread-badge" title="Unread direct messages">${unreadCount}</span>` : ''}
             `;
-            card.onclick = () => setSelectedFriend(friend);
             fragment.appendChild(card);
         });
         friendsList.appendChild(fragment);
@@ -321,7 +465,16 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const res = await fetch('/api/collaboration/connections');
             const data = await res.json();
-            renderFriends(data.connections || []);
+            acceptedFriends = data.connections || [];
+            renderFriends(acceptedFriends);
+            const unreadFriends = acceptedFriends.filter(friend => Number(friend.unread_count || 0) > 0);
+            friendsStatus.textContent = unreadFriends.length > 0
+                ? `${unreadFriends.length} friend(s) have unread messages.`
+                : '';
+            if (selectedFriend?.email) {
+                document.querySelector(`#friendsList .friend-card[data-email="${CSS.escape(selectedFriend.email || '')}"]`)?.classList.add('active');
+            }
+            populateGroupMemberSelect();
         } catch (e) {
             friendsStatus.textContent = "Error loading friends.";
         }
@@ -329,10 +482,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const setSelectedFriend = async (friend) => {
         selectedFriend = friend;
+        document.querySelectorAll('#friendsList .friend-card').forEach(card => card.classList.remove('active'));
+        document.querySelector(`#friendsList .friend-card[data-email="${CSS.escape(friend.email || '')}"]`)?.classList.add('active');
         chatTitle.textContent = friend.name || 'Friend';
         chatSubtitle.textContent = friend.email || '';
         messageInput.disabled = false;
         sendMessageBtn.disabled = false;
+        if (refreshMessagesBtn) refreshMessagesBtn.disabled = false;
+        openDirectChatPopup();
         await loadMessages();
     };
 
@@ -358,6 +515,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const res = await fetch(`/api/collaboration/messages?friend_email=${encodeURIComponent(selectedFriend.email)}`);
             const data = await res.json();
             renderMessages(data.messages || []);
+            await loadFriends();
+            window.refreshCollaborationNotifications?.();
         } catch (e) {
             messagesStatus.textContent = "Error loading messages.";
         }
@@ -390,13 +549,18 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!body) return;
 
             try {
-                await fetch(`/api/collaboration/groups/${selectedGroup.id}/messages`, {
+                const response = await fetch(`/api/collaboration/groups/${selectedGroup.id}/messages`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ body })
                 });
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    alert(data.error || 'Failed to send group message.');
+                    return;
+                }
                 groupMessageInput.value = '';
-                loadGroupMessages();
+                await loadGroupMessages();
             } catch (e) {
                 console.error(e);
                 alert("Failed to send group message.");
@@ -405,6 +569,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==================== EVENT LISTENERS ====================
+    openCreateGroupBtn?.addEventListener('click', () => {
+        if (!createGroupBox) return;
+        createGroupBox.style.display = createGroupBox.style.display === 'none' ? 'block' : 'none';
+        if (createGroupBox.style.display === 'block') {
+            document.getElementById('groupName')?.focus();
+        }
+    });
+
+    cancelCreateGroupBtn?.addEventListener('click', () => {
+        createGroupForm?.reset();
+        if (createGroupBox) createGroupBox.style.display = 'none';
+    });
+
     searchButton?.addEventListener('click', loadUsers);
     searchInput?.addEventListener('keydown', (e) => { if (e.key === 'Enter') loadUsers(); });
 
@@ -427,13 +604,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
     groupsList?.addEventListener('click', (e) => {
         const card = e.target.closest('.group-card');
-        if (card) setSelectedGroup({ id: card.dataset.id, name: card.dataset.name });
+        if (card) {
+            setSelectedGroup({
+                id: card.dataset.id,
+                name: card.dataset.name,
+                description: card.dataset.description || ''
+            });
+        }
     });
 
     refreshIncomingBtn?.addEventListener('click', loadIncomingRequests);
     refreshFriendsBtn?.addEventListener('click', loadFriends);
     refreshMessagesBtn?.addEventListener('click', loadMessages);
     refreshGroupsBtn?.addEventListener('click', loadGroups);
+    refreshGroupMessagesBtn?.addEventListener('click', () => { loadGroupMessages(); loadGroupMembers(); });
+    closeDirectChatBtn?.addEventListener('click', closeDirectChatPopup);
+    closeGroupChatBtn?.addEventListener('click', closeGroupChatPopup);
+    addGroupMemberBtn?.addEventListener('click', addGroupMember);
     messageForm?.addEventListener('submit', (e) => { e.preventDefault(); sendMessage(); });
 
     // ==================== INITIAL LOAD ====================

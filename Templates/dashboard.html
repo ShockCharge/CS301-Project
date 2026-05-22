@@ -119,100 +119,144 @@
 
             <!-- ########## Main Content ########## -->
             <main class="content">
-                <div class="content-inner">
-                    <h1 class="content-title">Dashboard</h1>
-                    <p class="content-welcome">Welcome back, {{ session.user_name or session.user }}!</p>
+                <div class="content-inner dashboard-home">
 
-                    <div class="dashboard-list">
-
-                        <!-- Today's Tasks -->
-                        <div class="card">
-                            <div class="card-header">
-                                <div class="card-title">Today's Tasks</div>
-                                <button class="btn-add" id="add-task-btn">+ Add Task</button>
-                            </div>
-                            <div class="card-body">
-                                <div class="task-list">
-                                    {% if tasks %}
-                                        {% for task in tasks %}
-                                        <div class="task-item">
-                                            <div class="task-toggle"></div>
-                                            <span>{{ task.name }}</span>
-                                            <span class="priority-badge priority-{{ task.priority }}">{{ task.priority }}</span>
-                                        </div>
-                                        {% endfor %}
-                                    {% else %}
-                                        <p class="text-muted-light">No tasks for today.</p>
-                                    {% endif %}
-                                </div>
+                    <!-- Hero / Welcome -->
+                    <section class="dashboard-hero">
+                        <div class="hero-copy">
+                            <span class="hero-kicker"><i class="bi bi-stars"></i> Study Command Center</span>
+                            <h1>Welcome back, {{ session.user_name or session.user }}!</h1>
+                            <p>Manage your schedule, tasks, exams, classes, collaboration, and AI study support from one clean dashboard.</p>
+                            <div class="hero-actions">
+                                <button type="button" class="btn-hero-primary" id="add-task-btn">
+                                    <i class="bi bi-plus-circle"></i> Add Task
+                                </button>
+                                <a href="{{ url_for('schedule') }}" class="btn-hero-secondary">
+                                    <i class="bi bi-calendar3"></i> View Schedule
+                                </a>
                             </div>
                         </div>
-
-                        <!-- Progress Overview -->
-                        <div class="card">
-                            <div class="card-header">
-                                <div class="card-title">Progress Overview</div>
+                        <div class="hero-progress-card">
+                            <div class="progress-circle-container">
+                                <div class="progress-circle" id="progress-circle" style="--progress: {{ progress | default(0) }}%;">
+                                    <div class="progress-inner" id="progress-value">{{ progress }}%</div>
+                                </div>
                             </div>
-                            <div class="card-body progress-card-body">
-                                <div class="progress-circle-container">
-                                    <div class="progress-circle" id="progress-circle">
-                                        <div class="progress-inner" id="progress-value">{{ progress }}%</div>
+                            <p class="hero-progress-label">Overall completion</p>
+                            <p class="hero-progress-note">Based on your tasks, exams, classes, and schedules.</p>
+                        </div>
+                    </section>
+
+                    <!-- Summary Metrics -->
+                    <section class="dashboard-summary-grid" aria-label="Dashboard summary">
+                        <article class="summary-card">
+                            <div class="summary-icon"><i class="bi bi-check2-square"></i></div>
+                            <div>
+                                <span class="summary-value">{{ tasks|length }}</span>
+                                <span class="summary-label">Active Tasks</span>
+                            </div>
+                        </article>
+                        <article class="summary-card">
+                            <div class="summary-icon"><i class="bi bi-journal-bookmark"></i></div>
+                            <div>
+                                <span class="summary-value">{{ exams|length }}</span>
+                                <span class="summary-label">Upcoming Exams</span>
+                            </div>
+                        </article>
+                        <article class="summary-card">
+                            <div class="summary-icon"><i class="bi bi-graph-up-arrow"></i></div>
+                            <div>
+                                <span class="summary-value">{{ progress }}%</span>
+                                <span class="summary-label">Progress</span>
+                            </div>
+                        </article>
+                        <article class="summary-card">
+                            <div class="summary-icon warning"><i class="bi bi-exclamation-triangle"></i></div>
+                            <div>
+                                <span class="summary-value">{{ outdated_items|length }}</span>
+                                <span class="summary-label">Needs Review</span>
+                            </div>
+                        </article>
+                    </section>
+
+                    <!-- Quick Actions -->
+                    <section class="dashboard-section">
+                        <div class="section-heading-row">
+                            <div>
+                                <h2 class="section-title">Quick Actions</h2>
+                                <p class="section-subtitle">Jump directly into the most common study actions.</p>
+                            </div>
+                        </div>
+                        <div class="quick-action-grid">
+                            <button type="button" class="quick-action-card" onclick="document.getElementById('addTaskModal').classList.add('active')">
+                                <i class="bi bi-plus-lg"></i>
+                                <span>Create Task</span>
+                                <small>Add a new study task or deadline.</small>
+                            </button>
+                            <a class="quick-action-card" href="{{ url_for('schedule') }}">
+                                <i class="bi bi-calendar-plus"></i>
+                                <span>Plan Schedule</span>
+                                <small>Organize classes and study time.</small>
+                            </a>
+                            <a class="quick-action-card" href="{{ url_for('collaboration_bp.collaboration') }}">
+                                <i class="bi bi-people"></i>
+                                <span>Open Collaboration</span>
+                                <small>Message friends and study groups.</small>
+                            </a>
+                            <a class="quick-action-card" href="{{ url_for('chatbot') }}">
+                                <i class="bi bi-robot"></i>
+                                <span>Ask AI Assistant</span>
+                                <small>Get study help and explanations.</small>
+                            </a>
+                        </div>
+                    </section>
+
+                    <!-- Main Dashboard Layout -->
+                    <div class="dashboard-hybrid-grid">
+                        <section class="dashboard-panel today-panel">
+                            <div class="panel-header-clean">
+                                <div>
+                                    <h2 class="section-title">Today & Upcoming</h2>
+                                    <p class="section-subtitle">A quick view of what needs your attention.</p>
+                                </div>
+                                <a href="{{ url_for('tasks') }}" class="panel-link">View all</a>
+                            </div>
+
+                            <div class="mini-list-group">
+                                <h3 class="mini-list-title"><i class="bi bi-check2-square"></i> Tasks</h3>
+                                {% if tasks %}
+                                    {% for task in tasks %}
+                                    <div class="task-item dashboard-mini-item">
+                                        <div class="task-toggle"></div>
+                                        <span>{{ task.name }}</span>
+                                        <span class="priority-badge priority-{{ task.priority }}">{{ task.priority }}</span>
                                     </div>
-                                </div>
-                                <div class="progress-info">
-                                    <p class="progress-overview-text">Tasks completed this week</p>
-                                    <p class="progress-overview-text">Study time: <strong>12hrs</strong></p>
-                                </div>
+                                    {% endfor %}
+                                {% else %}
+                                    <p class="text-muted-light">No active tasks yet. Use the create task button to start.</p>
+                                {% endif %}
                             </div>
-                        </div>
 
-                        <!-- Quick Actions -->
-                        <div class="card">
-                            <div class="card-header">
-                                <div class="card-title">Quick Actions</div>
-                            </div>
-                            <div class="card-body quick-actions-body">
-                                <button class="btn-action" onclick="window.location.href='{{ url_for('schedule') }}'">View Schedule</button>
-                                <button class="btn-action" onclick="window.location.href='{{ url_for('tasks') }}'">Manage Tasks</button>
-                                <button class="btn-action" onclick="window.location.href='{{ url_for('exams') }}'">View Exams</button>
-                            </div>
-                        </div>
-
-                        <!-- Upcoming Exams -->
-                        <div class="card">
-                            <div class="card-header">
-                                <div class="card-title">Upcoming Exams</div>
-                            </div>
-                            <div class="card-body">
+                            <div class="mini-list-group">
+                                <h3 class="mini-list-title"><i class="bi bi-book"></i> Exams</h3>
                                 {% if exams %}
                                     {% for exam in exams %}
-                                    <div class="task-item">
+                                    <div class="task-item dashboard-mini-item">
                                         <span>{{ exam.subject }}</span>
                                         <span class="text-muted-light">{{ exam.date }}</span>
                                     </div>
                                     {% endfor %}
                                 {% else %}
-                                    <p class="text-muted-light">No upcoming exams.</p>
+                                    <p class="text-muted-light">No upcoming exams added.</p>
                                 {% endif %}
                             </div>
-                        </div>
+                        </section>
 
-                        <!-- Smart Suggestion Box -->
-                        <div class="suggestion-box" id="suggestionBox">
-                            <div class="suggestion-content">
-                                <h3>💡 Smart Advice & Quotes</h3>
-                                <p id="suggestionContent">Loading your personalized study advice...</p>
-                            </div>
-                        </div>
-
-                        <!-- Study Plan Section -->
-                        <div class="study-plan-section" id="studyPlanSection">
+                        <section class="dashboard-panel study-plan-section" id="studyPlanSection">
                             <div class="study-plan-header">
                                 <div>
-                                    <h3 class="study-plan-title">
-                                        <i class="bi bi-calendar-week"></i> Weekly Study Plan
-                                    </h3>
-                                    <p class="study-plan-subtitle">AI-generated based on your tasks and upcoming exams</p>
+                                    <h2 class="section-title"><i class="bi bi-calendar-week"></i> Weekly Study Plan</h2>
+                                    <p class="section-subtitle">Generate a personalized plan from your tasks and exams.</p>
                                 </div>
                                 <button class="btn-generate-plan" id="generatePlanBtn" onclick="generateStudyPlan()">
                                     <i class="bi bi-magic"></i> Generate Plan
@@ -227,18 +271,31 @@
                             </div>
                             <div class="study-plan-empty" id="studyPlanEmpty">
                                 <i class="bi bi-journal-text" style="font-size: 40px;"></i>
-                                <p>Click <strong>Generate Plan</strong> to create a personalised weekly study schedule based on your tasks and exams.</p>
+                                <p>Click <strong>Generate Plan</strong> to create a personalised weekly schedule based on your current study items.</p>
                             </div>
-                        </div>
+                        </section>
+                    </div>
 
-                        <!-- Outdated Tasks -->
+
+                    <!-- Advice and Review -->
+                    <div class="dashboard-hybrid-grid bottom-grid">
+                        <section class="suggestion-box" id="suggestionBox">
+                            <div class="suggestion-content">
+                                <h3><i class="bi bi-lightbulb"></i> Smart Advice & Quotes</h3>
+                                <p id="suggestionContent">Loading your personalized study advice...</p>
+                            </div>
+                        </section>
+
                         {% if outdated_items %}
-                        <div class="card">
-                            <div class="card-header">
-                                <div class="card-title">Outdated Tasks and Deadlines ({{ outdated_items | length }})</div>
+                        <section class="dashboard-panel outdated-card">
+                            <div class="panel-header-clean">
+                                <div>
+                                    <h2 class="section-title">Items Needing Review</h2>
+                                    <p class="section-subtitle">These older tasks and deadlines may need to be updated or cleared.</p>
+                                </div>
                                 <button class="btn-add" id="clear-outdated-btn">Clear All</button>
                             </div>
-                            <div class="card-body">
+                            <div class="card-body compact-review-body">
                                 {% for item in outdated_items %}
                                 <div class="outdated-item">
                                     <span class="fw-medium">{{ item.get('name', item.get('title', item.get('subject', 'Activity'))) }}</span>
@@ -247,11 +304,19 @@
                                 </div>
                                 {% endfor %}
                             </div>
-                        </div>
+                        </section>
+                        {% else %}
+                        <section class="dashboard-panel dashboard-tip-panel">
+                            <h2 class="section-title">You are up to date</h2>
+                            <p class="section-subtitle">No outdated tasks or deadlines need review right now.</p>
+                            <div class="tip-list">
+                                <div><i class="bi bi-check-circle"></i> Keep your tasks updated daily.</div>
+                                <div><i class="bi bi-people"></i> Check Collaboration for unread study messages.</div>
+                                <div><i class="bi bi-calendar-week"></i> Generate a weekly plan before a busy week.</div>
+                            </div>
+                        </section>
                         {% endif %}
-
                     </div>
-                    <!-- End Dashboard List -->
 
                     <footer>&copy; 2025 Study Planner</footer>
                 </div>
@@ -346,10 +411,7 @@
             if (e.target === this) this.classList.remove('active');
         });
 
-        // Progress circle
-        const progress = {{ progress | default(0) }};
-        document.getElementById('progress-circle').style.background =
-            `conic-gradient(var(--bg-light) ${progress}%, rgba(255,255,255,0.15) 0%)`;
+        // Progress circle is styled through the --progress CSS variable in the hero card.
     </script>
 
 </body>
