@@ -2,6 +2,8 @@ from celery import Celery
 import os
 from datetime import datetime
 from common import NZ_TZ, tasks_collection, exams_collection, classes_collection, schedules_collection, chain, get_task_status
+from web_aware_ai import answer_with_web_awareness
+
 import traceback
 from bson import ObjectId
 
@@ -173,12 +175,14 @@ def get_chatbot_response(user_email: str, user_message: str):
             "schedules": user_schedules
         }
 
-        response = chain.invoke({
-            "question": user_message,
-            "user_context": context
-        })
-
-        return {"success": True, "response": response}
+        ai_result = answer_with_web_awareness(chain, user_message, context)
+        return {
+            "success": True,
+            "response": ai_result.get("response", ""),
+            "web_used": ai_result.get("web_used", False),
+            "sources": ai_result.get("sources", []),
+            "web_error": ai_result.get("web_error")
+        }
 
     except Exception as e:
         traceback.print_exc()

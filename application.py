@@ -16,6 +16,7 @@ from common import NZ_TZ, ZoneInfo, users_collection, schedules_collection, task
 
 from task import celery_app, get_ai_suggestions_task, get_ai_study_plan_task
 from collaboration import collaboration_bp
+from web_aware_ai import answer_with_web_awareness
 
 
 redis_client = redis.Redis(host='localhost', port=6379, db=0)
@@ -1099,12 +1100,20 @@ def chat():
             print('Redis cache unavailable:', redis_error)
         if cached:
             return jsonify({'response': cached.decode('utf-8')})
-        ai_response = chain.invoke({"question": user_message, "user_context": context})
+        ai_result = answer_with_web_awareness(chain, user_message, context)
+
+        ai_response = ai_result.get('response', '')
         try:
             redis_client.set(cache_key, ai_response, ex=3600)
         except Exception as redis_error:
             print('Redis cache save failed:', redis_error)
-        return jsonify({'response': ai_response})
+        return jsonify({
+            'response': ai_response,
+            'web_used': ai_result.get('web_used', False),
+            'sources': ai_result.get('sources', []),
+            'web_error': ai_result.get('web_error')
+        })
+
     except Exception as e:
         print("Ollama / LangChain error:", str(e))
         return jsonify({'error': f'Local AI failed: {str(e)}'}), 500
