@@ -20,6 +20,7 @@ from task import celery_app, get_ai_suggestions_task, get_ai_study_plan_task
 from collaboration import collaboration_bp
 from web_aware_ai import answer_with_web_awareness
 
+import boto3
 
 redis_client = redis.Redis(host='localhost', port=6379, db=0)
 
@@ -84,7 +85,6 @@ This code expires in 10 minutes. If you did not try to log in, you can ignore th
     except Exception as e:
         print(f"OTP Email Error: {e}")
         return False
-
 
 def login_2fa_enabled():
     """Return True when email OTP verification should be required at login."""
@@ -1156,9 +1156,15 @@ def api_tasks():
             'priority':    priority,
             'date':        date or None,
             'description': sanitize(data.get('description', '')),
-            'completed':   False,
-            'created_at':  datetime.now()
+            'time': sanitize(data.get('time', '23:59')),
+            'phone_number': sanitize(data.get('phone_number', '')),
+            'description': sanitize(data.get('description', '')),
+            'completed': False,
+            'created_at': datetime.now(),
+            'reminder_12h_sent': False,
+            'reminder_6h_sent': False
         }
+        
         if tasks_collection is not None:
             result = tasks_collection.insert_one(task_item)
             task_item['_id'] = str(result.inserted_id)
