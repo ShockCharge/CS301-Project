@@ -1,21 +1,27 @@
-/* ============================================================
-   V2settings.css — Settings page styles
-   ============================================================ */
+/* ================================================================
+   V2settings.css  —  Settings page styles
+   Uses CSS variables from V2style.css → dark mode automatic
+   ================================================================ */
 
 .settings-page-title {
-    color: var(--normal-text);
+    color: var(--text-primary);
     font-size: 1.75rem;
     font-weight: 900;
     margin: 0;
+    transition: color 0.25s;
 }
 
-/* ########## Settings Card ########## */
+/* ════════════════════════════════════════════
+   SETTINGS CARDS
+════════════════════════════════════════════ */
 .settings-card {
-    background-color: var(--bg-medium);
-    border: 1px solid var(--border-color);
+    background: var(--surface);
+    border: 1.5px solid var(--border-card);
     border-radius: 16px;
     margin-bottom: 1.25rem;
     overflow: hidden;
+    box-shadow: var(--shadow-card);
+    transition: background 0.25s, border-color 0.25s;
 }
 
 .settings-card-header {
@@ -23,13 +29,20 @@
     align-items: center;
     gap: 0.65rem;
     padding: 0.9rem 1.25rem;
-    border-bottom: 1px solid var(--border-color);
-    color: var(--normal-text);
+    border-bottom: 1.5px solid var(--border-card);
     font-size: 1rem;
     font-weight: 700;
+    color: var(--text-primary);
+    background: var(--brand-tint);
+    transition: background 0.25s, border-color 0.25s, color 0.25s;
 }
-
-.settings-card-header i { font-size: 1.1rem; color: var(--bg-light); }
+body.dark-mode .settings-card-header {
+    background: var(--surface-raised);
+}
+.settings-card-header i {
+    font-size: 1.1rem;
+    color: var(--brand);
+}
 
 .settings-card-body {
     padding: 1.1rem 1.25rem;
@@ -38,7 +51,9 @@
     gap: 1rem;
 }
 
-/* ########## Field (label + input) ########## */
+/* ════════════════════════════════════════════
+   FIELD  (label + input)
+════════════════════════════════════════════ */
 .settings-field {
     display: flex;
     flex-direction: column;
@@ -46,78 +61,78 @@
 }
 
 .settings-field label {
-    font-size: 0.875rem;
-    color: var(--text-highlight);
-    font-weight: 600;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    transition: color 0.25s;
 }
 
-/* ########## Toggle Row ########## */
+/* ════════════════════════════════════════════
+   TOGGLE ROW  (label + toggle switch)
+════════════════════════════════════════════ */
 .setting-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
-    padding: 0.5rem 0;
-    border-bottom: 1px solid var(--border-color);
+    padding: 0.6rem 0;
+    border-bottom: 1px solid var(--border-card);
+    transition: border-color 0.25s;
 }
-
 .setting-row:last-child { border-bottom: none; }
 
 .setting-row-info strong {
     display: block;
-    color: var(--normal-text);
     font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-primary);
     margin-bottom: 0.15rem;
+    transition: color 0.25s;
 }
-
 .setting-row-info p {
+    font-size: 0.8rem;
     color: var(--text-muted);
-    font-size: 0.82rem;
     margin: 0;
+    transition: color 0.25s;
 }
 
-/* ########## Toggle Switch ########## */
+/* ════════════════════════════════════════════
+   TOGGLE SWITCH  (overriding V2style.css to match theme)
+════════════════════════════════════════════ */
 .toggle-switch {
     position: relative;
     display: inline-block;
     width: 50px;
     height: 26px;
     flex-shrink: 0;
+    cursor: pointer;
 }
-
 .toggle-switch input { opacity: 0; width: 0; height: 0; }
 
 .toggle-slider {
     position: absolute;
     cursor: pointer;
     inset: 0;
-    background-color: rgba(255, 255, 255, 0.15);
+    background: var(--toggle-track-off);
     border-radius: 26px;
-    transition: 0.3s;
+    transition: background 0.3s;
 }
-
 .toggle-slider::before {
     position: absolute;
     content: "";
-    height: 20px;
-    width: 20px;
-    left: 3px;
-    bottom: 3px;
-    background-color: var(--normal-text);
+    height: 20px; width: 20px;
+    left: 3px; bottom: 3px;
+    background: var(--toggle-knob);
     border-radius: 50%;
-    transition: 0.3s;
+    transition: transform 0.3s;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.25);
 }
+.toggle-switch input:checked + .toggle-slider { background: var(--toggle-track-on); }
+.toggle-switch input:checked + .toggle-slider::before { transform: translateX(24px); }
 
-.toggle-switch input:checked + .toggle-slider {
-    background-color: var(--bg-light);
-}
-
-.toggle-switch input:checked + .toggle-slider::before {
-    transform: translateX(24px);
-    background-color: var(--bg-dark);
-}
-
-/* ########## Button Row (export / clear) ########## */
+/* ════════════════════════════════════════════
+   BUTTON ROW  (export / clear)
+════════════════════════════════════════════ */
 .settings-btn-row {
     display: flex;
     flex-wrap: wrap;
@@ -126,41 +141,41 @@
 
 .btn-settings-secondary {
     padding: 0.55rem 1.25rem;
-    background-color: rgba(255, 255, 255, 0.1);
-    border: 1px solid var(--border-color);
+    background: var(--btn-secondary-bg);
+    color: var(--btn-secondary-fg);
+    border: none;
     border-radius: 8px;
-    color: var(--normal-text);
     font-size: 0.9rem;
-    font-weight: 600;
+    font-weight: 700;
     cursor: pointer;
     font-family: "Lato", sans-serif;
-    transition: background-color 0.2s;
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
+    transition: background 0.2s;
 }
-
-.btn-settings-secondary:hover { background-color: rgba(255, 255, 255, 0.2); }
+.btn-settings-secondary:hover { background: var(--btn-secondary-hover); }
 
 .btn-settings-danger {
     padding: 0.55rem 1.25rem;
-    background-color: rgba(216, 49, 91, 0.2);
-    border: 1px solid rgba(216, 49, 91, 0.35);
+    background: var(--btn-danger-bg);
+    color: var(--btn-danger-fg);
+    border: none;
     border-radius: 8px;
-    color: #ff8fab;
     font-size: 0.9rem;
-    font-weight: 600;
+    font-weight: 700;
     cursor: pointer;
     font-family: "Lato", sans-serif;
-    transition: background-color 0.2s;
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
+    transition: background 0.2s;
 }
+.btn-settings-danger:hover { background: var(--btn-danger-hover); }
 
-.btn-settings-danger:hover { background-color: rgba(216, 49, 91, 0.35); }
-
-/* ########## Save Button ########## */
+/* ════════════════════════════════════════════
+   SAVE BUTTON ROW
+════════════════════════════════════════════ */
 .settings-save-row {
     display: flex;
     justify-content: flex-end;
@@ -169,27 +184,29 @@
 
 .btn-settings-save {
     padding: 0.65rem 2rem;
-    background-color: var(--bg-light);
-    color: var(--bg-dark);
+    background: var(--btn-success-bg);
+    color: var(--btn-success-fg);
     border: none;
     border-radius: 10px;
     font-size: 1rem;
     font-weight: 700;
     cursor: pointer;
     font-family: "Lato", sans-serif;
-    transition: opacity 0.2s;
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
+    transition: background 0.2s;
+    box-shadow: var(--shadow-sm);
 }
+.btn-settings-save:hover { background: var(--btn-success-hover); }
 
-.btn-settings-save:hover { opacity: 0.85; }
-
-/* ########## Responsive ########## */
-@media (max-width: 768px) {
+/* ════════════════════════════════════════════
+   RESPONSIVE
+════════════════════════════════════════════ */
+@media (max-width: 640px) {
     .settings-btn-row { flex-direction: column; }
     .btn-settings-secondary,
-    .btn-settings-danger { width: 100%; justify-content: center; }
-    .settings-save-row { justify-content: stretch; }
-    .btn-settings-save { width: 100%; justify-content: center; }
+    .btn-settings-danger  { width: 100%; justify-content: center; }
+    .settings-save-row    { justify-content: stretch; }
+    .btn-settings-save    { width: 100%; justify-content: center; }
 }

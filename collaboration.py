@@ -3,12 +3,20 @@ from bson import ObjectId
 from datetime import datetime
 import re
 
-from common import users_collection, social_connections_collection
+from common import (
+    users_collection, 
+    social_connections_collection,
+    study_groups_collection,
+    group_members_collection,
+    group_messages_collection
+)
 
 try:
-    from common import group_messages_collection
+    from common import group_messages_collection, study_groups_collection, group_members_collection
 except ImportError:
     group_messages_collection = None
+    study_groups_collection = None
+    group_members_collection = None
 
 
 collaboration_bp = Blueprint('collaboration_bp', __name__)
@@ -59,18 +67,26 @@ def serialize_connection_request(connection):
 
 
 def serialize_message(message, current_user):
-    """Return a safe JSON version of a direct message."""
+    """Return a safe JSON version of a message with sender name."""
     sender_email = message.get('sender_email', '')
+    
+    sender_name = sender_email
+    if users_collection is not None:
+        sender = users_collection.find_one({'email': sender_email})
+        if sender:
+            first = sanitize(sender.get('first_name', '') or '')
+            last = sanitize(sender.get('last_name', '') or '')
+            sender_name = f"{first} {last}".strip() or sender_email
 
     return {
         'id': str(message.get('_id')),
         'sender_email': sender_email,
+        'sender_name': sender_name,
         'receiver_email': message.get('receiver_email', ''),
         'body': sanitize(message.get('body', '') or ''),
         'created_at': message.get('created_at').isoformat() if message.get('created_at') else '',
-        'is_mine': sender_email == current_user,
+        'is_mine': sender_email.lower() == current_user.lower(),
     }
-
 
 def get_existing_connection(email_one, email_two):
     """Find an existing connection/request between two users in either direction."""
@@ -149,7 +165,111 @@ def collaboration():
     return render_template('collaboration.html')
 
 
+
+
+# ====================== COLLABORATION NOTIFICATIONS ======================
+
+def get_current_user_group_ids(user_email):
+    """Return ObjectIds for study groups the current user belongs to."""
+    if group_members_collection is None:
+        return []
+    memberships = group_members_collection.find({'user_email': user_email}, {'group_id': 1})
+    return [item.get('group_id') for item in memberships if item.get('group_id')]
+
+
+def count_unread_direct_messages(user_email):
+    """Count direct messages sent to the user that have not been read yet."""
+    if group_messages_collection is None:
+        return 0
+    return group_messages_collection.count_documents({
+        'conversation_type': 'direct',
+        'receiver_email': user_email,
+        'read_at': None,
+    })
+
+
+def count_unread_group_messages(user_email):
+    """Count group messages in the user's groups that the user has not read yet."""
+    if group_messages_collection is None or group_members_collection is None:
+        return 0
+
+    group_ids = get_current_user_group_ids(user_email)
+    if not group_ids:
+        return 0
+
+    group_id_strings = [str(group_id) for group_id in group_ids]
+    return group_messages_collection.count_documents({
+        'conversation_type': 'group',
+        'conversation_id': {'$in': group_id_strings},
+        'sender_email': {'$ne': user_email},
+        '$or': [
+            {'read_by': {'$exists': False}},
+            {'read_by': {'$ne': user_email}},
+        ],
+    })
+
+
+def count_pending_connection_requests(user_email):
+    """Count pending connection requests received by the user."""
+    if social_connections_collection is None:
+        return 0
+    return social_connections_collection.count_documents({
+        'receiver_email': user_email,
+        'status': 'pending',
+    })
+
+
+def count_unread_direct_messages_from_friend(user_email, friend_email):
+    """Count unread direct messages sent by one friend to the current user."""
+    if group_messages_collection is None:
+        return 0
+    return group_messages_collection.count_documents({
+        'conversation_type': 'direct',
+        'conversation_id': direct_conversation_id(user_email, friend_email),
+        'sender_email': friend_email,
+        'receiver_email': user_email,
+        'read_at': None,
+    })
+
+
+def count_unread_group_messages_for_group(user_email, group_id):
+    """Count unread group messages for one group for the current user."""
+    if group_messages_collection is None:
+        return 0
+    return group_messages_collection.count_documents({
+        'conversation_type': 'group',
+        'conversation_id': str(group_id),
+        'sender_email': {'$ne': user_email},
+        '$or': [
+            {'read_by': {'$exists': False}},
+            {'read_by': {'$ne': user_email}},
+        ],
+    })
+
+
+@collaboration_bp.route('/collaboration/notifications/count', methods=['GET'])
+@collaboration_bp.route('/notifications/count', methods=['GET'])
+@collaboration_bp.route('/api/collaboration/notifications/count', methods=['GET'])
+@collaboration_bp.route('/api/notifications/count', methods=['GET'])
+def get_collaboration_notification_count():
+    """Return the unread collaboration notification count for the sidebar badge."""
+    current_user = get_current_user_email()
+    if not current_user:
+        return jsonify({'count': 0, 'messages': 0, 'group_messages': 0, 'connection_requests': 0}), 401
+
+    direct_count = count_unread_direct_messages(current_user)
+    group_count = count_unread_group_messages(current_user)
+    request_count = count_pending_connection_requests(current_user)
+
+    return jsonify({
+        'count': direct_count + group_count + request_count,
+        'messages': direct_count,
+        'group_messages': group_count,
+        'connection_requests': request_count,
+    })
+
 @collaboration_bp.route('/api/collaboration/users', methods=['GET'])
+@collaboration_bp.route('/collaboration/users', methods=['GET'])
 def api_collaboration_users():
     """Return safe public user records for the collaboration people list."""
     current_user = get_current_user_email()
@@ -179,6 +299,7 @@ def api_collaboration_users():
 
 
 @collaboration_bp.route('/api/collaboration/requests', methods=['POST'])
+@collaboration_bp.route('/collaboration/requests', methods=['POST'])
 def send_connection_request():
     """Send a pending connection request to another student."""
     current_user = get_current_user_email()
@@ -231,6 +352,7 @@ def send_connection_request():
 
 
 @collaboration_bp.route('/api/collaboration/requests/incoming', methods=['GET'])
+@collaboration_bp.route('/collaboration/requests/incoming', methods=['GET'])
 def get_incoming_connection_requests():
     """Return pending requests received by the current user."""
     current_user = get_current_user_email()
@@ -269,6 +391,7 @@ def get_incoming_connection_requests():
 
 
 @collaboration_bp.route('/api/collaboration/requests/outgoing', methods=['GET'])
+@collaboration_bp.route('/collaboration/requests/outgoing', methods=['GET'])
 def get_outgoing_connection_requests():
     """Return pending requests sent by the current user."""
     current_user = get_current_user_email()
@@ -290,6 +413,7 @@ def get_outgoing_connection_requests():
 
 
 @collaboration_bp.route('/api/collaboration/connections', methods=['GET'])
+@collaboration_bp.route('/collaboration/connections', methods=['GET'])
 def get_accepted_connections():
     """Return accepted friends for the current user."""
     current_user = get_current_user_email()
@@ -308,12 +432,19 @@ def get_accepted_connections():
         ]
     }).sort('updated_at', -1)
 
-    friends = [build_friend_from_connection(item, current_user) for item in connections_cursor]
+    friends = []
+    for item in connections_cursor:
+        friend = build_friend_from_connection(item, current_user)
+        friend['unread_count'] = count_unread_direct_messages_from_friend(current_user, friend.get('email', ''))
+        friends.append(friend)
+
+    friends.sort(key=lambda friend: (friend.get('unread_count', 0), friend.get('connected_at', '')), reverse=True)
 
     return jsonify({'connections': friends})
 
 
 @collaboration_bp.route('/api/collaboration/requests/<request_id>/accept', methods=['POST'])
+@collaboration_bp.route('/collaboration/requests/<request_id>/accept', methods=['POST'])
 def accept_connection_request(request_id):
     """Accept a pending connection request received by the current user."""
     current_user = get_current_user_email()
@@ -344,6 +475,7 @@ def accept_connection_request(request_id):
 
 
 @collaboration_bp.route('/api/collaboration/requests/<request_id>/reject', methods=['POST'])
+@collaboration_bp.route('/collaboration/requests/<request_id>/reject', methods=['POST'])
 def reject_connection_request(request_id):
     """Reject a pending connection request received by the current user."""
     current_user = get_current_user_email()
@@ -374,6 +506,7 @@ def reject_connection_request(request_id):
 
 
 @collaboration_bp.route('/api/collaboration/requests/<request_id>/cancel', methods=['POST'])
+@collaboration_bp.route('/collaboration/requests/<request_id>/cancel', methods=['POST'])
 def cancel_connection_request(request_id):
     """Cancel a pending connection request sent by the current user."""
     current_user = get_current_user_email()
@@ -404,6 +537,7 @@ def cancel_connection_request(request_id):
 
 
 @collaboration_bp.route('/api/collaboration/messages', methods=['GET'])
+@collaboration_bp.route('/collaboration/messages', methods=['GET'])
 def get_direct_messages():
     """Return direct messages between the current user and one accepted friend."""
     current_user = get_current_user_email()
@@ -427,17 +561,27 @@ def get_direct_messages():
 
     conversation_id = direct_conversation_id(current_user, friend_email)
 
+    group_messages_collection.update_many(
+        {
+            'conversation_type': 'direct',
+            'conversation_id': conversation_id,
+            'receiver_email': current_user,
+            'read_at': None,
+        },
+        {'$set': {'read_at': datetime.utcnow()}}
+    )
+
     messages_cursor = group_messages_collection.find({
         'conversation_type': 'direct',
         'conversation_id': conversation_id,
     }).sort('created_at', 1).limit(100)
-
     return jsonify({
-        'messages': [serialize_message(message, current_user) for message in messages_cursor]
+       'messages': [serialize_message(message, current_user ) for message in messages_cursor]
     })
 
 
 @collaboration_bp.route('/api/collaboration/messages', methods=['POST'])
+@collaboration_bp.route('/collaboration/messages', methods=['POST'])
 def send_direct_message():
     """Send a direct message to an accepted friend."""
     current_user = get_current_user_email()
@@ -487,3 +631,278 @@ def send_direct_message():
         'message': 'Message sent successfully.',
         'chat_message': serialize_message(message_doc, current_user)
     }), 201
+
+
+# ====================== GROUP ROUTES ======================
+
+def get_group_object_id(group_id):
+    """Safely convert a group id string to ObjectId."""
+    try:
+        return ObjectId(group_id)
+    except Exception:
+        return None
+
+
+def get_group_membership(group_object_id, user_email):
+    """Return the current user's group membership document, if one exists."""
+    if group_members_collection is None:
+        return None
+    return group_members_collection.find_one({
+        'group_id': group_object_id,
+        'user_email': user_email
+    })
+
+
+def serialize_group(group_doc, current_user=None):
+    """Return a safe JSON version of a study group."""
+    group_id = group_doc.get('_id')
+    member_count = group_members_collection.count_documents({'group_id': group_id}) if group_members_collection is not None else group_doc.get('member_count', 1)
+    unread_count = count_unread_group_messages_for_group(current_user, group_id) if current_user else 0
+    return {
+        'id': str(group_id),
+        'name': sanitize(group_doc.get('name', '') or ''),
+        'description': sanitize(group_doc.get('description', '') or ''),
+        'creator': group_doc.get('creator', ''),
+        'member_count': member_count,
+        'unread_count': unread_count,
+        'created_at': group_doc.get('created_at').isoformat() if group_doc.get('created_at') else ''
+    }
+
+
+def serialize_group_member(member_doc):
+    """Return a safe JSON version of a group member, including profile details when available."""
+    email = member_doc.get('user_email', '')
+    user_doc = users_collection.find_one({'email': email}) if users_collection is not None else None
+    profile = serialize_public_user(user_doc) if user_doc else {
+        'id': '',
+        'name': email or 'Study Planner User',
+        'email': email,
+        'institution': '',
+        'major': ''
+    }
+    profile['role'] = member_doc.get('role', 'member')
+    profile['joined_at'] = member_doc.get('joined_at').isoformat() if member_doc.get('joined_at') else ''
+    return profile
+
+
+@collaboration_bp.route('/api/collaboration/groups', methods=['GET'])
+@collaboration_bp.route('/collaboration/groups', methods=['GET'])
+def get_groups():
+    """Get all groups the current user is a member of."""
+    current_user = get_current_user_email()
+    if not current_user:
+        return jsonify({'error': 'Not logged in'}), 401
+
+    if study_groups_collection is None or group_members_collection is None:
+        return jsonify({'groups': [], 'message': 'Database not connected'})
+
+    memberships = list(group_members_collection.find({'user_email': current_user}))
+    group_ids = [m.get('group_id') for m in memberships if m.get('group_id')]
+    if not group_ids:
+        return jsonify({'groups': []})
+
+    groups_cursor = study_groups_collection.find({'_id': {'$in': group_ids}}).sort('created_at', -1)
+    groups = [serialize_group(group, current_user) for group in groups_cursor]
+    groups.sort(key=lambda group: (group.get('unread_count', 0), group.get('created_at', '')), reverse=True)
+    return jsonify({'groups': groups})
+
+
+@collaboration_bp.route('/api/collaboration/groups', methods=['POST'])
+@collaboration_bp.route('/collaboration/groups', methods=['POST'])
+def create_group():
+    """Create a new study group and make the creator an admin member."""
+    current_user = get_current_user_email()
+    if not current_user:
+        return jsonify({'error': 'Not logged in'}), 401
+
+    if study_groups_collection is None or group_members_collection is None:
+        return jsonify({'error': 'Database not connected'}), 503
+
+    data = request.get_json(silent=True) or {}
+    name = sanitize(data.get('name', ''))
+    description = sanitize(data.get('description', ''))
+
+    if not name or len(name) < 3:
+        return jsonify({'error': 'Group name must be at least 3 characters long'}), 400
+
+    now = datetime.utcnow()
+    group_doc = {
+        'name': name,
+        'description': description,
+        'creator': current_user,
+        'member_count': 1,
+        'created_at': now,
+        'updated_at': now
+    }
+
+    result = study_groups_collection.insert_one(group_doc)
+    group_doc['_id'] = result.inserted_id
+
+    group_members_collection.update_one(
+        {'group_id': result.inserted_id, 'user_email': current_user},
+        {'$setOnInsert': {
+            'group_id': result.inserted_id,
+            'user_email': current_user,
+            'role': 'admin',
+            'joined_at': now
+        }},
+        upsert=True
+    )
+
+    return jsonify({'message': 'Group created successfully', 'group': serialize_group(group_doc, current_user)}), 201
+
+
+@collaboration_bp.route('/api/collaboration/groups/<group_id>/members', methods=['GET'])
+@collaboration_bp.route('/collaboration/groups/<group_id>/members', methods=['GET'])
+def get_group_members(group_id):
+    """Return the members of a group. Only group members can see this list."""
+    current_user = get_current_user_email()
+    if not current_user:
+        return jsonify({'error': 'Not logged in'}), 401
+
+    if study_groups_collection is None or group_members_collection is None:
+        return jsonify({'members': [], 'message': 'Database not connected'}), 503
+
+    group_object_id = get_group_object_id(group_id)
+    if group_object_id is None:
+        return jsonify({'error': 'Invalid group ID'}), 400
+
+    group = study_groups_collection.find_one({'_id': group_object_id})
+    if not group:
+        return jsonify({'error': 'Group not found'}), 404
+
+    if not get_group_membership(group_object_id, current_user):
+        return jsonify({'error': 'You are not a member of this group'}), 403
+
+    members_cursor = group_members_collection.find({'group_id': group_object_id}).sort('joined_at', 1)
+    return jsonify({'members': [serialize_group_member(member) for member in members_cursor]})
+
+
+@collaboration_bp.route('/api/collaboration/groups/<group_id>/members', methods=['POST'])
+@collaboration_bp.route('/collaboration/groups/<group_id>/members', methods=['POST'])
+def add_group_member(group_id):
+    """Add an accepted friend to a group. Only group admins/creators can add members."""
+    current_user = get_current_user_email()
+    if not current_user:
+        return jsonify({'error': 'Not logged in'}), 401
+
+    if users_collection is None or study_groups_collection is None or group_members_collection is None:
+        return jsonify({'error': 'Database not connected'}), 503
+
+    group_object_id = get_group_object_id(group_id)
+    if group_object_id is None:
+        return jsonify({'error': 'Invalid group ID'}), 400
+
+    group = study_groups_collection.find_one({'_id': group_object_id})
+    if not group:
+        return jsonify({'error': 'Group not found'}), 404
+
+    current_membership = get_group_membership(group_object_id, current_user)
+    if not current_membership:
+        return jsonify({'error': 'You are not a member of this group'}), 403
+
+    if current_membership.get('role') != 'admin' and group.get('creator') != current_user:
+        return jsonify({'error': 'Only the group creator/admin can add members'}), 403
+
+    data = request.get_json(silent=True) or {}
+    user_email = normalize_email(data.get('user_email', ''))
+
+    if not user_email:
+        return jsonify({'error': 'Please choose a user to add'}), 400
+    if user_email == current_user.lower():
+        return jsonify({'error': 'You are already in this group'}), 400
+
+    user = users_collection.find_one({'email': user_email})
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    if not are_connected(current_user, user_email):
+        return jsonify({'error': 'You can only add accepted friends to a group. Send and accept a connection request first.'}), 403
+
+    if get_group_membership(group_object_id, user_email):
+        return jsonify({'error': 'This user is already a member of the group'}), 409
+
+    now = datetime.utcnow()
+    member_doc = {'group_id': group_object_id, 'user_email': user_email, 'role': 'member', 'joined_at': now}
+    group_members_collection.insert_one(member_doc)
+
+    member_count = group_members_collection.count_documents({'group_id': group_object_id})
+    study_groups_collection.update_one({'_id': group_object_id}, {'$set': {'member_count': member_count, 'updated_at': now}})
+
+    return jsonify({'message': 'Member added successfully', 'member': serialize_group_member(member_doc), 'member_count': member_count}), 201
+
+
+@collaboration_bp.route('/api/collaboration/groups/<group_id>/messages', methods=['GET'])
+@collaboration_bp.route('/collaboration/groups/<group_id>/messages', methods=['GET'])
+def get_group_messages(group_id):
+    """Get messages for a specific group. Only members can read group messages."""
+    current_user = get_current_user_email()
+    if not current_user:
+        return jsonify({'error': 'Not logged in'}), 401
+
+    if group_messages_collection is None or group_members_collection is None:
+        return jsonify({'messages': [], 'message': 'Database not connected'}), 503
+
+    group_object_id = get_group_object_id(group_id)
+    if group_object_id is None:
+        return jsonify({'error': 'Invalid group ID'}), 400
+
+    if not get_group_membership(group_object_id, current_user):
+        return jsonify({'error': 'You are not a member of this group'}), 403
+
+    group_messages_collection.update_many(
+        {
+            'conversation_type': 'group',
+            'conversation_id': group_id,
+            'sender_email': {'$ne': current_user},
+            '$or': [
+                {'read_by': {'$exists': False}},
+                {'read_by': {'$ne': current_user}},
+            ],
+        },
+        {'$addToSet': {'read_by': current_user}, '$set': {'updated_at': datetime.utcnow()}}
+    )
+
+    messages_cursor = group_messages_collection.find({'conversation_type': 'group', 'conversation_id': group_id}).sort('created_at', 1).limit(100)
+    return jsonify({'messages': [serialize_message(msg, current_user) for msg in messages_cursor]})
+
+
+@collaboration_bp.route('/api/collaboration/groups/<group_id>/messages', methods=['POST'])
+@collaboration_bp.route('/collaboration/groups/<group_id>/messages', methods=['POST'])
+def send_group_message(group_id):
+    """Send a message to a group. Membership is checked before saving the message."""
+    current_user = get_current_user_email()
+    if not current_user:
+        return jsonify({'error': 'Not logged in'}), 401
+
+    if group_messages_collection is None or group_members_collection is None:
+        return jsonify({'error': 'Database not connected'}), 503
+
+    group_object_id = get_group_object_id(group_id)
+    if group_object_id is None:
+        return jsonify({'error': 'Invalid group ID'}), 400
+
+    if not get_group_membership(group_object_id, current_user):
+        return jsonify({'error': 'You are not a member of this group'}), 403
+
+    data = request.get_json(silent=True) or {}
+    body = sanitize(data.get('body', ''))
+    if not body:
+        return jsonify({'error': 'Message body cannot be empty'}), 400
+    if len(body) > 1000:
+        return jsonify({'error': 'Message is too long (max 1000 characters)'}), 400
+
+    now = datetime.utcnow()
+    message_doc = {
+        'conversation_type': 'group',
+        'conversation_id': group_id,
+        'sender_email': current_user,
+        'body': body,
+        'created_at': now,
+        'updated_at': now,
+        'read_by': [current_user],
+    }
+    result = group_messages_collection.insert_one(message_doc)
+    message_doc['_id'] = result.inserted_id
+    return jsonify({'message': 'Message sent successfully', 'chat_message': serialize_message(message_doc, current_user)}), 201
+

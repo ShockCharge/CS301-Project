@@ -2,6 +2,8 @@ from celery import Celery
 import os
 from datetime import datetime
 from common import NZ_TZ, tasks_collection, exams_collection, classes_collection, schedules_collection, chain, get_task_status
+from web_aware_ai import answer_with_web_awareness
+
 import traceback
 from bson import ObjectId
 
@@ -34,6 +36,14 @@ def convert_objectids(items):
     return items
 
 
+def database_unavailable_response():
+    """Return a consistent Celery result when MongoDB did not connect."""
+    return {
+        "success": False,
+        "error": "Database not connected. Please check MONGO_USER, MONGO_PASS, your MongoDB Atlas network access, and dnspython installation."
+    }
+
+
 # ========================= TASKS =========================
 
 @celery_app.task
@@ -45,6 +55,9 @@ def send_reminder_async(email, task_name):
 @celery_app.task
 def get_ai_suggestions_task(user_email):
     try:
+        if tasks_collection is None or exams_collection is None:
+            return database_unavailable_response()
+
         today = datetime.now(NZ_TZ).strftime('%Y-%m-%d')
 
         tasks = list(tasks_collection.find({
@@ -80,6 +93,9 @@ def get_ai_suggestions_task(user_email):
 def get_ai_study_plan_task(self, user_email: str):
     """Rich study plan generation task"""
     try:
+        if tasks_collection is None or exams_collection is None or classes_collection is None:
+            return database_unavailable_response()
+
         today_str = datetime.now(NZ_TZ).strftime('%Y-%m-%d')
 
         # Fetch data
@@ -147,6 +163,9 @@ def get_ai_study_plan_task(self, user_email: str):
 @celery_app.task
 def get_chatbot_response(user_email: str, user_message: str):
     try:
+        if tasks_collection is None or exams_collection is None or classes_collection is None or schedules_collection is None:
+            return database_unavailable_response()
+
         today = datetime.now(NZ_TZ).strftime('%Y-%m-%d')
 
         user_tasks = list(tasks_collection.find({
@@ -173,12 +192,14 @@ def get_chatbot_response(user_email: str, user_message: str):
             "schedules": user_schedules
         }
 
-        response = chain.invoke({
-            "question": user_message,
-            "user_context": context
-        })
-
-        return {"success": True, "response": response}
+        ai_result = answer_with_web_awareness(chain, user_message, context)
+        return {
+            "success": True,
+            "response": ai_result.get("response", ""),
+            "web_used": ai_result.get("web_used", False),
+            "sources": ai_result.get("sources", []),
+            "web_error": ai_result.get("web_error")
+        }
 
     except Exception as e:
         traceback.print_exc()

@@ -1,7 +1,10 @@
 import os
 import re
+
+import secrets
+
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, Response
-from werkzeug.security import generate_password_hash, check_password_hash, gen_salt
+from werkzeug.security import generate_password_hash, check_password_hash
 import json
 from flask_mail import Mail, Message
 from datetime import datetime, timedelta
@@ -10,51 +13,59 @@ import threading
 import random
 import warnings
 import redis
-from common import NZ_TZ, ZoneInfo, users_collection, schedules_collection, tasks_collection, exams_collection, classes_collection, vacations_collection, chain, llm
-from task import get_ai_study_plan_task     
-from task import get_ai_suggestions_task, get_ai_study_plan_task   # You can remove the old one if it's duplicate
-from celery import Celery
-from celery_app import celery_app
-from collaboration import collaboration_bp
-import bcrypt
 
-# Initialize Celery app (must be done in application.py as well for Flask context)
-celery_app = Celery(
-    'study_planner',
-    broker=os.environ.get('CELERY_BROKER_URL', 'redis://localhost:6379/0'),
-    backend=os.environ.get('CELERY_RESULT_BACKEND', 'redis://localhost:6379/0')
-)
+from common import NZ_TZ, ZoneInfo, users_collection, schedules_collection, tasks_collection, exams_collection, classes_collection, vacations_collection, chain, llm, social_connections_collection, study_groups_collection, group_members_collection, group_messages_collection
+
+from task import celery_app, get_ai_suggestions_task, get_ai_study_plan_task
+from collaboration import collaboration_bp
+from web_aware_ai import answer_with_web_awareness
+
+import boto3
 
 redis_client = redis.Redis(host='localhost', port=6379, db=0)
 
-app = Flask(__name__)
+
+
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+TEMPLATE_FOLDER = 'templates' if os.path.isdir(os.path.join(BASE_DIR, 'templates')) else 'Templates'
+STATIC_FOLDER = 'static' if os.path.isdir(os.path.join(BASE_DIR, 'static')) else 'Static'
+
+app = Flask(__name__, template_folder=TEMPLATE_FOLDER, static_folder=STATIC_FOLDER)
 application = app
+
+
 
 app.secret_key = os.environ.get('SECRET_KEY', 'supersecretkey123-dev-only')
 
-app.register_blueprint(collaboration_bp)
+app.register_blueprint( collaboration_bp, url_prefix='/api' )
 
 # Email configuration
-app.config['MAIL_SERVER']   = 'smtp.gmail.com'
-app.config['MAIL_PORT']     = 587
-app.config['MAIL_USE_TLS']  = True
-app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
-app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
+# Gmail app passwords are often displayed with spaces; SMTP expects the compact value.
+mail_username = (os.environ.get('MAIL_USERNAME') or '').strip()
+mail_password = (os.environ.get('MAIL_PASSWORD') or '').replace(' ', '').strip()
+
+app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
+app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', 587))
+app.config['MAIL_USE_TLS'] = os.environ.get('MAIL_USE_TLS', 'true').lower() == 'true'
+app.config['MAIL_USE_SSL'] = os.environ.get('MAIL_USE_SSL', 'false').lower() == 'true'
+app.config['MAIL_USERNAME'] = mail_username
+app.config['MAIL_PASSWORD'] = mail_password
+app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER') or mail_username
+app.config['MAIL_TIMEOUT'] = int(os.environ.get('MAIL_TIMEOUT', 20))
 mail = Mail(app)
 
 
 # HELPER FUNCTIONS
 
-def hash_password(password):
-    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-
-def verify_password(password, hashed_password):
-    return bcrypt.checkpw(password.encode('utf-8'), hashed_password.encode('utf-8'))
-
 def generate_otp():
-    return str(random.randint(100000, 999999))
+    """Generate a secure 6-digit verification code."""
+    return ''.join(str(secrets.randbelow(10)) for _ in range(6))
 
 def send_otp_email(user_email, otp_code):
+    """Send a login verification code by email."""
+    if not app.config.get('MAIL_USERNAME') or not app.config.get('MAIL_PASSWORD'):
+        print('OTP Email Error: MAIL_USERNAME or MAIL_PASSWORD is not configured.')
+        return False
 
     try:
         msg = Message(
@@ -63,9 +74,9 @@ def send_otp_email(user_email, otp_code):
         )
 
         msg.body = f"""
-Your verification code is: {otp_code}
+Your Study Planner verification code is: {otp_code}
 
-This code expires in 5 minutes.
+This code expires in 10 minutes. If you did not try to log in, you can ignore this email.
 """
 
         mail.send(msg)
@@ -74,6 +85,28 @@ This code expires in 5 minutes.
     except Exception as e:
         print(f"OTP Email Error: {e}")
         return False
+
+def login_2fa_enabled():
+    """Return True when email OTP verification should be required at login."""
+    return os.environ.get('LOGIN_2FA_ENABLED', 'true').strip().lower() in ('1', 'true', 'yes', 'on')
+
+
+def start_2fa_session(user_email, user_name=''):
+    """Create a pending login session and send the user's OTP email."""
+    otp_code = generate_otp()
+    session['pending_user'] = user_email
+    session['pending_user_name'] = user_name
+    session['otp_code'] = otp_code
+    session['otp_expiry'] = (datetime.utcnow() + timedelta(minutes=10)).isoformat()
+
+    if send_otp_email(user_email, otp_code):
+        return True
+
+    session.pop('pending_user', None)
+    session.pop('pending_user_name', None)
+    session.pop('otp_code', None)
+    session.pop('otp_expiry', None)
+    return False
 
 def sanitize(value):
     """Strip HTML tags and dangerous characters to prevent XSS."""
@@ -198,15 +231,31 @@ You have {len(upcoming_items)} deadline(s) tomorrow ({tomorrow_str}).
 
 Check your Study Planner.
 """
-                    # send_sms(phone, sms_message)
-                    print(f"SMS sent to {phone}")
+                    sms_sent = send_sms(phone, sms_message)
+                    if not sms_sent:
+                        print(f"SMS not delivered to {phone}")
             except Exception as e:
                 print(f"SMS failed for {email}: {e}")
 
+deadline_checker_started = False
+
+
 def start_deadline_checker():
-    """Run deadline checker every 24 hours."""
-    check_upcoming_deadlines()
-    threading.Timer(86400, start_deadline_checker).start()
+    """Run deadline checker every 24 hours with a duplicate-start guard."""
+    global deadline_checker_started
+    if deadline_checker_started:
+        print("Deadline checker is already running.")
+        return
+
+    deadline_checker_started = True
+
+    def run_check_loop():
+        check_upcoming_deadlines()
+        timer = threading.Timer(86400, run_check_loop)
+        timer.daemon = True
+        timer.start()
+
+    run_check_loop()
 
 
 def get_task_status(date_str):
@@ -235,12 +284,23 @@ def get_task_status(date_str):
 
 @app.route('/test_email')
 def test_email():
+    """Send a controlled test email to the currently logged-in user only."""
+    if 'user' not in session:
+        return redirect(url_for('login'))
+
+    if not app.config.get('MAIL_USERNAME') or not app.config.get('MAIL_PASSWORD'):
+        return "Email is not configured. Please set MAIL_USERNAME and MAIL_PASSWORD in .env.", 500
+
     try:
-        msg = Message(subject="Test Email", recipients=["1bikramp@gmail.com"], body="This is a test.")
+        msg = Message(
+            subject="Study Planner Test Email",
+            recipients=[session['user']],
+            body="This is a Study Planner test email. If you received this, your email setup is working."
+        )
         mail.send(msg)
-        return "Email sent!"
+        return f"Test email sent to {session['user']}!"
     except Exception as e:
-        return f"Failed: {str(e)}"
+        return f"Failed: {str(e)}", 500
 
 
 # AUTH ROUTES
@@ -266,19 +326,23 @@ def login():
             user = {'email': email} if email == 'test@example.com' and password == 'password' else None
 
         if user:
+            user_name = f"{user.get('first_name', '')} {user.get('last_name', '')}".strip()
+
+            if login_2fa_enabled():
+                if start_2fa_session(email, user_name):
+                    return redirect(url_for('verify_2fa'))
+                return render_template(
+                    'login.html',
+                    error='Login details are correct, but the verification email could not be sent. Please check your email settings or try again later.'
+                )
+
             session['user']      = email
-            session['user_name'] = f"{user.get('first_name', '')} {user.get('last_name', '')}".strip()
+            session['user_name'] = user_name
             return redirect(url_for('dashboard'))
         else:
             return render_template('login.html', error='Invalid email or password.')
     return render_template('login.html')
 
-def hash_password(password):
-    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-
-def verify_password(password, hashed):
-    return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
-    
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
     if request.method == 'POST':
@@ -307,31 +371,25 @@ def signup():
         if users_collection is not None:
             if users_collection.find_one({'email': email}):
                 return render_template('signup.html', error='This email is already registered.')
-            
-            password = request.form.get("password")
-            hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-            users_collection.insert_one({
-                "email": email,
-                "password": hashed_password
-                })
 
             user_data = {
                 'first_name':  first_name,
                 'last_name':   last_name,
                 'email':       email,
-                'password':    hash_password(password),
+                'password':    generate_password_hash(password),
                 'phone':       phone,
                 'institution': institution,
                 'major':       major,
-                'created_at':  datetime.now()
+                'created_at':  datetime.now(NZ_TZ)
             }
             users_collection.insert_one(user_data)
+        else:
+            return render_template('signup.html', error='Database connection is unavailable. Please check MongoDB settings.')
 
         return redirect(url_for('login'))
+
     return render_template('signup.html')
 
-def verify_password(password, hashed):
-    return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
 
 # PAGE ROUTES
 @app.route('/verify-2fa', methods=['GET', 'POST'])
@@ -348,26 +406,46 @@ def verify_2fa():
         expiry = session.get('otp_expiry')
 
         if not stored_otp or not expiry:
-            return render_template('verify.html', error='Verification session expired. Please try again!')
+            return render_template('verify2fa_mobile.html', error='Verification session expired', email=session.get('pending_user'))
 
         expiry = datetime.fromisoformat(expiry)
 
         if datetime.utcnow() > expiry:
-            return render_template('verify.html', error='OTP expired')
+            return render_template('verify2fa_mobile.html', error='OTP expired', email=session.get('pending_user'))
 
         if entered_otp == stored_otp:
 
             session['user'] = session['pending_user']
+            session['user_name'] = session.get('pending_user_name', '')
 
             session.pop('pending_user', None)
+            session.pop('pending_user_name', None)
             session.pop('otp_code', None)
             session.pop('otp_expiry', None)
 
             return redirect(url_for('dashboard'))
 
-        return render_template('verify.html', error='Invalid verification code. Please try again!')
+        return render_template('verify2fa_mobile.html', error='Invalid verification code', email=session.get('pending_user'))
 
-    return render_template('verify.html')
+    return render_template('verify2fa_mobile.html', email=session.get('pending_user'))
+
+
+@app.route('/resend-2fa', methods=['POST'])
+def resend_2fa():
+    """Resend the login verification email for the pending user."""
+    pending_user = session.get('pending_user')
+    if not pending_user:
+        return redirect(url_for('login'))
+
+    otp_code = generate_otp()
+    session['otp_code'] = otp_code
+    session['otp_expiry'] = (datetime.utcnow() + timedelta(minutes=10)).isoformat()
+
+    if send_otp_email(pending_user, otp_code):
+        return render_template('verify2fa_mobile.html', email=pending_user, info='A new verification code has been sent to your email.')
+
+    return render_template('verify2fa_mobile.html', email=pending_user, error='Could not resend the verification code. Please try again later.')
+
 
 @app.route('/dashboard')
 def dashboard():
@@ -455,7 +533,7 @@ def clear_outdated():
     if 'user' not in session:
         return jsonify({'error': 'Not authenticated'}), 401
 
-    today         = datetime.utcnow().date()
+    today         = datetime.now(NZ_TZ).date()
     deleted_count = 0
 
     if tasks_collection is not None:
@@ -511,7 +589,7 @@ def get_ai_suggestions():
     try:
         user_email    = session['user']
         today         = datetime.now(NZ_TZ)
-        today_str     = today.strftime('%d/%m/%Y')
+        today_str     = today.strftime('%Y-%m-%d')
         priority_order = {'high': 0, 'medium': 1, 'low': 2}
 
         today_tasks = list(tasks_collection.find({
@@ -530,7 +608,7 @@ def get_ai_suggestions():
         for exam in today_exams:
             exam_date_str = exam.get('date', '')
             try:
-                exam_date = datetime.strptime(exam_date_str, '%d/%m/%Y')
+                exam_date = datetime.strptime(exam_date_str, '%Y-%m-%d')
                 if exam_date.date() >= today.date():
                     filtered_exams.append(exam)
             except:
@@ -552,15 +630,28 @@ def get_ai_suggestions():
         return jsonify({"error": str(e)})
 
 
+@app.route('/api/suggestions')
+def api_suggestions_alias():
+    """Compatibility route for frontend JavaScript that calls /api/suggestions."""
+    return get_ai_suggestions()
+
+
 @app.route('/api/ai-task-status/<task_id>')
 def ai_task_status(task_id):
+    """Return Celery task status in a frontend-friendly format."""
     task = celery_app.AsyncResult(task_id)
+
     if task.state == 'PENDING':
-        response = {'state': task.state, 'status': 'Pending...'}
-    elif task.state != 'FAILURE':
-        response = {'state': task.state, 'result': task.result}
+        response = {'state': task.state, 'status': 'pending', 'message': 'Pending...'}
+    elif task.state == 'STARTED':
+        response = {'state': task.state, 'status': 'started', 'message': 'Task started...'}
+    elif task.state == 'SUCCESS':
+        response = {'state': task.state, 'status': 'success', 'result': task.result}
+    elif task.state == 'FAILURE':
+        response = {'state': task.state, 'status': 'failed', 'error': str(task.info), 'result': None}
     else:
-        response = {'state': task.state, 'status': str(task.info), 'result': None}
+        response = {'state': task.state, 'status': task.state.lower(), 'message': str(task.info)}
+
     return jsonify(response)
 
 
@@ -633,8 +724,8 @@ def vacations():
 def daily_advice():
     if 'user' not in session:
         return jsonify({'error': 'Not logged in'})
-    tasks_data = list(tasks_collection.find({'user': session['user']}))
-    exams_data = list(exams_collection.find({'user': session['user']}))
+    tasks_data = list(tasks_collection.find({'user': session['user']})) if tasks_collection is not None else []
+    exams_data = list(exams_collection.find({'user': session['user']})) if exams_collection is not None else []
     context    = f"Tasks: {tasks_data}\nExams: {exams_data}"
     advice     = chain.invoke({"question": "Give the student helpful study advice for today", "user_context": context})
     return jsonify({"advice": advice})
@@ -990,10 +1081,10 @@ def chat():
 
     today = datetime.now(NZ_TZ).strftime('%Y-%m-%d')
 
-    user_tasks     = list(tasks_collection.find({'user': session['user'], 'date': {'$gte': today}, 'completed': {'$ne': True}}))
-    user_exams     = list(exams_collection.find({'user': session['user'], 'date': {'$gte': today}, 'completed': {'$ne': True}}))
-    user_classes   = list(classes_collection.find({'user': session['user']}))
-    user_schedules = list(schedules_collection.find({'user': session['user'], 'date': {'$gte': today}}))
+    user_tasks     = list(tasks_collection.find({'user': session['user'], 'date': {'$gte': today}, 'completed': {'$ne': True}})) if tasks_collection is not None else []
+    user_exams     = list(exams_collection.find({'user': session['user'], 'date': {'$gte': today}, 'completed': {'$ne': True}})) if exams_collection is not None else []
+    user_classes   = list(classes_collection.find({'user': session['user']})) if classes_collection is not None else []
+    user_schedules = list(schedules_collection.find({'user': session['user'], 'date': {'$gte': today}})) if schedules_collection is not None else []
 
     for col in [user_tasks, user_exams, user_classes, user_schedules]:
         for item in col:
@@ -1010,12 +1101,27 @@ def chat():
 
     try:
         cache_key = f"chat:{user_message}"
-        cached    = redis_client.get(cache_key)
+        cached = None
+        try:
+            cached = redis_client.get(cache_key)
+        except Exception as redis_error:
+            print('Redis cache unavailable:', redis_error)
         if cached:
             return jsonify({'response': cached.decode('utf-8')})
-        ai_response = chain.invoke({"question": user_message, "user_context": context})
-        redis_client.set(cache_key, ai_response, ex=3600)
-        return jsonify({'response': ai_response})
+        ai_result = answer_with_web_awareness(chain, user_message, context)
+
+        ai_response = ai_result.get('response', '')
+        try:
+            redis_client.set(cache_key, ai_response, ex=3600)
+        except Exception as redis_error:
+            print('Redis cache save failed:', redis_error)
+        return jsonify({
+            'response': ai_response,
+            'web_used': ai_result.get('web_used', False),
+            'sources': ai_result.get('sources', []),
+            'web_error': ai_result.get('web_error')
+        })
+
     except Exception as e:
         print("Ollama / LangChain error:", str(e))
         return jsonify({'error': f'Local AI failed: {str(e)}'}), 500
@@ -1049,9 +1155,15 @@ def api_tasks():
             'priority':    priority,
             'date':        date or None,
             'description': sanitize(data.get('description', '')),
-            'completed':   False,
-            'created_at':  datetime.now()
+            'time': sanitize(data.get('time', '23:59')),
+            'phone_number': sanitize(data.get('phone_number', '')),
+            'description': sanitize(data.get('description', '')),
+            'completed': False,
+            'created_at': datetime.now(),
+            'reminder_12h_sent': False,
+            'reminder_6h_sent': False
         }
+        
         if tasks_collection is not None:
             result = tasks_collection.insert_one(task_item)
             task_item['_id'] = str(result.inserted_id)
@@ -1345,7 +1457,8 @@ def api_vacations():
             'start_date':  start_date or None,
             'end_date':    end_date or None,
             'description': sanitize(data.get('description', '')),
-            'created_at':  datetime.now()
+            'completed':   False,
+            'created_at':  datetime.now(NZ_TZ)
         }
         if vacations_collection is not None:
             result = vacations_collection.insert_one(vacation_item)
@@ -1438,13 +1551,16 @@ def api_change_password():
     if not re.search(r'[0-9]', new_password):
         return jsonify({'error': 'New password must contain at least one number.'}), 400
 
+    if users_collection is None:
+        return jsonify({'error': 'Database connection is unavailable.'}), 500
+
     user = users_collection.find_one({'email': session['user']})
-    if not user or not verify_password(current_password, user.get('password', '')):
+    if not user or not check_password_hash(user.get('password', ''), current_password):
         return jsonify({'error': 'Current password is incorrect.'}), 403
 
     users_collection.update_one(
         {'email': session['user']},
-        {'$set': {'password': hash_password(new_password)}}
+        {'$set': {'password': generate_password_hash(new_password)}}
     )
     return jsonify({'success': True})
 
@@ -1474,7 +1590,16 @@ def api_delete_account():
 @app.route('/logout')
 def logout():
     session.pop('user', None)
+    session.pop('user_name', None)
+    session.pop('pending_user', None)
+    session.pop('pending_user_name', None)
+    session.pop('otp_code', None)
+    session.pop('otp_expiry', None)
     return redirect(url_for('login'))
+
+
+if os.environ.get('START_DEADLINE_CHECKER', 'false').strip().lower() in ('1', 'true', 'yes', 'on'):
+    start_deadline_checker()
 
 
 if __name__ == '__main__':

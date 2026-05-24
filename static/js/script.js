@@ -360,6 +360,7 @@ function initSchedule() {
         });
     });
 
+    setupScheduleQuickActions();
     renderCalendar();
     loadSchedules();
 }
@@ -617,12 +618,82 @@ function injectBadges() {
     }
 }
 
+
+function parseScheduleDateTime(schedule) {
+    if (!schedule || !schedule.date) return null;
+    const time = schedule.time || '23:59';
+    const date = new Date(`${schedule.date}T${time}`);
+    return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function updateScheduleOverview(schedules) {
+    const items = Array.isArray(schedules) ? schedules : [];
+    const now = new Date();
+    const todayKey = now.toISOString().split('T')[0];
+    const weekEnd = new Date(now);
+    weekEnd.setDate(now.getDate() + 7);
+    weekEnd.setHours(23, 59, 59, 999);
+
+    const todayCount = items.filter(item => item.date === todayKey).length;
+    const weekCount = items.filter(item => {
+        const date = parseScheduleDateTime(item);
+        return date && date >= now && date <= weekEnd;
+    }).length;
+
+    const upcoming = items
+        .map(item => ({ item, date: parseScheduleDateTime(item) }))
+        .filter(entry => entry.date && entry.date >= now)
+        .sort((a, b) => a.date - b.date)[0];
+
+    const todayEl = document.getElementById('schedule-today-count');
+    const weekEl = document.getElementById('schedule-week-count');
+    const totalEl = document.getElementById('schedule-total-count');
+    const nextTitleEl = document.getElementById('schedule-next-title');
+    const nextTimeEl = document.getElementById('schedule-next-time');
+
+    if (todayEl) todayEl.textContent = todayCount;
+    if (weekEl) weekEl.textContent = weekCount;
+    if (totalEl) totalEl.textContent = items.length;
+
+    if (nextTitleEl && nextTimeEl) {
+        if (upcoming) {
+            nextTitleEl.textContent = upcoming.item.title || 'Upcoming schedule';
+            nextTimeEl.textContent = upcoming.date.toLocaleString('en-NZ', {
+                weekday: 'short',
+                day: 'numeric',
+                month: 'short',
+                hour: upcoming.item.time ? 'numeric' : undefined,
+                minute: upcoming.item.time ? '2-digit' : undefined
+            });
+        } else {
+            nextTitleEl.textContent = 'No upcoming item';
+            nextTimeEl.textContent = items.length ? 'All scheduled items are in the past' : 'Add a schedule to get started';
+        }
+    }
+}
+
+function setupScheduleQuickActions() {
+    document.getElementById('schedule-today-btn')?.addEventListener('click', () => {
+        currentDate = new Date();
+        switchView('day');
+    });
+
+    document.getElementById('schedule-week-btn')?.addEventListener('click', () => {
+        switchView('week');
+    });
+
+    document.getElementById('schedule-month-btn')?.addEventListener('click', () => {
+        switchView('month');
+    });
+}
+
 //  LOAD & DISPLAY SCHEDULES
 function loadSchedules() {
     fetch('/api/schedules')
         .then(r => r.json())
         .then(schedules => {
             allSchedules = schedules;
+            updateScheduleOverview(schedules);
             displaySchedules(schedules);
             injectBadges();
         })
@@ -1588,3 +1659,53 @@ document.addEventListener('DOMContentLoaded', function () {
         observer.observe(modal, { attributes: true, attributeFilter: ['style'] });
     });
 });
+
+// COLLABORATION SIDEBAR NOTIFICATIONS
+(function initCollaborationNotifications() {
+    const BADGE_SELECTOR = '[data-collaboration-badge]';
+
+    function getBadges() {
+        return Array.from(document.querySelectorAll(BADGE_SELECTOR));
+    }
+
+    function setBadgeCount(count) {
+        const badges = getBadges();
+        badges.forEach((badge) => {
+            if (!count || count <= 0) {
+                badge.hidden = true;
+                badge.textContent = '0';
+                badge.setAttribute('aria-label', 'No unread collaboration notifications');
+            } else {
+                badge.hidden = false;
+                badge.textContent = count > 99 ? '99+' : String(count);
+                badge.setAttribute('aria-label', `${count} unread collaboration notification${count === 1 ? '' : 's'}`);
+            }
+        });
+    }
+
+    async function refreshCollaborationNotifications() {
+        if (!getBadges().length) return;
+        try {
+            const response = await fetch('/api/collaboration/notifications/count', {
+                headers: { 'Accept': 'application/json' },
+                cache: 'no-store'
+            });
+            if (!response.ok) {
+                setBadgeCount(0);
+                return;
+            }
+            const data = await response.json();
+            setBadgeCount(Number(data.count || 0));
+        } catch (error) {
+            // Silent failure keeps the app usable if the server is temporarily unavailable.
+        }
+    }
+
+    window.refreshCollaborationNotifications = refreshCollaborationNotifications;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        refreshCollaborationNotifications();
+        setInterval(refreshCollaborationNotifications, 15000);
+    });
+})();
+
