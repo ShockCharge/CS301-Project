@@ -36,6 +36,14 @@ def convert_objectids(items):
     return items
 
 
+def database_unavailable_response():
+    """Return a consistent Celery result when MongoDB did not connect."""
+    return {
+        "success": False,
+        "error": "Database not connected. Please check MONGO_USER, MONGO_PASS, your MongoDB Atlas network access, and dnspython installation."
+    }
+
+
 # ========================= TASKS =========================
 
 @celery_app.task
@@ -47,6 +55,9 @@ def send_reminder_async(email, task_name):
 @celery_app.task
 def get_ai_suggestions_task(user_email):
     try:
+        if tasks_collection is None or exams_collection is None:
+            return database_unavailable_response()
+
         today = datetime.now(NZ_TZ).strftime('%Y-%m-%d')
 
         tasks = list(tasks_collection.find({
@@ -82,6 +93,9 @@ def get_ai_suggestions_task(user_email):
 def get_ai_study_plan_task(self, user_email: str):
     """Rich study plan generation task"""
     try:
+        if tasks_collection is None or exams_collection is None or classes_collection is None:
+            return database_unavailable_response()
+
         today_str = datetime.now(NZ_TZ).strftime('%Y-%m-%d')
 
         # Fetch data
@@ -149,6 +163,9 @@ def get_ai_study_plan_task(self, user_email: str):
 @celery_app.task
 def get_chatbot_response(user_email: str, user_message: str):
     try:
+        if tasks_collection is None or exams_collection is None or classes_collection is None or schedules_collection is None:
+            return database_unavailable_response()
+
         today = datetime.now(NZ_TZ).strftime('%Y-%m-%d')
 
         user_tasks = list(tasks_collection.find({

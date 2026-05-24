@@ -1,6 +1,8 @@
 import os
 import re
+
 import secrets
+
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, Response
 from werkzeug.security import generate_password_hash, check_password_hash
 import json
@@ -637,13 +639,20 @@ def api_suggestions_alias():
 
 @app.route('/api/ai-task-status/<task_id>')
 def ai_task_status(task_id):
+    """Return Celery task status in a frontend-friendly format."""
     task = celery_app.AsyncResult(task_id)
+
     if task.state == 'PENDING':
-        response = {'state': task.state, 'status': 'Pending...'}
-    elif task.state != 'FAILURE':
-        response = {'state': task.state, 'result': task.result}
+        response = {'state': task.state, 'status': 'pending', 'message': 'Pending...'}
+    elif task.state == 'STARTED':
+        response = {'state': task.state, 'status': 'started', 'message': 'Task started...'}
+    elif task.state == 'SUCCESS':
+        response = {'state': task.state, 'status': 'success', 'result': task.result}
+    elif task.state == 'FAILURE':
+        response = {'state': task.state, 'status': 'failed', 'error': str(task.info), 'result': None}
     else:
-        response = {'state': task.state, 'status': str(task.info), 'result': None}
+        response = {'state': task.state, 'status': task.state.lower(), 'message': str(task.info)}
+
     return jsonify(response)
 
 

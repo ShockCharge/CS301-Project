@@ -200,7 +200,7 @@ function showNotification(message, type = 'info') {
     console.log(`[${type.toUpperCase()}] ${message}`);
 }
 
-function generateStudyPlan() {
+async function generateStudyPlan() {
     const btn = document.getElementById('generatePlanBtn');
     const loading = document.getElementById('studyPlanLoading');
     const content = document.getElementById('studyPlanContent');
@@ -209,43 +209,94 @@ function generateStudyPlan() {
 
     if (!btn) return;
 
+    const showError = (message) => {
+        if (loading) loading.style.display = 'none';
+        if (content) content.style.display = 'none';
+        if (empty) {
+            empty.innerHTML = `<p style="color:#e74c3c;">${message}</p>`;
+            empty.style.display = 'block';
+        }
+    };
+
+    const showPlan = (plan) => {
+        if (loading) loading.style.display = 'none';
+        if (empty) empty.style.display = 'none';
+        if (planText) planText.textContent = plan;
+        if (content) content.style.display = 'block';
+    };
+
+    const resetButton = () => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-magic"></i> Generate Plan';
+    };
+
     btn.disabled = true;
     btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Generating...';
     if (loading) loading.style.display = 'flex';
     if (content) content.style.display = 'none';
     if (empty) empty.style.display = 'none';
 
-    fetch('/api/study_plan', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ requested_at: new Date().toISOString() })
-    })
-        .then(r => {
-            if (!r.ok) throw new Error('Server error');
-            return r.json();
-        })
-        .then(data => {
-            if (loading) loading.style.display = 'none';
-
-            if (data.plan) {
-                if (planText) planText.textContent = data.plan;
-                if (content) content.style.display = 'block';
-            } else if (empty) {
-                empty.innerHTML = '<p style="color:#e74c3c;">Could not generate a plan. Please try again.</p>';
-                empty.style.display = 'block';
-            }
-        })
-        .catch(() => {
-            if (loading) loading.style.display = 'none';
-            if (empty) {
-                empty.innerHTML = '<p style="color:#e74c3c;">Network error. Please check your connection and try again.</p>';
-                empty.style.display = 'block';
-            }
-        })
-        .finally(() => {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="bi bi-magic"></i> Generate Plan';
+    try {
+        const response = await fetch('/api/study_plan', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ requested_at: new Date().toISOString() })
         });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || 'Server error while starting plan generation.');
+        }
+
+        // Some versions may return the plan immediately.
+        if (data.plan) {
+            showPlan(data.plan);
+            return;
+        }
+
+        // Current backend returns HTTP 202 with task_id, then the browser must poll the task-status endpoint.
+
+        if (!data.task_id) {
+            showError('Could not start plan generation. Please try again.');
+            return;
+        }
+
+        const maxAttempts = 40; // 40 x 2 seconds = up to 80 seconds
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
+            const statusResponse = await fetch(`/api/ai-task-status/${data.task_id}`);
+
+            const statusData = await statusResponse.json();
+
+            if (!statusResponse.ok) {
+                throw new Error(statusData.error || 'Server error while checking plan status.');
+            }
+
+            if (statusData.status === 'success') {
+                const result = statusData.result || {};
+                if (result.success && result.plan) {
+                    showPlan(result.plan);
+                    return;
+                }
+                showError(result.error || 'The AI finished but did not return a study plan.');
+                return;
+            }
+
+            if (statusData.status === 'failed') {
+                showError(statusData.error || 'Plan generation failed. Please check Flask/Celery logs.');
+                return;
+            }
+        }
+
+        showError('Plan generation is taking too long. Please make sure Redis and the Celery worker are running, then try again.');
+    } catch (error) {
+        console.error('Study plan generation error:', error);
+        showError(error.message || 'Network error. Please check your connection and try again.');
+    } finally {
+        resetButton();
+    }
 }
 
 window.dashboardUtils = {
