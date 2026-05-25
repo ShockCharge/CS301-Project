@@ -3,6 +3,8 @@ import os
 from datetime import datetime
 from common import NZ_TZ, tasks_collection, exams_collection, classes_collection, schedules_collection, chain, get_task_status
 from web_aware_ai import answer_with_web_awareness
+from notification import send_task_reminder
+from celery.schedules import crontab
 
 import traceback
 from bson import ObjectId
@@ -26,6 +28,12 @@ celery_app.conf.update(
     task_soft_time_limit=240,
 )
 
+celery_app.conf.beat_schedule = {
+    'check-upcoming-tasks-every-5-minutes': {
+        'task': 'task.check_upcoming_tasks',
+        'schedule': 300.0,
+    },
+}
 
 # ========================= UTILITY =========================
 def convert_objectids(items):
@@ -204,3 +212,97 @@ def get_chatbot_response(user_email: str, user_message: str):
     except Exception as e:
         traceback.print_exc()
         return {"success": False, "error": str(e)}
+    
+# ================= AUTOMATIC TASK REMINDER CHECKER =================
+@celery_app.task
+def check_upcoming_tasks():
+    """Runs every few minutes. 
+    Sends reminders:
+    - Under 12 hours
+    - Under 6 hours"""
+
+    try:
+        now = datetime.now(NZ_TZ)
+        tasks = list(tasks_collection.find({
+            "completed": {"$ne": True}
+        }))
+
+        for task in tasks:
+            try:
+                task_date = task.get("date")
+                task_time = task.get("time", "23:59")
+
+                if not task_date:
+                    continue
+                # Combine date + time
+                task_datetime = datetime.strptime(
+                    f"{task_date} {task_time}",
+                    "%Y-%m-%d %H:%M"
+                )
+
+                task_datetime = NZ_TZ.localize(task_datetime)
+
+                remaining_time = task_datetime - now
+                remaining_hours = remaining_time.total_seconds() / 3600
+
+                task_name = task.get("title", "Unnamed Task")
+                phone_number = task.get("phone_number")
+
+                if not phone_number:
+                    continue
+
+                # ================= 12 HOUR REMINDER =================
+                if (
+                    0 < remaining_hours <= 12
+                    and not task.get("reminder_12h_sent", False)
+                ):
+
+                    success = send_task_reminder(
+                        phone_number=phone_number,
+                        task_name=task_name,
+                        due_datetime=task_datetime.strftime("%Y-%m-%d %I:%M %p"),
+                        reminder_type="Task is due within 12 hours"
+                    )
+
+                    if success:
+                        tasks_collection.update_one(
+                            {"_id": task["_id"]},
+                            {
+                                "$set": {
+                                    "reminder_12h_sent": True
+                                }
+                            }
+                        )
+
+                        print(f"Your deadline is in 12-hour: {task_name}")
+
+                # ================= 6 HOUR REMINDER =================
+                if (
+                    0 < remaining_hours <= 6
+                    and not task.get("reminder_6h_sent", False)
+                ):
+
+                    success = send_task_reminder(
+                        phone_number=phone_number,
+                        task_name=task_name,
+                        due_datetime=task_datetime.strftime("%Y-%m-%d %I:%M %p"),
+                        reminder_type="Task is due within 6 hours"
+                    )
+
+                    if success:
+                        tasks_collection.update_one(
+                            {"_id": task["_id"]},
+                            {
+                                "$set": {
+                                    "reminder_6h_sent": True
+                                }
+                            }
+                        )
+
+                        print(f"Your deadline is in 6-hour: {task_name}")
+
+            except Exception as inner_error:
+                print(f"Task processing error: {inner_error}")
+
+    except Exception as error:
+        print(f"Reminder checker failed: {error}")

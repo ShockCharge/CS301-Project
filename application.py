@@ -392,7 +392,6 @@ def signup():
 
 
 # PAGE ROUTES
-
 @app.route('/verify-2fa', methods=['GET', 'POST'])
 def verify_2fa():
 
@@ -1149,6 +1148,17 @@ def api_tasks():
             return jsonify({'error': 'Invalid priority value.'}), 400
         if date and not validate_date(date):
             return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD.'}), 400
+        
+        
+        # GET LOGGED-IN USER PHONE NUMBER
+        user_data = users_collection.find_one({
+        'email': session['user']
+        })
+        
+        phone_number = ''
+        
+        if user_data:
+            phone_number = user_data.get('phone', '')
 
         task_item = {
             'user':        session['user'],
@@ -1157,7 +1167,7 @@ def api_tasks():
             'date':        date or None,
             'description': sanitize(data.get('description', '')),
             'time': sanitize(data.get('time', '23:59')),
-            'phone_number': sanitize(data.get('phone_number', '')),
+            'phone_number': phone_number,
             'description': sanitize(data.get('description', '')),
             'completed': False,
             'created_at': datetime.now(),
