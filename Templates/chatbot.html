@@ -1,124 +1,59 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script src="{{ url_for('static', filename='js/darkmode.js') }}"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <!-- Page Title -->
-    <title>Study Planner | Chatbot</title>
-
-    <!-- Bootstrap -->
+    <title>Study Planner | AI Chatbot</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700;900&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    <!-- JavaScript -->
-    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
-    <title>AI Study Assistant - Study Planner</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/OLD_styles.css' ) }}">
-    <style>
-        .main-content {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh; /* Full viewport height */
-            padding: 0;
-        }
-        .chat-container {
-            width: 100%;
-            max-width: 800px;
-            height: 90vh; /* 90% of the viewport height */
-            display: flex;
-            flex-direction: column;
-            border: 1px solid #e0e0e0;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-            overflow: hidden;
-        }
-        .chat-header {
-            background: #f7f7f7;
-            padding: 15px 20px;
-            border-bottom: 1px solid #e0e0e0;
-            font-weight: 600;
-            font-size: 1.1rem;
-            text-align: center;
-        }
-        .chat-messages {
-            flex: 1;
-            overflow-y: auto;
-            padding: 20px;
-            background: #ffffff;
-        }
-        .message {
-            margin-bottom: 15px;
-            padding: 12px 18px;
-            border-radius: 18px;
-            max-width: 75%;
-            line-height: 1.5;
-        }
-        .user-message {
-            background: #007bff;
-            color: white;
-            margin-left: auto;
-            border-bottom-right-radius: 4px;
-        }
-        .bot-message {
-            background: #f1f1f1;
-            color: #333;
-            border-bottom-left-radius: 4px;
-        }
-        .chat-input-container {
-            padding: 15px;
-            border-top: 1px solid #e0e0e0;
-            display: flex;
-            gap: 10px;
-            background: #f7f7f7;
-        }
-        .chat-input {
-            flex: 1;
-            padding: 12px;
-            border: 1px solid #ccc;
-            border-radius: 20px;
-            font-size: 1rem;
-        }
-        .send-btn {
-            padding: 10px 20px;
-            background: #007bff;
-            color: white;
-            border: none;
-            border-radius: 20px;
-            cursor: pointer;
-            font-size: 1rem;
-        }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/chatbot.css') }}">
 </head>
 <body>
-    <div class="app-container">
+<div class="app-wrapper">
+
+    <!-- Header -->
+    <nav class="header">
+        <span class="header-title">Study Planner</span>
+        <div class="header-content">
+            <div class="header-time" id="header-time"></div>
+            <div class="header-date" id="header-date"></div>
+        </div>
+        <button class="menu" id="sidebar-toggle">
+            <span></span><span></span><span></span>
+        </button>
+    </nav>
+
+    <div class="app-body">
+
         <!-- Sidebar -->
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <h1 class="sidebar-brand">Study Planner</h1>
-            </div>
+        <aside class="sidebar collapsed" id="sidebar">
             <nav class="sidebar-nav">
                 <ul>
                     <li><a href="{{ url_for('dashboard') }}" class="nav-link"><i class="bi bi-grid"></i><span>Dashboard</span></a></li>
-                    <li><a href="{{ url_for('schedule') }}" class="nav-link"><i class="bi bi-calendar3"></i><span>Schedule</span></a></li>
+                    <li><a href="{{ url_for('schedule') }}"  class="nav-link"><i class="bi bi-calendar3"></i><span>Schedule</span></a></li>
                     <li>
-                        <a href="#" class="nav-link active" id="activities-toggle">
-                            <i class="bi bi-list-task"></i><span>Activities</span><i class="bi bi-chevron-down submenu-arrow"></i>
+                        <a href="#" class="nav-link" id="activities-toggle">
+                            <i class="bi bi-list-task"></i><span>Activities</span>
+                            <i class="bi bi-chevron-down submenu-arrow" id="activities-arrow"></i>
                         </a>
-                        <ul class="submenu active" id="activities-submenu">
-                            <li><a href="{{ url_for('tasks') }}" class="nav-link"><i class="bi bi-check-square"></i><span>Tasks</span></a></li>
-                            <li><a href="{{ url_for('exams') }}" class="nav-link"><i class="bi bi-book"></i><span>Exams</span></a></li>
-                            <li><a href="{{ url_for('classes') }}" class="nav-link"><i class="bi bi-mortarboard"></i><span>Classes</span></a></li>
+                        <ul class="submenu" id="activities-submenu">
+                            <li><a href="{{ url_for('tasks') }}"     class="nav-link"><i class="bi bi-check-square"></i><span>Tasks</span></a></li>
+                            <li><a href="{{ url_for('exams') }}"     class="nav-link"><i class="bi bi-book"></i><span>Exams</span></a></li>
+                            <li><a href="{{ url_for('classes') }}"   class="nav-link"><i class="bi bi-mortarboard"></i><span>Classes</span></a></li>
                             <li><a href="{{ url_for('vacations') }}" class="nav-link"><i class="bi bi-airplane"></i><span>Vacations</span></a></li>
                         </ul>
                     </li>
-                    <li><a href="{{ url_for('chatbot') }}" class="nav-link active"><i class="bi bi-chat-dots"></i><span>Chatbot</span></a></li>
-                    <li><a href="{{ url_for('collaboration_bp.collaboration') }}" class="nav-link active"><i class="bi bi-people"></i><span>Collaboration</span></a></li>
-
+                    <li><a href="{{ url_for('chatbot') }}"  class="nav-link active"><i class="bi bi-chat-dots"></i><span>Chatbot</span></a></li>
+                    <li><a href="{{ url_for('collaboration_bp.collaboration') }}" class="nav-link"><i class="bi bi-people"></i><span>Collaboration</span></a></li>
                     <li><a href="{{ url_for('settings') }}" class="nav-link"><i class="bi bi-gear"></i><span>Settings</span></a></li>
-                    <li><a href="{{ url_for('profile') }}" class="nav-link"><i class="bi bi-person-circle"></i><span>Profile</span></a></li>
+                    <li><a href="{{ url_for('profile') }}"  class="nav-link"><i class="bi bi-person-circle"></i><span>Profile</span></a></li>
                 </ul>
             </nav>
             <div class="sidebar-footer">
@@ -126,186 +61,249 @@
             </div>
         </aside>
 
+        <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
         <!-- Main Content -->
-        <main class="main-content">
-            <div class="chat-container">
-                <div class="chat-header">AI Study Assistant</div>
-                <div class="chat-messages" id="chatMessages">
-                    <div class="message bot-message">
-                        Hello! I'm your AI study assistant. Ask me about your tasks, exams, or for some study advice!
+        <main class="content">
+            <div class="content-inner chatbot-inner">
+
+                <!-- Chat header -->
+                <div class="chatbot-header-bar">
+                    <div class="chatbot-header-left">
+                        <div class="chatbot-avatar-icon">
+                            <i class="bi bi-robot"></i>
+                        </div>
+                        <div>
+                            <h1 class="chatbot-title">AI Study Assistant</h1>
+                            <p class="chatbot-subtitle">Powered by local AI · Ask anything about your studies</p>
+                        </div>
+                    </div>
+                    <button class="chatbot-clear-btn" id="clearChatBtn" title="Clear conversation">
+                        <i class="bi bi-trash"></i> Clear
+                    </button>
+                </div>
+
+                <!-- Suggestion chips -->
+                <div class="chatbot-chips" id="chatbot-chips">
+                    <button class="chip" data-msg="What tasks do I have coming up?">📋 My tasks</button>
+                    <button class="chip" data-msg="When are my next exams?">📚 Upcoming exams</button>
+                    <button class="chip" data-msg="Give me a study tip for today">💡 Study tip</button>
+                    <button class="chip" data-msg="Help me make a study schedule">🗓️ Study schedule</button>
+                    <button class="chip" data-msg="I need help staying motivated">🔥 Motivation</button>
+                </div>
+
+                <!-- Messages -->
+                <div class="chatbot-messages" id="chatMessages">
+                    <div class="chat-msg bot-msg">
+                        <div class="chat-msg-avatar"><i class="bi bi-robot"></i></div>
+                        <div class="chat-msg-bubble">
+                            <p>Hey there! I'm your AI Study Assistant. I can see your tasks, exams, classes, and schedule — ask me anything to get personalised study help!</p>
+                            <span class="chat-msg-time">Now</span>
+                        </div>
                     </div>
                 </div>
-                <div class="chat-input-container">
-                    <input type="text" class="chat-input" id="chatInput" placeholder="Ask me anything...">
-                    <button class="send-btn" onclick="sendMessage()">Send</button>
+
+                <!-- Input -->
+                <div class="chatbot-input-area">
+                    <div class="chatbot-input-wrap">
+                        <textarea
+                            id="chatInput"
+                            class="chatbot-textarea"
+                            placeholder="Ask me anything about your studies..."
+                            rows="1"
+                        ></textarea>
+                        <button class="chatbot-send-btn" id="sendBtn" onclick="sendMessage()">
+                            <i class="bi bi-send-fill"></i>
+                        </button>
+                    </div>
+                    <p class="chatbot-disclaimer">AI responses may not always be accurate. Verify important information.</p>
                 </div>
+
             </div>
         </main>
     </div>
+</div>
 
-    <div class="chat-container">
-        <div class="phone-screen">
-            <!-- Header -->
-            <div class="app-chrome">
-                
-        <div class="top-nav">
-            <div class="app-title">
-                Study Planner
+<script src="{{ url_for('static', filename='js/script.js') }}"></script>
+<script src="{{ url_for('static', filename='js/darkmode.js') }}"></script>
+<script>
+    /* ── Clock ── */
+    function updateTime() {
+        const now = new Date();
+        document.getElementById('header-time').textContent = now.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+        document.getElementById('header-date').textContent = now.toLocaleDateString('en-US',{weekday:'long',day:'numeric',month:'long'});
+    }
+    updateTime(); setInterval(updateTime, 1000);
+
+    // Sidebar toggle
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+
+    document.getElementById('sidebar-toggle').addEventListener('click', function () {
+        sidebar.classList.toggle('collapsed');
+        overlay.classList.toggle('active');
+    });
+
+    overlay.addEventListener('click', function () {
+        sidebar.classList.add('collapsed');
+        overlay.classList.remove('active');
+    });
+
+    /* ── Sidebar (darkmode.js handles toggle + persistence) ── */
+
+    /* ── Chat helpers ── */
+    function getTime() {
+        return new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+    }
+
+    function addMessage(text, type) {
+        const box  = document.getElementById('chatMessages');
+        const div  = document.createElement('div');
+        div.className = `chat-msg ${type}-msg`;
+
+        const icon = type === 'bot'
+            ? '<div class="chat-msg-avatar"><i class="bi bi-robot"></i></div>'
+            : '';
+
+        div.innerHTML = `
+            ${icon}
+            <div class="chat-msg-bubble">
+                <p>${escapeHtml(text)}</p>
+                <span class="chat-msg-time">${getTime()}</span>
             </div>
-        
-            <div class="datetime text-center">
-                <div class="time" id="liveTime"></div>
-                <div class="date" id="liveDate"></div>
-            </div>
-        
-            <div class="hamburger">
-                <span></span>
-                <span></span>
-                <span></span>
-            </div>
-        </div>
-      
-        <div class="page-heading">
-            AI-Powered Cloud-Based<br>
-            Study Planner
-        </div>
-    </div>
+        `;
+        box.appendChild(div);
+        box.scrollTop = box.scrollHeight;
 
-    
-    <!-- Chat -->
-    
-    <div class="chat-pane">
-      
-        <div class="chat-messages" id="chatMessages">
-        </div>
-      
-        <!-- Input -->
-        <div class="chat-input-bar">
-            <div class="input-wrap">
-                <input type="text"
-                id="chatInput"
-                placeholder="Ask anything here"/>
-        
-                <button class="send-btn"
-                onclick="sendMessage()">
-            
-                <svg viewBox="0 0 24 24"
-                xmlns="http://www.w3.org/2000/svg">
-              
-                <path d="M12 20V4M12 4l-6 6M12 4l6 6"
-                stroke="#fff" 
-                stroke-width="2.5"        
-                stroke-linecap="round"          
-                stroke-linejoin="round"       
-                fill="none"/>
-            </svg>   
-        </button>  
-    </div>  
-</div>
-</div>
-</div>
-</div>
+        /* hide chips once user has sent a message */
+        if (type === 'user') {
+            document.getElementById('chatbot-chips').style.display = 'none';
+        }
+        return div;
+    }
 
-    <script>
-        async function sendMessage() {
+    function escapeHtml(s) {
+        return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
 
-    const input = document.getElementById('chatInput');
-    const message = input.value.trim();
+    function setTyping(show) {
+        let el = document.getElementById('typing-indicator');
+        if (show && !el) {
+            const box = document.getElementById('chatMessages');
+            el = document.createElement('div');
+            el.id = 'typing-indicator';
+            el.className = 'chat-msg bot-msg typing-msg';
+            el.innerHTML = `
+                <div class="chat-msg-avatar"><i class="bi bi-robot"></i></div>
+                <div class="chat-msg-bubble typing-bubble">
+                    <span></span><span></span><span></span>
+                </div>`;
+            box.appendChild(el);
+            box.scrollTop = box.scrollHeight;
+        } else if (!show && el) {
+            el.remove();
+        }
+    }
 
-    if (!message) return;
+    function streamText(element, text) {
+        const p = element.querySelector('p');
+        p.textContent = '';
+        let i = 0;
+        const box = document.getElementById('chatMessages');
+        function type() {
+            if (i < text.length) {
+                p.textContent += text.charAt(i++);
+                box.scrollTop = box.scrollHeight;
+                setTimeout(type, 12);
+            }
+        }
+        type();
+    }
 
-    addMessage(message, 'user');
+    async function sendMessage() {
+        const input = document.getElementById('chatInput');
+        const text  = input.value.trim();
+        if (!text) return;
 
-    input.value = '';
-    input.disabled = true;
+        input.value = '';
+        input.style.height = 'auto';
+        input.disabled = true;
+        document.getElementById('sendBtn').disabled = true;
 
-    // Create placeholder message
-    const botMessageDiv = addMessage("Thinking...", "bot");
+        addMessage(text, 'user');
+        setTyping(true);
 
-    try {
+        try {
+            const res  = await fetch('/api/chat', {
+                method: 'POST',
+                headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({message: text})
+            });
+            const data = await res.json();
+            setTyping(false);
 
-        const response = await fetch('/api/chat', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ message: message })
+            if (data.error) {
+                addMessage(data.error, 'bot');
+            } else {
+                const msgEl = addMessage('', 'bot');
+                streamText(msgEl, data.response);
+
+                /* show source links if web was used */
+                if (data.web_used && data.sources && data.sources.length) {
+                    const srcDiv = document.createElement('div');
+                    srcDiv.className = 'chat-sources';
+                    srcDiv.innerHTML = '<strong>Sources:</strong><br>' +
+                        data.sources.map(s =>
+                            `<a href="${s.url}" target="_blank" rel="noopener">[${s.index}] ${escapeHtml(s.title)}</a>`
+                        ).join('<br>');
+                    msgEl.querySelector('.chat-msg-bubble').appendChild(srcDiv);
+                }
+            }
+        } catch {
+            setTyping(false);
+            addMessage("Sorry, I couldn't reach the AI assistant. Please try again.", 'bot');
+        }
+
+        input.disabled = false;
+        document.getElementById('sendBtn').disabled = false;
+        input.focus();
+    }
+
+    /* ── Enter key ── */
+    document.getElementById('chatInput').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
+    });
+
+    /* ── Auto-grow textarea ── */
+    document.getElementById('chatInput').addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = Math.min(this.scrollHeight, 140) + 'px';
+    });
+
+    /* ── Suggestion chips ── */
+    document.querySelectorAll('.chip').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.getElementById('chatInput').value = this.dataset.msg;
+            sendMessage();
         });
+    });
 
-        const data = await response.json();
-
-        if (data.error) {
-            botMessageDiv.textContent = data.error;
-        } else {
-            streamText(botMessageDiv, data.response);
-        }
-
-    } catch (error) {
-
-        botMessageDiv.textContent = "Sorry, I couldn't connect to the AI assistant.";
-        console.error(error);
-
-    }
-
-    input.disabled = false;
-    input.focus();
-}
-
-
-function addMessage(text, type) {
-
-    const messagesDiv = document.getElementById('chatMessages');
-
-    const messageDiv = document.createElement('div');
-    messageDiv.className = `message ${type}-message`;
-    messageDiv.textContent = text;
-
-    messagesDiv.appendChild(messageDiv);
-
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;
-
-    return messageDiv;
-}
-
-
-// Streaming effect
-function streamText(element, text) {
-
-    element.textContent = "";
-
-    let index = 0;
-
-    const speed = 15; // typing speed
-
-    function type() {
-
-        if (index < text.length) {
-
-            element.textContent += text.charAt(index);
-
-            index++;
-
-            element.parentElement.scrollTop = element.parentElement.scrollHeight;
-
-            setTimeout(type, speed);
-        }
-
-    }
-
-    type();
-}
-
-
-// ENTER key support
-document.getElementById('chatInput').addEventListener('keypress', function(e) {
-
-    if (e.key === 'Enter') {
-        sendMessage();
-    }
-
-});
-    </script>
-    <script src="{{ url_for('static', filename='js/darkmode.js') }}"></script>
-
+    /* ── Clear chat ── */
+    document.getElementById('clearChatBtn').addEventListener('click', function() {
+        const box = document.getElementById('chatMessages');
+        box.innerHTML = `
+            <div class="chat-msg bot-msg">
+                <div class="chat-msg-avatar"><i class="bi bi-robot"></i></div>
+                <div class="chat-msg-bubble">
+                    <p>Chat cleared! How can I help you study today?</p>
+                    <span class="chat-msg-time">${getTime()}</span>
+                </div>
+            </div>`;
+        document.getElementById('chatbot-chips').style.display = 'flex';
+    });
+</script>
 </body>
 </html>
