@@ -54,19 +54,24 @@ def send_sms(phone_number: str, message: str, sender_id: str = "StudyPlan") -> b
         sns_service.send_sms(normalized_phone, message, sender_id=sender_id)
         print(f"SMS sent to {normalized_phone}")
         return True
+    
     except Exception as error:
         print(f"SMS failed for {normalized_phone}: {aws_error_message(error)}")
         return False
 
 
-def send_task_reminder(email: str, task_name: str, phone_number: Optional[str] = None) -> bool:
+def send_task_reminder(email: str, phone_number: str, task_name: str, due_datetime: str, reminder_type: str) -> bool:
     """Send a task reminder using the available notification channels.
 
     If a phone number is provided, this function sends a direct SMS. If an email
     address is provided and an SNS topic is configured, it also publishes a topic
     notification for subscribed email endpoints.
     """
-    message = f"Reminder: You have an upcoming task: {task_name}"
+    message = ( f"Study Planner Reminder\n\n"
+        f"Reminder: You have an upcoming task: {task_name}\n"
+        f"Due: {due_datetime}\n"
+        f"Reminder: {reminder_type}\n\n"
+        f"Please complete your task on time.")
     sent_any = False
 
     if phone_number:

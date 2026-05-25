@@ -1158,7 +1158,7 @@ def api_tasks():
         phone_number = ''
         
         if user_data:
-            phone_number = user_data.get('phone_number', '')
+            phone_number = user_data.get('phone', '')
 
         task_item = {
             'user':        session['user'],
@@ -1167,7 +1167,7 @@ def api_tasks():
             'date':        date or None,
             'description': sanitize(data.get('description', '')),
             'time': sanitize(data.get('time', '23:59')),
-            'phone_number': sanitize(data.get('phone_number', '')),
+            'phone_number': phone_number,
             'description': sanitize(data.get('description', '')),
             'completed': False,
             'created_at': datetime.now(),
