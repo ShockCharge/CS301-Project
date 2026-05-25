@@ -813,6 +813,7 @@ function initTasks() {
                 name:        document.getElementById('taskName').value,
                 priority:    document.getElementById('taskPriority').value,
                 date:        document.getElementById('taskDate').value,
+                time: document.getElementById('taskTime').value,
                 description: document.getElementById('taskDescription').value
             };
             fetch('/api/tasks', {

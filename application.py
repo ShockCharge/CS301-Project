@@ -1148,6 +1148,17 @@ def api_tasks():
             return jsonify({'error': 'Invalid priority value.'}), 400
         if date and not validate_date(date):
             return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD.'}), 400
+        
+        
+        # GET LOGGED-IN USER PHONE NUMBER
+        user_data = users_collection.find_one({
+        'email': session['user']
+        })
+        
+        phone_number = ''
+        
+        if user_data:
+            phone_number = user_data.get('phone_number', '')
 
         task_item = {
             'user':        session['user'],
