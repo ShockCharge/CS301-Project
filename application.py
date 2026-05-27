@@ -1020,9 +1020,19 @@ def api_schedules():
 
     else:
         if schedules_collection is not None:
+            status = request.args.get('status', 'all')
             schedules = list(schedules_collection.find({'user': session['user']}))
+            filtered_schedules = []
             for schedule in schedules:
                 schedule['_id'] = str(schedule['_id'])
+                schedule_status = get_task_status(schedule.get('date'))
+                schedule['status'] = schedule_status
+                if status == 'current' and schedule_status == 'outdated':
+                    continue
+                if status == 'outdated' and schedule_status != 'outdated':
+                    continue
+                filtered_schedules.append(schedule)
+            schedules = filtered_schedules
         else:
             schedules = []
         return jsonify(schedules)
@@ -1081,10 +1091,14 @@ def chat():
 
     today = datetime.now(NZ_TZ).strftime('%Y-%m-%d')
 
-    user_tasks     = list(tasks_collection.find({'user': session['user'], 'date': {'$gte': today}, 'completed': {'$ne': True}})) if tasks_collection is not None else []
+    user_tasks = list(tasks_collection.find({
+        'user': session['user'],
+        'completed': {'$ne': True},
+        '$or': [{'date': {'$gte': today}}, {'date': None}, {'date': ''}, {'date': {'$exists': False}}]
+    })) if tasks_collection is not None else []
     user_exams     = list(exams_collection.find({'user': session['user'], 'date': {'$gte': today}, 'completed': {'$ne': True}})) if exams_collection is not None else []
     user_classes   = list(classes_collection.find({'user': session['user']})) if classes_collection is not None else []
-    user_schedules = list(schedules_collection.find({'user': session['user'], 'date': {'$gte': today}})) if schedules_collection is not None else []
+    user_schedules = list(schedules_collection.find({'user': session['user'], '$or': [{'date': {'$gte': today}}, {'date': None}, {'date': ''}, {'date': {'$exists': False}}]})) if schedules_collection is not None else []
 
     for col in [user_tasks, user_exams, user_classes, user_schedules]:
         for item in col:
@@ -1100,7 +1114,7 @@ def chat():
 """.strip()
 
     try:
-        cache_key = f"chat:{user_message}"
+        cache_key = f"chat:{session['user']}:{today}:{user_message}"
         cached = None
         try:
             cached = redis_client.get(cache_key)
@@ -1202,10 +1216,13 @@ def api_single_task(task_id):
         update_data = {
             'name':        sanitize(data.get('name', '')),
             'priority':    sanitize(data.get('priority', 'medium')),
-            'date':        sanitize(data.get('date', '')),
+            'date':        sanitize(data.get('date', '')) or None,
+            'time':        sanitize(data.get('time', '23:59')),
             'description': sanitize(data.get('description', '')),
-            'completed':   data.get('completed'),
-            'updated_at':  datetime.now()
+            'completed':   data.get('completed', False),
+            'updated_at':  datetime.now(),
+            'reminder_12h_sent': False,
+            'reminder_6h_sent': False
         }
         if tasks_collection is not None:
             result = tasks_collection.update_one(

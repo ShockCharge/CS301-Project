@@ -72,7 +72,25 @@
                     <button class="tab-btn" data-tab="overdue" onclick="switchTab('overdue')">Overdue</button>
                 </div>
                 <div class="items-list" id="tasks-grid">
-                    <p class="empty-state">No tasks yet. Click "Add Task" to create one.</p>
+                    {% if tasks %}
+                        {% for task in tasks %}
+                            <div class="item-card {% if task.completed %}card-border-done completed{% elif task.priority == 'high' %}card-border-high{% elif task.priority == 'medium' %}card-border-medium{% else %}card-border-low{% endif %}">
+                                <div class="item-card-header">
+                                    <h4>{{ task.name }}</h4>
+                                    <span class="priority-badge priority-{{ task.priority }}">{{ task.priority }}</span>
+                                </div>
+                                <div class="item-card-body">
+                                    <p>{{ task.description or 'No description' }}</p>
+                                    <div class="item-meta">
+                                        {% if task.date %}<span><i class="bi bi-calendar"></i> {{ task.date }}</span>{% endif %}
+                                        {% if task.time %}<span><i class="bi bi-clock"></i> {{ task.time }}</span>{% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="empty-state">No tasks yet. Click "Add Task" to create one.</p>
+                    {% endif %}
                 </div>
                 <footer>&copy; 2025 Study Planner</footer>
             </div>
@@ -95,6 +113,7 @@
                     <option value="low">Low</option>
                 </select>
             </div>
+            <div class="form-group"><label>Due Date</label><input type="date" id="taskDate" class="form-input" required></div>
             <div class="form-group"><label>Due Time</label><input type="time" id="taskTime" class="form-input" required></div>
             <div class="form-group"><label>Description</label><textarea id="taskDescription" class="form-input" rows="3"></textarea></div>
             <button type="submit" class="btn-primary">Add Task</button>

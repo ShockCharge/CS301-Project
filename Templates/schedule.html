@@ -172,7 +172,14 @@
 
                 <!-- Schedule List -->
                 <div class="sched-list-section">
-                    <h3 class="sched-list-title">Scheduled Items</h3>
+                    <div class="sched-list-header">
+                        <h3 class="sched-list-title">Scheduled Items</h3>
+                        <div class="schedule-status-filters" aria-label="Schedule status filters">
+                            <button type="button" class="schedule-filter-btn active" data-status="current">Current</button>
+                            <button type="button" class="schedule-filter-btn" data-status="outdated">Outdated</button>
+                            <button type="button" class="schedule-filter-btn" data-status="all">All</button>
+                        </div>
+                    </div>
                     <div id="schedule-list-items"></div>
                 </div>
 

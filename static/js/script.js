@@ -1,5 +1,6 @@
 let currentDate = new Date();
 let currentView = 'week';
+let scheduleStatusFilter = 'current';
 let allSchedules = [];   // cached so week/month badge injection can re-use them
 
 // DATE / TIME HELPERS
@@ -267,9 +268,18 @@ function fetchAISuggestions() {
 //  SCHEDULE — calendar views
 
 function initSchedule() {
-    document.querySelectorAll('.tab-btn').forEach(btn => {
+    document.querySelectorAll('.tab-btn[data-view]').forEach(btn => {
         btn.addEventListener('click', function () {
             switchView(this.getAttribute('data-view'));
+        });
+    });
+
+    document.querySelectorAll('.schedule-filter-btn').forEach(btn => {
+        btn.addEventListener('click', function () {
+            scheduleStatusFilter = this.getAttribute('data-status') || 'current';
+            document.querySelectorAll('.schedule-filter-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            displaySchedules(allSchedules);
         });
     });
 
@@ -368,7 +378,7 @@ function initSchedule() {
 function switchView(view) {
     currentView = view;
 
-    document.querySelectorAll('.tab-btn').forEach(btn => {
+    document.querySelectorAll('.tab-btn[data-view]').forEach(btn => {
         btn.classList.toggle('active', btn.getAttribute('data-view') === view);
     });
 
@@ -700,22 +710,41 @@ function loadSchedules() {
         .catch(err => console.error('Error loading schedules:', err));
 }
 
+function isScheduleOutdated(schedule) {
+    if (!schedule || !schedule.date) return false;
+    const todayKey = new Date().toISOString().split('T')[0];
+    return schedule.date < todayKey;
+}
+
 function displaySchedules(schedules) {
     const list = document.getElementById('schedule-list-items');
     if (!list) return;
 
-    if (!schedules.length) {
+    const items = Array.isArray(schedules) ? schedules : [];
+    const filteredSchedules = items.filter(s => {
+        const outdated = isScheduleOutdated(s);
+        if (scheduleStatusFilter === 'current') return !outdated;
+        if (scheduleStatusFilter === 'outdated') return outdated;
+        return true;
+    });
+
+    if (!filteredSchedules.length) {
+        const emptyMessage = scheduleStatusFilter === 'outdated'
+            ? 'No outdated scheduled items'
+            : 'No scheduled items yet';
         list.innerHTML = `
             <div class="empty-state">
                 <i class="bi bi-calendar-x" style="font-size:48px;color:#ccc;"></i>
-                <p>No scheduled items yet</p>
-                <p style="font-size:14px;color:#999;">Click "Add Schedule" to create your first item</p>
+                <p>${emptyMessage}</p>
+                <p style="font-size:14px;color:#999;">${scheduleStatusFilter === 'outdated' ? 'Past schedules will appear here automatically.' : 'Click "Add Schedule" to create your first item'}</p>
             </div>`;
         return;
     }
 
-    list.innerHTML = schedules.map(s => `
-        <div class="schedule-item" data-id="${s._id}">
+    list.innerHTML = filteredSchedules.map(s => {
+        const outdated = isScheduleOutdated(s);
+        return `
+        <div class="schedule-item ${outdated ? 'outdated' : ''}" data-id="${s._id}">
             <div class="schedule-item-header">
                 <div class="schedule-item-info">
                     <h4 class="schedule-title">${s.title}</h4>
@@ -734,9 +763,10 @@ function displaySchedules(schedules) {
                     </button>
                 </div>
             </div>
+            ${outdated ? '<div class="schedule-status-label">Outdated</div>' : ''}
             ${s.description ? `<div class="schedule-description"><p>${s.description}</p></div>` : ''}
-        </div>
-    `).join('');
+        </div>`;
+    }).join('');
 }
 
 // Called from the Edit button in the list
@@ -849,14 +879,24 @@ function filterTasks() {
     const status   = document.getElementById('taskStatusFilter')?.value  || '';
     const sort     = document.getElementById('taskSort')?.value           || 'newest';
 
+    const todayKey = new Date().toISOString().split('T')[0];
+    const activeTab = typeof currentTab !== 'undefined' ? currentTab : 'current';
+
     let filtered = allTasks.filter(task => {
-        const matchSearch   = task.name.toLowerCase().includes(search) ||
+        const name = task.name || '';
+        const matchSearch   = name.toLowerCase().includes(search) ||
                               (task.description || '').toLowerCase().includes(search);
         const matchPriority = !priority || task.priority === priority;
         const matchStatus   = !status ||
                               (status === 'completed' && task.completed) ||
                               (status === 'pending'   && !task.completed);
-        return matchSearch && matchPriority && matchStatus;
+        const isPast = !!task.date && task.date < todayKey;
+        const isOverdue = isPast && !task.completed;
+        const matchTab =
+            activeTab === 'past' ? isPast :
+            activeTab === 'overdue' ? isOverdue :
+            !isPast;
+        return matchSearch && matchPriority && matchStatus && matchTab;
     });
 
     const priorityOrder = { high: 1, medium: 2, low: 3 };
@@ -898,6 +938,7 @@ function displayTasks(tasks) {
                     <p style="${done ? 'opacity:0.6;' : ''}">${task.description || 'No description'}</p>
                     <div class="item-meta">
                         ${task.date ? `<span><i class="bi bi-calendar"></i> ${formatDateNZ(task.date)}</span>` : ''}
+                        ${task.time ? `<span><i class="bi bi-clock"></i> ${task.time}</span>` : ''}
                     </div>
                     <div class="item-actions">
                         <button class="btn-action btn-edit"   onclick="editTask('${task._id}')">
