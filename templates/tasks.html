@@ -48,7 +48,7 @@
                         </ul>
                     </li>
                     <li><a href="{{ url_for('chatbot') }}" class="nav-link"><i class="bi bi-chat-dots"></i><span>Chatbot</span></a></li>
-                    <li><a href="{{ url_for('collaboration_bp.collaboration') }}" class="nav-link active"><i class="bi bi-people"></i><span>Collaboration</span></a></li>
+                    <li><a href="{{ url_for('collaboration_bp.collaboration') }}" class="nav-link"><i class="bi bi-people"></i><span>Collaboration</span></a></li>
                     <li><a href="{{ url_for('settings') }}" class="nav-link"><i class="bi bi-gear"></i><span>Settings</span></a></li>
                     <li><a href="{{ url_for('profile') }}" class="nav-link"><i class="bi bi-person-circle"></i><span>Profile</span></a></li>
                 </ul>
@@ -80,13 +80,16 @@
     </div>
 </div>
 
-<!-- Add Task Modal -->
+<!-- Add Task Modal — Due DATE (not time) -->
 <div id="addTaskModal" class="modal">
     <div class="modal-content">
         <span class="close" id="modal-close">&times;</span>
         <h2>Add Task</h2>
         <form id="addTaskForm">
-            <div class="form-group"><label>Task Name</label><input type="text" id="taskName" class="form-input" required></div>
+            <div class="form-group">
+                <label>Task Name</label>
+                <input type="text" id="taskName" class="form-input" required>
+            </div>
             <div class="form-group">
                 <label>Priority</label>
                 <select id="taskPriority" class="form-input">
@@ -95,8 +98,14 @@
                     <option value="low">Low</option>
                 </select>
             </div>
-            <div class="form-group"><label>Due Time</label><input type="time" id="taskTime" class="form-input" required></div>
-            <div class="form-group"><label>Description</label><textarea id="taskDescription" class="form-input" rows="3"></textarea></div>
+            <div class="form-group">
+                <label>Due Date</label>
+                <input type="date" id="taskDate" class="form-input">
+            </div>
+            <div class="form-group">
+                <label>Description</label>
+                <textarea id="taskDescription" class="form-input" rows="3" placeholder="Optional notes…"></textarea>
+            </div>
             <button type="submit" class="btn-primary">Add Task</button>
         </form>
     </div>
@@ -109,7 +118,10 @@
         <h2>Edit Task</h2>
         <form id="editTaskForm">
             <input type="hidden" id="editTaskId">
-            <div class="form-group"><label>Task Name</label><input type="text" id="editTaskName" class="form-input" required></div>
+            <div class="form-group">
+                <label>Task Name</label>
+                <input type="text" id="editTaskName" class="form-input" required>
+            </div>
             <div class="form-group">
                 <label>Priority</label>
                 <select id="editTaskPriority" class="form-input">
@@ -118,8 +130,14 @@
                     <option value="low">Low</option>
                 </select>
             </div>
-            <div class="form-group"><label>Due Date</label><input type="date" id="editTaskDate" class="form-input"></div>
-            <div class="form-group"><label>Description</label><textarea id="editTaskDescription" class="form-input" rows="3"></textarea></div>
+            <div class="form-group">
+                <label>Due Date</label>
+                <input type="date" id="editTaskDate" class="form-input">
+            </div>
+            <div class="form-group">
+                <label>Description</label>
+                <textarea id="editTaskDescription" class="form-input" rows="3"></textarea>
+            </div>
             <button type="submit" class="btn-primary">Update Task</button>
         </form>
     </div>
@@ -161,7 +179,7 @@
         sidebar.classList.add('collapsed'); overlay.classList.remove('active');
     });
 
-    // Tab switching — tells filterTasks() which tab is active
+    // Tab switching
     let currentTab = 'current';
     function switchTab(tab) {
         currentTab = tab;
