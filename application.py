@@ -406,12 +406,12 @@ def verify_2fa():
         expiry = session.get('otp_expiry')
 
         if not stored_otp or not expiry:
-            return render_template('verify2fa_mobile.html', error='Verification session expired', email=session.get('pending_user'))
+            return render_template('verify2fa_mobile.html', error='Verification session expired', email=session.get('pending_user'), phone=session.get('pending_user_phone'))
 
         expiry = datetime.fromisoformat(expiry)
 
         if datetime.utcnow() > expiry:
-            return render_template('verify2fa_mobile.html', error='OTP expired', email=session.get('pending_user'))
+            return render_template('verify2fa_mobile.html', error='OTP expired', email=session.get('pending_user'), phone=session.get('pending_user_phone'))
 
         if entered_otp == stored_otp:
 
@@ -425,9 +425,9 @@ def verify_2fa():
 
             return redirect(url_for('dashboard'))
 
-        return render_template('verify2fa_mobile.html', error='Invalid verification code', email=session.get('pending_user'))
+        return render_template('verify2fa_mobile.html', error='Invalid verification code', email=session.get('pending_user'), phone=session.get('pending_user_phone'))
 
-    return render_template('verify2fa_mobile.html', email=session.get('pending_user'))
+    return render_template('verify2fa_mobile.html', email=session.get('pending_user'), phone=session.get('pending_user_phone'))
 
 
 @app.route('/resend-2fa', methods=['POST'])
@@ -442,9 +442,9 @@ def resend_2fa():
     session['otp_expiry'] = (datetime.utcnow() + timedelta(minutes=10)).isoformat()
 
     if send_otp_email(pending_user, otp_code):
-        return render_template('verify2fa_mobile.html', email=pending_user, info='A new verification code has been sent to your email.')
+        return render_template('verify2fa_mobile.html', email=pending_user, phone=session.get('pending_user_phone'), info='A new verification code has been sent to your email and phone.')
 
-    return render_template('verify2fa_mobile.html', email=pending_user, error='Could not resend the verification code. Please try again later.')
+    return render_template('verify2fa_mobile.html', email=pending_user, phone=session.get('pending_user_phone'), error='Could not resend the verification code. Please try again later.')
 
 
 @app.route('/dashboard')
@@ -1442,7 +1442,6 @@ def api_single_class(class_id):
 
 
 # VACATIONS API
-
 
 @app.route('/api/vacations', methods=['GET', 'POST'])
 def api_vacations():
