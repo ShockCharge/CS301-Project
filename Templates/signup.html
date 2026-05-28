@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Study Planner | Sign Up</title>
@@ -208,6 +209,8 @@
             {% endif %}
 
             <form method="POST" action="{{ url_for('signup') }}" id="signup-form">
+
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
                 <div class="form-row-2">
                     <div class="sp-field">

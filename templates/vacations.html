@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <script src="{{ url_for('static', filename='js/darkmode.js') }}"></script>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Study Planner | Vacations</title>
@@ -85,6 +86,7 @@
         <span class="close" id="modal-close">&times;</span>
         <h2>Add Vacation</h2>
         <form id="addVacationForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="form-group"><label>Title</label><input type="text" id="vacationTitle" class="form-input" required></div>
             <div class="form-group"><label>Start Date</label><input type="date" id="vacationStart" class="form-input" required></div>
             <div class="form-group"><label>End Date</label><input type="date" id="vacationEnd" class="form-input" required></div>
