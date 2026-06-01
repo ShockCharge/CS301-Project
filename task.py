@@ -1,7 +1,7 @@
 from celery import Celery
 import os
 from datetime import datetime
-from common import NZ_TZ, users_collection, tasks_collection, exams_collection, classes_collection, schedules_collection, chain, get_task_status
+from common import NZ_TZ, users_collection, tasks_collection, exams_collection, classes_collection, schedules_collection, chain, safe_ai_invoke, get_task_status
 from web_aware_ai import answer_with_web_awareness
 from notification import send_task_reminder
 from celery.schedules import crontab
@@ -13,7 +13,7 @@ from bson import ObjectId
 celery_app = Celery(
     'study_planner',
     broker=os.environ.get('CELERY_BROKER_URL', 'redis://localhost:6379/0'),
-    backend=os.environ.get('CELERY_RESULT_BACKEND', 'redis://localhost:6379/0')
+    backend=os.environ.get('CELERY_RESULT_BACKEND', 'redis://localhost:6379/1')
 )
 
 celery_app.conf.update(
@@ -48,7 +48,7 @@ def database_unavailable_response():
     """Return a consistent Celery result when MongoDB did not connect."""
     return {
         "success": False,
-        "error": "Database not connected. Please check MONGO_USER, MONGO_PASS, your MongoDB Atlas network access, and dnspython installation."
+        "error": "Database not connected. Please check MONGO_URI, your MongoDB Atlas network access, and dnspython installation."
     }
 
 
@@ -90,7 +90,7 @@ def get_ai_suggestions_task(user_email):
             "exams": convert_objectids(exams)
         }
 
-        suggestions = chain.invoke({
+        suggestions = safe_ai_invoke({
             "question": "Suggest new study tasks the student should add to improve their productivity.",
             "user_context": context
         })
@@ -155,7 +155,7 @@ def get_ai_study_plan_task(self, user_email: str):
             "upcoming_classes": convert_objectids(upcoming_classes)
         }
 
-        plan = chain.invoke({
+        plan = safe_ai_invoke({
             "question": question,
             "user_context": user_context
         })

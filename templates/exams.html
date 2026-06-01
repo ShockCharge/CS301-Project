@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <script src="{{ url_for('static', filename='js/darkmode.js') }}"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -85,6 +86,7 @@
         <span class="close" id="modal-close">&times;</span>
         <h2>Add Exam</h2>
         <form id="addExamForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="form-group"><label>Subject</label><input type="text" id="examSubject" class="form-input" required></div>
             <div class="form-group"><label>Date</label><input type="date" id="examDate" class="form-input" required></div>
             <div class="form-group"><label>Time</label><input type="time" id="examTime" class="form-input" required></div>
@@ -101,6 +103,7 @@
         <span class="close" onclick="document.getElementById('editExamModal').style.display='none'">&times;</span>
         <h2>Edit Exam</h2>
         <form id="editExamForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" id="editExamId">
             <div class="form-group"><label>Subject</label><input type="text" id="editExamSubject" class="form-input" required></div>
             <div class="form-group"><label>Date</label><input type="date" id="editExamDate" class="form-input" required></div>

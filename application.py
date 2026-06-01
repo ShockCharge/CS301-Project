@@ -4,6 +4,9 @@ import re
 import secrets
 
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, Response
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from flask_wtf.csrf import CSRFProtect, CSRFError
 from werkzeug.security import generate_password_hash, check_password_hash
 import json
 from flask_mail import Mail, Message
@@ -14,7 +17,7 @@ import random
 import warnings
 import redis
 
-from common import NZ_TZ, ZoneInfo, users_collection, schedules_collection, tasks_collection, exams_collection, classes_collection, vacations_collection, chain, llm, social_connections_collection, study_groups_collection, group_members_collection, group_messages_collection
+from common import NZ_TZ, ZoneInfo, users_collection, schedules_collection, tasks_collection, exams_collection, classes_collection, vacations_collection, chain, llm, safe_ai_invoke, social_connections_collection, study_groups_collection, group_members_collection, group_messages_collection
 
 from task import celery_app, get_ai_suggestions_task, get_ai_study_plan_task
 from collaboration import collaboration_bp
@@ -22,7 +25,7 @@ from web_aware_ai import answer_with_web_awareness
 
 import boto3
 
-redis_client = redis.Redis(host='localhost', port=6379, db=0)
+redis_client = redis.from_url(os.environ.get('REDIS_URL', os.environ.get('CELERY_BROKER_URL', 'redis://localhost:6379/0')))
 
 
 
@@ -33,11 +36,39 @@ STATIC_FOLDER = 'static' if os.path.isdir(os.path.join(BASE_DIR, 'static')) else
 app = Flask(__name__, template_folder=TEMPLATE_FOLDER, static_folder=STATIC_FOLDER)
 application = app
 
+# CSRF is enabled for browser form submissions. JSON API routes are excluded here
+# because the existing frontend fetch calls do not consistently send CSRF headers.
+# This prevents template errors while protecting normal HTML forms such as login,
+# signup, 2FA verification, and profile forms.
+app.config['WTF_CSRF_CHECK_DEFAULT'] = False
+app.config['WTF_CSRF_TIME_LIMIT'] = int(os.environ.get('WTF_CSRF_TIME_LIMIT', 3600))
+csrf = CSRFProtect(app)
+
+@app.before_request
+def protect_non_api_forms():
+    if request.method in ('POST', 'PUT', 'PATCH', 'DELETE') and not request.path.startswith('/api/'):
+        csrf.protect()
+
+@app.errorhandler(CSRFError)
+def handle_csrf_error(error):
+    if request.path.startswith('/api/'):
+        return jsonify({'error': 'CSRF validation failed', 'details': error.description}), 400
+    return render_template('login.html', error='Your form session expired. Please try again.'), 400
 
 
-app.secret_key = os.environ.get('SECRET_KEY', 'supersecretkey123-dev-only')
 
-app.register_blueprint( collaboration_bp, url_prefix='/api' )
+app.secret_key = os.environ.get('SECRET_KEY') or ('dev-only-change-me' if os.environ.get('FLASK_ENV') == 'development' else None)
+if not app.secret_key:
+    raise RuntimeError('SECRET_KEY environment variable is required in production.')
+
+limiter = Limiter(
+    key_func=get_remote_address,
+    app=app,
+    default_limits=[],
+    storage_uri=os.environ.get('RATELIMIT_STORAGE_URI', 'memory://')
+)
+
+app.register_blueprint(collaboration_bp)
 
 # Email configuration
 # Gmail app passwords are often displayed with spaces; SMTP expects the compact value.
@@ -98,6 +129,8 @@ def start_2fa_session(user_email, user_name=''):
     session['pending_user_name'] = user_name
     session['otp_code'] = otp_code
     session['otp_expiry'] = (datetime.utcnow() + timedelta(minutes=10)).isoformat()
+    session['otp_attempts'] = 0
+    session['last_otp_sent_at'] = datetime.utcnow().isoformat()
 
     if send_otp_email(user_email, otp_code):
         return True
@@ -106,6 +139,8 @@ def start_2fa_session(user_email, user_name=''):
     session.pop('pending_user_name', None)
     session.pop('otp_code', None)
     session.pop('otp_expiry', None)
+    session.pop('otp_attempts', None)
+    session.pop('last_otp_sent_at', None)
     return False
 
 def sanitize(value):
@@ -282,6 +317,12 @@ def get_task_status(date_str):
 
 # TEST / UTILITY ROUTES
 
+@app.route('/health')
+def health():
+    db_ok = users_collection is not None
+    return jsonify({'status': 'ok' if db_ok else 'degraded', 'database': db_ok}), 200 if db_ok else 503
+
+
 @app.route('/test_email')
 def test_email():
     """Send a controlled test email to the currently logged-in user only."""
@@ -306,6 +347,7 @@ def test_email():
 # AUTH ROUTES
 
 @app.route('/', methods=['GET', 'POST'])
+@limiter.limit('5 per minute', methods=['POST'])
 def login():
     
     if request.method == 'POST':
@@ -322,8 +364,11 @@ def login():
             if not user or not check_password_hash(user.get('password', ''), password):
                 return render_template('login.html', error='Invalid email or password.')
         else:
-            # Dev fallback — no database
-            user = {'email': email} if email == 'test@example.com' and password == 'password' else None
+            # Development-only fallback. Never allow test credentials in production.
+            if os.environ.get('FLASK_ENV') == 'development' and email == 'test@example.com' and password == 'password':
+                user = {'email': email, 'first_name': 'Test', 'last_name': 'User'}
+            else:
+                return render_template('login.html', error='Database is unavailable. Please try again later.')
 
         if user:
             user_name = f"{user.get('first_name', '')} {user.get('last_name', '')}".strip()
@@ -727,7 +772,7 @@ def daily_advice():
     tasks_data = list(tasks_collection.find({'user': session['user']})) if tasks_collection is not None else []
     exams_data = list(exams_collection.find({'user': session['user']})) if exams_collection is not None else []
     context    = f"Tasks: {tasks_data}\nExams: {exams_data}"
-    advice     = chain.invoke({"question": "Give the student helpful study advice for today", "user_context": context})
+    advice     = safe_ai_invoke({"question": "Give the student helpful study advice for today", "user_context": context})
     return jsonify({"advice": advice})
 
 

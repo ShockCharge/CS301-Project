@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <script src="{{ url_for('static', filename='js/darkmode.js') }}"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -194,6 +195,7 @@
                     </div>
                     <div class="profile-card-body">
                         <form id="study-info-form">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <div class="pf-grid-2">
                                 <div class="pf-field">
                                     <label>Institution / University</label>
@@ -257,6 +259,7 @@
                     </div>
                     <div class="profile-card-body">
                         <form id="change-password-form">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <div class="pf-grid-1">
                                 <div class="pf-field">
                                     <label>Current Password</label>

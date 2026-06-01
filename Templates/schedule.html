@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <script src="{{ url_for('static', filename='js/darkmode.js') }}"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -195,6 +196,7 @@
         <span class="close" id="closeAddScheduleModal">&times;</span>
         <h2>Add Schedule</h2>
         <form id="addScheduleForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="form-group">
                 <label>Title <span style="color:#ff8fab">*</span></label>
                 <input type="text" id="scheduleTitle" class="form-input" placeholder="e.g. Study Session" required>
@@ -226,6 +228,7 @@
         <span class="close" id="closeEditScheduleModal">&times;</span>
         <h2>Edit Schedule</h2>
         <form id="editScheduleForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" id="editScheduleId">
             <div class="form-group">
                 <label>Title <span style="color:#ff8fab">*</span></label>

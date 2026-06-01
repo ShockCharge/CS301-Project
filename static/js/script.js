@@ -252,16 +252,34 @@ function loadDashboardData() {
 function fetchAISuggestions() {
     const box = document.getElementById('ai-suggestions');
     if (!box) return;
-    box.innerHTML = '<p style="color:#999;font-size:13px;">Loading suggestions…</p>';
+
+    box.replaceChildren();
+    const loading = document.createElement('p');
+    loading.style.color = '#999';
+    loading.style.fontSize = '13px';
+    loading.textContent = 'Loading suggestions…';
+    box.appendChild(loading);
+
     fetch('/api/suggestions')
         .then(r => r.json())
         .then(data => {
-            box.innerHTML = data.suggestions
-                ? `<p style="font-size:14px;">${data.suggestions}</p>`
-                : '<p style="color:#999;font-size:13px;">No suggestions available.</p>';
+            box.replaceChildren();
+            const p = document.createElement('p');
+            p.style.fontSize = '14px';
+            p.textContent = data.suggestions || 'No suggestions available.';
+            if (!data.suggestions) {
+                p.style.color = '#999';
+                p.style.fontSize = '13px';
+            }
+            box.appendChild(p);
         })
         .catch(() => {
-            box.innerHTML = '<p style="color:#999;font-size:13px;">Could not load suggestions.</p>';
+            box.replaceChildren();
+            const p = document.createElement('p');
+            p.style.color = '#999';
+            p.style.fontSize = '13px';
+            p.textContent = 'Could not load suggestions.';
+            box.appendChild(p);
         });
 }
 
