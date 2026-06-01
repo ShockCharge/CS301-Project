@@ -92,8 +92,8 @@ def generate_otp():
     """Generate a secure 6-digit verification code."""
     return ''.join(str(secrets.randbelow(10)) for _ in range(6))
 
-def send_otp_email(user_email, otp_code):
-    """Send a login verification code by email."""
+def send_otp_email(user_email, phone, otp_code):
+    """Send a login verification code by email and phone."""
     if not app.config.get('MAIL_USERNAME') or not app.config.get('MAIL_PASSWORD'):
         print('OTP Email Error: MAIL_USERNAME or MAIL_PASSWORD is not configured.')
         return False
@@ -122,21 +122,23 @@ def login_2fa_enabled():
     return os.environ.get('LOGIN_2FA_ENABLED', 'true').strip().lower() in ('1', 'true', 'yes', 'on')
 
 
-def start_2fa_session(user_email, user_name=''):
+def start_2fa_session(user_email, phone, user_name=''):
     """Create a pending login session and send the user's OTP email."""
     otp_code = generate_otp()
     session['pending_user'] = user_email
     session['pending_user_name'] = user_name
+    session['pending_phone'] = phone 
     session['otp_code'] = otp_code
     session['otp_expiry'] = (datetime.utcnow() + timedelta(minutes=10)).isoformat()
     session['otp_attempts'] = 0
     session['last_otp_sent_at'] = datetime.utcnow().isoformat()
 
-    if send_otp_email(user_email, otp_code):
+    if send_otp_email(user_email, phone, otp_code):
         return True
 
     session.pop('pending_user', None)
     session.pop('pending_user_name', None)
+    session.pop('pending_phone', None)
     session.pop('otp_code', None)
     session.pop('otp_expiry', None)
     session.pop('otp_attempts', None)
