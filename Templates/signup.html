@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Study Planner | Sign Up</title>
@@ -17,112 +16,163 @@
         body {
             font-family: "Lato", sans-serif;
             min-height: 100vh;
-            background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 55%, #2563eb 100%);
+            background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 52%, #2563eb 100%);
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             justify-content: center;
-            padding: 2rem 1rem;
+            padding: 2.5rem 1rem 3rem;
+            position: relative;
+            overflow-x: hidden;
         }
 
-        .signup-shell {
+        /* Decorative background circles */
+        body::before {
+            content: "";
+            position: fixed;
+            width: 480px; height: 480px;
+            top: -160px; right: -120px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.06);
+            pointer-events: none;
+        }
+        body::after {
+            content: "";
+            position: fixed;
+            width: 360px; height: 360px;
+            bottom: -130px; left: -90px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.05);
+            pointer-events: none;
+        }
+
+        /* ── Shell ── */
+        .auth-shell {
             width: 100%;
             max-width: 520px;
+            position: relative;
+            z-index: 1;
         }
 
-        /* Brand */
-        .signup-brand {
+        /* ── Brand header ── */
+        .auth-brand {
             text-align: center;
             margin-bottom: 1.75rem;
         }
-        .signup-brand-icon {
-            width: 64px;
-            height: 64px;
-            border-radius: 20px;
-            background: rgba(255,255,255,0.15);
-            border: 1px solid rgba(255,255,255,0.2);
+
+        .auth-brand-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 18px;
+            background: rgba(255,255,255,0.14);
+            border: 1px solid rgba(255,255,255,0.22);
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.8rem;
-            margin-bottom: 0.75rem;
+            margin-bottom: 0.85rem;
+            backdrop-filter: blur(10px);
         }
-        .signup-brand h1 {
+
+        .auth-brand-icon i {
+            font-size: 1.6rem;
+            color: #fff;
+        }
+
+        .auth-brand h1 {
             color: #fff;
             font-size: 1.5rem;
             font-weight: 900;
             margin: 0 0 0.2rem;
+            letter-spacing: -0.02em;
         }
-        .signup-brand p {
-            color: rgba(255,255,255,0.72);
-            font-size: 0.9rem;
+
+        .auth-brand p {
+            color: rgba(255,255,255,0.65);
+            font-size: 0.875rem;
             margin: 0;
         }
 
-        /* Card */
-        .signup-card {
-            background: #fff;
+        /* ── Card ── */
+        .auth-card {
+            background: #ffffff;
             border-radius: 24px;
             padding: 2rem 2rem 1.75rem;
-            box-shadow: 0 24px 60px rgba(0,0,0,0.3);
+            box-shadow: 0 28px 72px rgba(0,0,0,0.3);
         }
 
-        .signup-card h2 {
-            font-size: 1.25rem;
+        .auth-card-title {
+            font-size: 1.2rem;
             font-weight: 900;
             color: #0f172a;
             margin: 0 0 1.25rem;
         }
 
-        /* Error */
-        .signup-error {
+        /* ── Error / Success alerts ── */
+        .auth-alert {
             display: flex;
             align-items: center;
             gap: 0.5rem;
-            background: #fee2e2;
-            border: 1px solid #fecaca;
-            color: #991b1b;
             border-radius: 10px;
             padding: 0.75rem 1rem;
-            font-size: 0.88rem;
+            font-size: 0.875rem;
             font-weight: 700;
             margin-bottom: 1.25rem;
         }
 
-        /* Form rows */
-        .form-row-2 {
+        .auth-alert-error {
+            background: #fee2e2;
+            border: 1px solid #fecaca;
+            color: #991b1b;
+        }
+
+        /* ── Form grid ── */
+        .field-row-2 {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 0.85rem;
+            gap: 0.875rem;
         }
 
         .sp-field {
-            display: flex;
-            flex-direction: column;
-            gap: 0.35rem;
-            margin-bottom: 0.85rem;
-        }
-        .sp-field label {
-            font-size: 0.82rem;
-            font-weight: 700;
-            color: #1e293b;
+            margin-bottom: 0.875rem;
         }
 
+        .sp-field label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 0.35rem;
+        }
+
+        /* ── Input wrap ── */
         .sp-input-wrap {
             display: flex;
             align-items: center;
-            gap: 0.6rem;
+            gap: 0.55rem;
             border: 1.5px solid #dbe4f0;
             border-radius: 10px;
-            background: #fff;
+            background: #f8fafc;
             padding: 0 0.875rem;
             min-height: 46px;
-            transition: border-color 0.2s;
+            transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
         }
+
         .sp-input-wrap:focus-within {
             border-color: #2563eb;
+            background: #fff;
             box-shadow: 0 0 0 3px rgba(37,99,235,0.12);
         }
-        .sp-input-wrap i { color: #2563eb; font-size: 0.95rem; flex-shrink: 0; }
+
+        .sp-input-wrap i.field-icon {
+            color: #94a3b8;
+            font-size: 0.95rem;
+            flex-shrink: 0;
+            transition: color 0.2s;
+        }
+
+        .sp-input-wrap:focus-within i.field-icon {
+            color: #2563eb;
+        }
+
         .sp-input-wrap input,
         .sp-input-wrap select {
             flex: 1;
@@ -130,188 +180,237 @@
             outline: none;
             background: transparent;
             font-family: "Lato", sans-serif;
-            font-size: 0.92rem;
+            font-size: 0.9rem;
             color: #0f172a;
+            min-width: 0;
         }
-        .sp-input-wrap input::placeholder { color: #94a3b8; }
-        .sp-input-wrap select option { color: #0f172a; }
 
-        .pw-toggle {
-            cursor: pointer;
+        .sp-input-wrap input::placeholder { color: #94a3b8; }
+
+        .pw-toggle-btn {
+            background: none;
+            border: none;
+            padding: 0;
             color: #94a3b8;
             font-size: 0.95rem;
+            cursor: pointer;
             flex-shrink: 0;
+            display: flex;
+            align-items: center;
             transition: color 0.2s;
         }
-        .pw-toggle:hover { color: #2563eb; }
+        .pw-toggle-btn:hover { color: #2563eb; }
 
-        /* Submit */
+        /* ── Submit button ── */
         .sp-submit {
             width: 100%;
-            padding: 0.8rem;
-            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            padding: 0.82rem;
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
             color: #fff;
             border: none;
             border-radius: 12px;
-            font-size: 1rem;
+            font-size: 0.95rem;
             font-weight: 900;
             font-family: "Lato", sans-serif;
             cursor: pointer;
-            margin-top: 0.5rem;
-            display: inline-flex;
+            display: flex;
             align-items: center;
             justify-content: center;
             gap: 0.5rem;
+            margin-top: 0.5rem;
+            box-shadow: 0 8px 20px rgba(37,99,235,0.3);
             transition: opacity 0.2s, transform 0.15s;
-            box-shadow: 0 8px 24px rgba(37,99,235,0.3);
         }
-        .sp-submit:hover { opacity: 0.92; transform: translateY(-1px); }
 
-        /* Login link */
-        .signup-login-note {
+        .sp-submit:hover { opacity: 0.9; transform: translateY(-1px); }
+        .sp-submit:active { transform: translateY(0); }
+
+        /* ── Login link ── */
+        .auth-switch {
             text-align: center;
             margin-top: 1.25rem;
             font-size: 0.875rem;
             color: #64748b;
         }
-        .signup-login-note a {
+
+        .auth-switch a {
             color: #2563eb;
             font-weight: 700;
             text-decoration: none;
         }
-        .signup-login-note a:hover { text-decoration: underline; }
 
-        @media (max-width: 480px) {
-            .signup-card { padding: 1.5rem 1.25rem; border-radius: 20px; }
-            .form-row-2 { grid-template-columns: 1fr; }
+        .auth-switch a:hover { text-decoration: underline; }
+
+        /* ── Divider ── */
+        .auth-divider {
+            text-align: center;
+            font-size: 0.78rem;
+            color: #94a3b8;
+            font-weight: 700;
+            position: relative;
+            margin: 0.25rem 0 0.875rem;
+        }
+
+        .auth-divider::before,
+        .auth-divider::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            width: 42%;
+            height: 1px;
+            background: #e2e8f0;
+        }
+
+        .auth-divider::before { left: 0; }
+        .auth-divider::after  { right: 0; }
+
+        /* ── Responsive ── */
+        @media (max-width: 520px) {
+            body { padding: 1.5rem 0.75rem 2.5rem; }
+            .auth-card { padding: 1.5rem 1.25rem 1.5rem; border-radius: 20px; }
+            .field-row-2 { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
-    <div class="signup-shell">
+<div class="auth-shell">
 
-        <!-- Brand -->
-        <div class="signup-brand">
-            <div class="signup-brand-icon">🎓</div>
-            <h1>Study Planner</h1>
-            <p>Your all-in-one student workspace</p>
+    <!-- Brand -->
+    <div class="auth-brand">
+        <div class="auth-brand-icon">
+            <i class="bi bi-mortarboard-fill"></i>
         </div>
-
-        <!-- Card -->
-        <div class="signup-card">
-            <h2>Create your account</h2>
-
-            {% if error %}
-            <div class="signup-error">
-                <i class="bi bi-exclamation-circle-fill"></i>
-                <span>{{ error }}</span>
-            </div>
-            {% endif %}
-
-            <form method="POST" action="{{ url_for('signup') }}" id="signup-form">
-
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
-                <div class="form-row-2">
-                    <div class="sp-field">
-                        <label for="first-name">First Name</label>
-                        <div class="sp-input-wrap">
-                            <i class="bi bi-person"></i>
-                            <input type="text" id="first-name" name="first_name" placeholder="First" required>
-                        </div>
-                    </div>
-                    <div class="sp-field">
-                        <label for="last-name">Last Name</label>
-                        <div class="sp-input-wrap">
-                            <i class="bi bi-person"></i>
-                            <input type="text" id="last-name" name="last_name" placeholder="Last" required>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="sp-field">
-                    <label for="email">Email Address</label>
-                    <div class="sp-input-wrap">
-                        <i class="bi bi-envelope"></i>
-                        <input type="email" id="email" name="email" placeholder="you@example.com" required autocomplete="email">
-                    </div>
-                </div>
-
-                <div class="sp-field">
-                    <label for="password">Password</label>
-                    <div class="sp-input-wrap">
-                        <i class="bi bi-lock"></i>
-                        <input type="password" id="password" name="password" placeholder="Min 8 chars, 1 uppercase, 1 number" required>
-                        <i class="bi bi-eye pw-toggle" id="toggle-password"></i>
-                    </div>
-                </div>
-
-                <div class="sp-field">
-                    <label for="confirm-password">Confirm Password</label>
-                    <div class="sp-input-wrap">
-                        <i class="bi bi-lock"></i>
-                        <input type="password" id="confirm-password" name="confirm_password" placeholder="Repeat password" required>
-                        <i class="bi bi-eye pw-toggle" id="toggle-confirm"></i>
-                    </div>
-                </div>
-
-                <div class="sp-field">
-                    <label for="phone">Phone Number</label>
-                    <div class="sp-input-wrap">
-                        <i class="bi bi-telephone"></i>
-                        <input type="tel" id="phone" name="phone" placeholder="+64 21 123 4567">
-                    </div>
-                </div>
-
-                <div class="sp-field">
-                    <label for="institution">Institution / University</label>
-                    <div class="sp-input-wrap">
-                        <i class="bi bi-building"></i>
-                        <input type="text" id="institution" name="institution" placeholder="Your school or university" required>
-                    </div>
-                </div>
-
-                <div class="sp-field">
-                    <label for="major">Major / Field of Study</label>
-                    <div class="sp-input-wrap">
-                        <i class="bi bi-book"></i>
-                        <input type="text" id="major" name="major" placeholder="Your major or field" required>
-                    </div>
-                </div>
-
-                <button type="submit" class="sp-submit">
-                    <i class="bi bi-person-plus"></i> Create Account
-                </button>
-            </form>
-
-            <p class="signup-login-note">
-                Already have an account? <a href="{{ url_for('login') }}">Sign in</a>
-            </p>
-        </div>
+        <h1>Study Planner</h1>
+        <p>Your all-in-one student workspace</p>
     </div>
 
-    <script>
-        // Password toggles
-        document.getElementById('toggle-password').addEventListener('click', function() {
-            const inp = document.getElementById('password');
-            inp.type = inp.type === 'password' ? 'text' : 'password';
-            this.classList.toggle('bi-eye');
-            this.classList.toggle('bi-eye-slash');
-        });
-        document.getElementById('toggle-confirm').addEventListener('click', function() {
-            const inp = document.getElementById('confirm-password');
-            inp.type = inp.type === 'password' ? 'text' : 'password';
-            this.classList.toggle('bi-eye');
-            this.classList.toggle('bi-eye-slash');
-        });
+    <!-- Card -->
+    <div class="auth-card">
+        <p class="auth-card-title">Create your account</p>
 
-        // Client-side confirm check
-        document.getElementById('signup-form').addEventListener('submit', function(e) {
-            if (document.getElementById('password').value !== document.getElementById('confirm-password').value) {
-                e.preventDefault();
-                alert('Passwords do not match!');
+        {% if error %}
+        <div class="auth-alert auth-alert-error">
+            <i class="bi bi-exclamation-circle-fill"></i>
+            <span>{{ error }}</span>
+        </div>
+        {% endif %}
+
+        <form method="POST" action="{{ url_for('signup') }}" id="signup-form" novalidate>
+
+            <!-- Name row -->
+            <div class="field-row-2">
+                <div class="sp-field">
+                    <label for="first-name">First Name</label>
+                    <div class="sp-input-wrap">
+                        <i class="bi bi-person field-icon"></i>
+                        <input type="text" id="first-name" name="first_name" placeholder="First" required autocomplete="given-name">
+                    </div>
+                </div>
+                <div class="sp-field">
+                    <label for="last-name">Last Name</label>
+                    <div class="sp-input-wrap">
+                        <i class="bi bi-person field-icon"></i>
+                        <input type="text" id="last-name" name="last_name" placeholder="Last" required autocomplete="family-name">
+                    </div>
+                </div>
+            </div>
+
+            <div class="sp-field">
+                <label for="email">Email Address</label>
+                <div class="sp-input-wrap">
+                    <i class="bi bi-envelope field-icon"></i>
+                    <input type="email" id="email" name="email" placeholder="you@example.com" required autocomplete="email">
+                </div>
+            </div>
+
+            <div class="sp-field">
+                <label for="password">Password</label>
+                <div class="sp-input-wrap">
+                    <i class="bi bi-lock field-icon"></i>
+                    <input type="password" id="password" name="password" placeholder="Min 8 chars, 1 uppercase, 1 number" required autocomplete="new-password">
+                    <button type="button" class="pw-toggle-btn" id="toggle-password" aria-label="Toggle password visibility">
+                        <i class="bi bi-eye"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="sp-field">
+                <label for="confirm-password">Confirm Password</label>
+                <div class="sp-input-wrap">
+                    <i class="bi bi-lock field-icon"></i>
+                    <input type="password" id="confirm-password" name="confirm_password" placeholder="Repeat your password" required autocomplete="new-password">
+                    <button type="button" class="pw-toggle-btn" id="toggle-confirm" aria-label="Toggle confirm password visibility">
+                        <i class="bi bi-eye"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="sp-field">
+                <label for="phone">Phone Number</label>
+                <div class="sp-input-wrap">
+                    <i class="bi bi-telephone field-icon"></i>
+                    <input type="tel" id="phone" name="phone" placeholder="+64 21 123 4567" autocomplete="tel">
+                </div>
+            </div>
+
+            <div class="auth-divider">Academic details</div>
+
+            <div class="sp-field">
+                <label for="institution">Institution / University</label>
+                <div class="sp-input-wrap">
+                    <i class="bi bi-building field-icon"></i>
+                    <input type="text" id="institution" name="institution" placeholder="Your school or university" required>
+                </div>
+            </div>
+
+            <div class="sp-field">
+                <label for="major">Major / Field of Study</label>
+                <div class="sp-input-wrap">
+                    <i class="bi bi-book field-icon"></i>
+                    <input type="text" id="major" name="major" placeholder="e.g. Computer Science" required>
+                </div>
+            </div>
+
+            <button type="submit" class="sp-submit">
+                <i class="bi bi-person-check-fill"></i>
+                Create Account
+            </button>
+        </form>
+
+        <p class="auth-switch">
+            Already have an account? <a href="{{ url_for('login') }}">Sign in</a>
+        </p>
+    </div>
+</div>
+
+<script>
+    /* ── Password visibility toggles ── */
+    function setupToggle(btnId, inputId) {
+        document.getElementById(btnId).addEventListener('click', function () {
+            const inp = document.getElementById(inputId);
+            const icon = this.querySelector('i');
+            if (inp.type === 'password') {
+                inp.type = 'text';
+                icon.classList.replace('bi-eye', 'bi-eye-slash');
+            } else {
+                inp.type = 'password';
+                icon.classList.replace('bi-eye-slash', 'bi-eye');
             }
         });
-    </script>
+    }
+
+    setupToggle('toggle-password', 'password');
+    setupToggle('toggle-confirm',  'confirm-password');
+
+    /* ── Client-side password match check ── */
+    document.getElementById('signup-form').addEventListener('submit', function (e) {
+        const pw  = document.getElementById('password').value;
+        const cpw = document.getElementById('confirm-password').value;
+        if (pw !== cpw) {
+            e.preventDefault();
+            alert('Passwords do not match. Please try again.');
+        }
+    });
+</script>
 </body>
 </html>
