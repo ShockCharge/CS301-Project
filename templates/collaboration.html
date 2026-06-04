@@ -269,18 +269,6 @@
     updateTime(); setInterval(updateTime, 1000);
 
     // Sidebar toggle
-    const sidebar = document.getElementById('sidebar');
-    const overlay = document.getElementById('sidebar-overlay');
-
-    document.getElementById('sidebar-toggle').addEventListener('click', function () {
-        sidebar.classList.toggle('collapsed');
-        overlay.classList.toggle('active');
-    });
-
-    overlay.addEventListener('click', function () {
-        sidebar.classList.add('collapsed');
-        overlay.classList.remove('active');
-    });
 </script>
 </body>
 </html>

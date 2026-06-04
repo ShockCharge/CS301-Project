@@ -18,17 +18,17 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function initDashboardEnhanced() {
-    fetchAISuggestions();
+    fetchDashboardSuggestions();
     loadDashboardStats();
 }
 
 function setupAutoRefresh() {
     setInterval(() => {
-        fetchAISuggestions();
+        fetchDashboardSuggestions();
     }, DASHBOARD_CONFIG.suggestionRefreshInterval);
 }
 
-function fetchAISuggestions() {
+function fetchDashboardSuggestions() {
     const suggestionBox = document.getElementById('suggestionBox');
     const suggestionContent = document.getElementById('suggestionContent');
 
@@ -183,17 +183,20 @@ function clearOutdatedItems() {
 }
 
 function refreshDashboard() {
-    fetchAISuggestions();
+    fetchDashboardSuggestions();
     loadDashboardStats();
 }
 
-function formatDateNZ(dateString) {
+function formatDateNZDashboard(dateString) {
     if (!dateString) return '';
-    const date = new Date(dateString);
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-    return `${day}/${month}/${year}`;
+
+    const parts = String(dateString).split('-');
+    if (parts.length === 3) {
+        const [year, month, day] = parts;
+        return `${day}/${month}/${year}`;
+    }
+
+    return dateString;
 }
 
 function showNotification(message, type = 'info') {
@@ -303,8 +306,8 @@ window.dashboardUtils = {
     refreshDashboard,
     toggleTaskCompletion,
     clearOutdatedItems,
-    fetchAISuggestions,
+    fetchDashboardSuggestions,
     loadDashboardStats,
-    formatDateNZ,
+    formatDateNZDashboard,
     showNotification
 };

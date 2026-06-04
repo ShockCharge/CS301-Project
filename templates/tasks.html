@@ -68,9 +68,13 @@
                 </div>
                 <div class="tab-bar">
                     <button class="tab-btn active" data-tab="current" onclick="switchTab('current')">Current</button>
+                    <button class="tab-btn" data-tab="completed" onclick="switchTab('completed')">Completed</button>
                     <button class="tab-btn" data-tab="past" onclick="switchTab('past')">Past</button>
                     <button class="tab-btn" data-tab="overdue" onclick="switchTab('overdue')">Overdue</button>
                 </div>
+                <p class="page-help-text">
+                    Use <strong>Mark Completed</strong> when you finish a task. Finished work will move to the <strong>Completed</strong> tab, where you can also undo it if needed.
+                </p>
                 <div class="items-list" id="tasks-grid">
                     {% if tasks %}
                         {% for task in tasks %}
@@ -154,7 +158,11 @@
             </div>
             <div class="form-group">
                 <label>Due Date</label>
-                <input type="date" id="editTaskDate" class="form-input">
+                <input type="date" id="editTaskDate" class="form-input" required>
+            </div>
+            <div class="form-group">
+                <label>Due Time</label>
+                <input type="time" id="editTaskTime" class="form-input" value="23:59" required>
             </div>
             <div class="form-group">
                 <label>Description</label>
@@ -192,14 +200,6 @@
     updateTime(); setInterval(updateTime, 1000);
 
     // Sidebar toggle
-    const sidebar = document.getElementById('sidebar');
-    const overlay = document.getElementById('sidebar-overlay');
-    document.getElementById('sidebar-toggle').addEventListener('click', function () {
-        sidebar.classList.toggle('collapsed'); overlay.classList.toggle('active');
-    });
-    overlay.addEventListener('click', function () {
-        sidebar.classList.add('collapsed'); overlay.classList.remove('active');
-    });
 
     // Tab switching
     let currentTab = 'current';

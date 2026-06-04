@@ -6,11 +6,16 @@ let allSchedules = [];   // cached so week/month badge injection can re-use them
 // DATE / TIME HELPERS
 function formatDateNZ(dateString) {
     if (!dateString) return '';
-    const date  = new Date(dateString);
-    const day   = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year  = date.getFullYear();
-    return `${day}/${month}/${year}`;
+
+    // Safe handling for database dates like "2026-06-04".
+    // Do not use new Date("YYYY-MM-DD") because it can show the wrong day in some timezones.
+    const parts = String(dateString).split('-');
+    if (parts.length === 3) {
+        const [year, month, day] = parts;
+        return `${day}/${month}/${year}`;
+    }
+
+    return dateString;
 }
 
 function formatTimeNZ(timeString) {
@@ -20,6 +25,26 @@ function formatTimeNZ(timeString) {
 
 function formatDateTimeNZ(dateString, timeString) {
     return `${formatDateNZ(dateString)} ${formatTimeNZ(timeString)}`;
+}
+
+function getTodayKeyNZ() {
+    const now = new Date();
+    const nzDate = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Pacific/Auckland',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    }).format(now);
+    return nzDate;
+}
+
+function escapeHtml(value) {
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
 }
 
 // DARK MODE (runs immediately on every page)
@@ -42,17 +67,6 @@ function formatDateTimeNZ(dateString, timeString) {
 
 // PAGE ROUTER — runs once DOM is ready
 document.addEventListener('DOMContentLoaded', function () {
-    // Sidebar submenu toggle
-    const activitiesToggle  = document.getElementById('activities-toggle');
-    const activitiesSubmenu = document.getElementById('activities-submenu');
-    const activitiesArrow   = document.getElementById('activities-arrow');
-    if (activitiesToggle && activitiesSubmenu) {
-        activitiesToggle.addEventListener('click', function (e) {
-            e.preventDefault();
-            activitiesSubmenu.classList.toggle('active');
-            if (activitiesArrow) activitiesArrow.classList.toggle('rotated');
-        });
-    }
 
     // Route to the correct init function
     const path = window.location.pathname;
@@ -181,32 +195,64 @@ function initDashboard() {
     const closeModal   = addTaskModal ? addTaskModal.querySelector('.close') : null;
     const addTaskForm  = document.getElementById('addTaskForm');
 
+    function openTaskModal() {
+        if (!addTaskModal) return;
+        addTaskModal.style.display = 'block';
+        addTaskModal.classList.add('active');
+    }
+
+    function closeTaskModal() {
+        if (!addTaskModal) return;
+        addTaskModal.style.display = 'none';
+        addTaskModal.classList.remove('active');
+    }
+
     if (addTaskBtn && addTaskModal) {
-        addTaskBtn.addEventListener('click', function () {
-            addTaskModal.style.display = 'block';
-        });
+        addTaskBtn.addEventListener('click', openTaskModal);
     }
+
     if (closeModal) {
-        closeModal.addEventListener('click', function () {
-            addTaskModal.style.display = 'none';
-        });
+        closeModal.addEventListener('click', closeTaskModal);
     }
+
     if (addTaskForm) {
         addTaskForm.addEventListener('submit', function (e) {
             e.preventDefault();
+
+            const taskName = document.getElementById('taskName')?.value.trim();
+            const taskDate = document.getElementById('taskDate')?.value || '';
+
+            if (!taskName) {
+                showErrorToast('Please enter a task name');
+                return;
+            }
+
+            if (!taskDate) {
+                showErrorToast('Please choose a due date');
+                return;
+            }
+
             const taskData = {
-                name:     document.getElementById('taskName').value,
-                priority: document.getElementById('taskPriority').value
+                name: taskName,
+                priority: document.getElementById('taskPriority')?.value || 'medium',
+                date: taskDate,
+                time: document.getElementById('taskTime')?.value || '23:59',
+                description: document.getElementById('taskDescription')?.value || ''
             };
+
             fetch('/api/tasks', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(taskData)
             })
             .then(r => r.json())
-            .then(() => {
+            .then(data => {
+                if (data.error) {
+                    showErrorToast(data.error);
+                    return;
+                }
                 showSuccessToast('Task added successfully!');
-                addTaskModal.style.display = 'none';
+                closeTaskModal();
                 addTaskForm.reset();
                 location.reload();
             })
@@ -304,13 +350,16 @@ function initSchedule() {
     document.getElementById('prev-month')?.addEventListener('click', () => {
         currentDate.setMonth(currentDate.getMonth() - 1);
         renderCalendar();
-        injectBadges();          // re-draw badges after navigation
+        injectBadges();
     });
     document.getElementById('next-month')?.addEventListener('click', () => {
         currentDate.setMonth(currentDate.getMonth() + 1);
         renderCalendar();
         injectBadges();
     });
+
+    setupRepeatControls('schedule');
+    setupRepeatControls('editSchedule');
 
     const addBtn   = document.getElementById('add-schedule-btn');
     const addModal = document.getElementById('addScheduleModal');
@@ -329,11 +378,15 @@ function initSchedule() {
     addForm?.addEventListener('submit', function (e) {
         e.preventDefault();
         const data = {
-            title:       document.getElementById('scheduleTitle').value,
-            date:        document.getElementById('scheduleDate').value,
-            time:        document.getElementById('scheduleTime').value,
-            duration:    document.getElementById('scheduleDuration').value,
-            description: document.getElementById('scheduleDescription').value
+            title:           document.getElementById('scheduleTitle').value,
+            date:            document.getElementById('scheduleDate').value,
+            time:            document.getElementById('scheduleTime').value,
+            duration:        document.getElementById('scheduleDuration').value,
+            repeat:          document.getElementById('scheduleRepeat')?.value || 'never',
+            repeat_until:    document.getElementById('scheduleRepeatUntil')?.value || '',
+            repeat_interval: document.getElementById('scheduleRepeatInterval')?.value || 1,
+            repeat_unit:     document.getElementById('scheduleRepeatUnit')?.value || 'weeks',
+            description:     document.getElementById('scheduleDescription').value
         };
         fetch('/api/schedules', {
             method: 'POST',
@@ -341,10 +394,15 @@ function initSchedule() {
             body: JSON.stringify(data)
         })
         .then(r => r.json())
-        .then(() => {
-            showSuccessToast('Schedule added!');
+        .then(result => {
+            if (result.error) {
+                showErrorToast(result.error);
+                return;
+            }
+            showSuccessToast(data.repeat && data.repeat !== 'never' ? 'Repeating schedule added!' : 'Schedule added!');
             addModal.classList.remove('active');
             addForm.reset();
+            toggleRepeatCustomRow('schedule');
             loadSchedules();
         })
         .catch(() => showErrorToast('Failed to add schedule'));
@@ -393,6 +451,114 @@ function initSchedule() {
     loadSchedules();
 }
 
+function dateKeyFromDate(date) {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+function parseDateKey(dateKey) {
+    if (!dateKey) return null;
+    const [year, month, day] = String(dateKey).split('-').map(Number);
+    if (!year || !month || !day) return null;
+    return new Date(year, month - 1, day);
+}
+
+function daysBetween(startDate, endDate) {
+    const oneDay = 24 * 60 * 60 * 1000;
+    const start = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+    const end = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+    return Math.round((end - start) / oneDay);
+}
+
+function setupRepeatControls(prefix) {
+    const select = document.getElementById(`${prefix}Repeat`);
+    if (!select) return;
+    select.addEventListener('change', () => toggleRepeatCustomRow(prefix));
+    toggleRepeatCustomRow(prefix);
+}
+
+function toggleRepeatCustomRow(prefix) {
+    const select = document.getElementById(`${prefix}Repeat`);
+    const row = document.getElementById(`${prefix}CustomRepeatRow`);
+    if (row && select) row.style.display = select.value === 'custom' ? 'grid' : 'none';
+}
+
+function getScheduleRepeatLabel(schedule) {
+    const repeat = schedule?.repeat || 'never';
+    const labels = {
+        never: 'Does not repeat',
+        daily: 'Repeats daily',
+        weekdays: 'Repeats Monday to Friday',
+        weekly: 'Repeats weekly',
+        monthly: 'Repeats monthly',
+        yearly: 'Repeats yearly'
+    };
+    if (repeat === 'custom') {
+        const interval = schedule.repeat_interval || 1;
+        const unit = schedule.repeat_unit || 'weeks';
+        return `Repeats every ${interval} ${unit}`;
+    }
+    return labels[repeat] || 'Does not repeat';
+}
+
+function scheduleOccursOnDate(schedule, dateKey) {
+    if (!schedule || !schedule.date || !dateKey) return false;
+
+    const repeat = schedule.repeat || 'never';
+    const startDate = parseDateKey(schedule.date);
+    const targetDate = parseDateKey(dateKey);
+    if (!startDate || !targetDate) return false;
+
+    const diffDays = daysBetween(startDate, targetDate);
+    if (diffDays < 0) return false;
+
+    if (schedule.repeat_until && dateKey > schedule.repeat_until) return false;
+    if (repeat === 'never' || !repeat) return schedule.date === dateKey;
+    if (repeat === 'daily') return true;
+    if (repeat === 'weekdays') {
+        const day = targetDate.getDay();
+        return day >= 1 && day <= 5;
+    }
+    if (repeat === 'weekly') return diffDays % 7 === 0;
+    if (repeat === 'monthly') return targetDate.getDate() === startDate.getDate();
+    if (repeat === 'yearly') return targetDate.getMonth() === startDate.getMonth() && targetDate.getDate() === startDate.getDate();
+    if (repeat === 'custom') {
+        const interval = Math.max(1, parseInt(schedule.repeat_interval || 1, 10));
+        const unit = schedule.repeat_unit || 'weeks';
+        if (unit === 'days') return diffDays % interval === 0;
+        if (unit === 'weeks') return diffDays % (interval * 7) === 0;
+        if (unit === 'months') {
+            const months = (targetDate.getFullYear() - startDate.getFullYear()) * 12 + (targetDate.getMonth() - startDate.getMonth());
+            return targetDate.getDate() === startDate.getDate() && months % interval === 0;
+        }
+        if (unit === 'years') {
+            const years = targetDate.getFullYear() - startDate.getFullYear();
+            return targetDate.getMonth() === startDate.getMonth() && targetDate.getDate() === startDate.getDate() && years % interval === 0;
+        }
+    }
+    return false;
+}
+
+function schedulesForDate(dateKey) {
+    return allSchedules.filter(schedule => scheduleOccursOnDate(schedule, dateKey));
+}
+
+function getScheduleOccurrencesInRange(schedules, startKey, endKey) {
+    const start = parseDateKey(startKey);
+    const end = parseDateKey(endKey);
+    if (!start || !end) return [];
+
+    const occurrences = [];
+    const cursor = new Date(start);
+    while (cursor <= end) {
+        const key = dateKeyFromDate(cursor);
+        schedules.forEach(schedule => {
+            if (scheduleOccursOnDate(schedule, key)) occurrences.push({ ...schedule, occurrence_date: key });
+        });
+        cursor.setDate(cursor.getDate() + 1);
+    }
+    return occurrences;
+}
+
 function switchView(view) {
     currentView = view;
 
@@ -408,16 +574,13 @@ function switchView(view) {
     if (target) target.style.display = 'block';
 
     renderCalendar();
-    injectBadges();    // show events on the newly visible view
+    injectBadges();
 }
 
-// ── Master render dispatcher
 function renderCalendar() {
-    // Update the month/year label
     const label = document.getElementById('current-month');
     if (label) {
-        const names = ['January','February','March','April','May','June',
-                       'July','August','September','October','November','December'];
+        const names = ['January','February','March','April','May','June','July','August','September','October','November','December'];
         label.textContent = `${names[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
     }
 
@@ -439,9 +602,8 @@ function renderWeekView() {
 
     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const startHour = 7;
-    const endHour   = 23; // 7am to 11pm
+    const endHour   = 23;
 
-    // Build header
     if (weekHeader) {
         weekHeader.innerHTML = '';
         weekHeader.style.gridTemplateColumns = `repeat(7, 1fr)`;
@@ -450,12 +612,11 @@ function renderWeekView() {
             date.setDate(startOfWeek.getDate() + i);
             const cell = document.createElement('div');
             cell.className = 'time-grid-header-cell';
-            cell.textContent = name;
+            cell.textContent = `${name} ${date.getDate()}`;
             weekHeader.appendChild(cell);
         });
     }
 
-    // Build time labels
     if (timeLabels) {
         timeLabels.innerHTML = '';
         for (let h = startHour; h <= endHour; h++) {
@@ -468,7 +629,6 @@ function renderWeekView() {
         }
     }
 
-    // Build horizontal lines
     if (timeLines) {
         timeLines.innerHTML = '';
         for (let h = startHour; h <= endHour; h++) {
@@ -478,7 +638,6 @@ function renderWeekView() {
         }
     }
 
-    // Build 7 day columns
     weekGrid.innerHTML = '';
     weekGrid.style.gridTemplateColumns = `repeat(7, 1fr)`;
     for (let i = 0; i < 7; i++) {
@@ -486,39 +645,37 @@ function renderWeekView() {
         date.setDate(startOfWeek.getDate() + i);
         const col = document.createElement('div');
         col.className = 'time-grid-col';
-        col.dataset.date = date.toISOString().split('T')[0];
+        if (dateKeyFromDate(date) === dateKeyFromDate(today)) col.classList.add('today');
+        col.dataset.date = dateKeyFromDate(date);
         weekGrid.appendChild(col);
     }
 
-    // Inject schedule events as positioned blocks
     injectTimeGridEvents(startHour, endHour);
 }
 
 function injectTimeGridEvents(startHour, endHour) {
-    if (!allSchedules.length) return;
     const cols = document.querySelectorAll('.time-grid-col');
-    const hourHeight = 48; // px per hour
+    const hourHeight = 48;
 
     cols.forEach(col => {
         const colDate = col.dataset.date;
-        allSchedules.forEach(s => {
-            if (s.date !== colDate || !s.time) return;
+        schedulesForDate(colDate).forEach(s => {
+            if (!s.time) return;
             const [h, m] = s.time.split(':').map(Number);
             const top = ((h + m / 60) - startHour) * hourHeight;
-            const height = Math.max((parseInt(s.duration || 60) / 60) * hourHeight, 20);
+            const height = Math.max((parseInt(s.duration || 60, 10) / 60) * hourHeight, 20);
 
             const block = document.createElement('div');
             block.className = 'sched-event-block';
             block.style.top    = `${top}px`;
             block.style.height = `${height}px`;
             block.textContent  = s.title;
-            block.title        = `${s.time} — ${s.title}`;
+            block.title        = `${s.time} — ${s.title} (${getScheduleRepeatLabel(s)})`;
             col.appendChild(block);
         });
     });
 }
 
-//  MONTH VIEW  — 7-column grid, all 28-42 cells visible at once
 function renderMonthView() {
     const monthGrid = document.getElementById('month-grid');
     if (!monthGrid) return;
@@ -527,19 +684,16 @@ function renderMonthView() {
 
     const year          = currentDate.getFullYear();
     const month         = currentDate.getMonth();
-    const firstDayIndex = new Date(year, month, 1).getDay();       // 0=Sun
-    const lastDate      = new Date(year, month + 1, 0).getDate();  // e.g. 30
-    const prevLastDate  = new Date(year, month, 0).getDate();      // last day of prev month
+    const firstDayIndex = new Date(year, month, 1).getDay();
+    const lastDate      = new Date(year, month + 1, 0).getDate();
+    const prevLastDate  = new Date(year, month, 0).getDate();
     const today         = new Date();
 
     for (let i = firstDayIndex; i > 0; i--) {
         const cell = document.createElement('div');
         cell.className = 'calendar-day other-month';
-        // Build a YYYY-MM-DD for the prev-month date so badges can still match
-        const prevMonth = month === 0 ? 12 : month;
-        const prevYear  = month === 0 ? year - 1 : year;
-        const d         = String(prevLastDate - i + 1).padStart(2, '0');
-        cell.dataset.date = `${prevYear}-${String(prevMonth).padStart(2,'0')}-${d}`;
+        const prevDate = new Date(year, month - 1, prevLastDate - i + 1);
+        cell.dataset.date = dateKeyFromDate(prevDate);
         cell.innerHTML = `<div class="day-number">${prevLastDate - i + 1}</div>`;
         monthGrid.appendChild(cell);
     }
@@ -547,34 +701,29 @@ function renderMonthView() {
     for (let d = 1; d <= lastDate; d++) {
         const cell = document.createElement('div');
         cell.className = 'calendar-day';
-        if (d === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
-            cell.classList.add('today');
-        }
-        cell.dataset.date = `${year}-${String(month + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        const date = new Date(year, month, d);
+        if (dateKeyFromDate(date) === dateKeyFromDate(today)) cell.classList.add('today');
+        cell.dataset.date = dateKeyFromDate(date);
         cell.innerHTML = `<div class="day-number">${d}</div>`;
         monthGrid.appendChild(cell);
     }
 
-    // ── Filler cells from the next month 
     const remaining = 42 - (firstDayIndex + lastDate);
     for (let d = 1; d <= remaining; d++) {
         const cell = document.createElement('div');
         cell.className = 'calendar-day other-month';
-        const nextMonth = month === 11 ? 1 : month + 2;
-        const nextYear  = month === 11 ? year + 1 : year;
-        cell.dataset.date = `${nextYear}-${String(nextMonth).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        const nextDate = new Date(year, month + 1, d);
+        cell.dataset.date = dateKeyFromDate(nextDate);
         cell.innerHTML = `<div class="day-number">${d}</div>`;
         monthGrid.appendChild(cell);
     }
 }
 
-//  DAY VIEW  — compact 24-hour timeline
 function renderDayView() {
     const daySlots = document.getElementById('day-slots');
     const dayTitle = document.getElementById('day-title');
     if (!daySlots) return;
 
-    // Show which day we are viewing
     if (dayTitle) {
         const opts = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
         dayTitle.textContent = currentDate.toLocaleDateString('en-NZ', opts);
@@ -595,45 +744,26 @@ function renderDayView() {
     }
 }
 
-//  BADGE INJECTION — places event badges on the visible calendar
 function injectBadges() {
-    if (!allSchedules.length) return;
-
-    if (currentView === 'month' || currentView === 'week') {
-        const gridId   = currentView === 'month' ? 'month-grid' : 'week-grid';
-        const cells    = document.querySelectorAll(`#${gridId} .calendar-day`);
-
-        // Build a lookup: "YYYY-MM-DD" → cell element
-        const cellMap = {};
+    if (currentView === 'month') {
+        const cells = document.querySelectorAll('#month-grid .calendar-day');
         cells.forEach(cell => {
-            if (cell.dataset.date) cellMap[cell.dataset.date] = cell;
-        });
-
-        allSchedules.forEach(schedule => {
-            if (!schedule.date) return;
-            const cell = cellMap[schedule.date];
-            if (!cell) return;
-
-            // Don't add duplicate badges on repeated calls
-            const alreadyAdded = Array.from(cell.querySelectorAll('.calendar-event-badge'))
-                .some(b => b.dataset.id === schedule._id);
-            if (alreadyAdded) return;
-
-            const badge = document.createElement('div');
-            badge.className = 'calendar-event-badge';
-            badge.dataset.id = schedule._id;
-            badge.textContent = schedule.time
-                ? `${schedule.time} ${schedule.title}`
-                : schedule.title;
-            cell.appendChild(badge);
+            const dateKey = cell.dataset.date;
+            schedulesForDate(dateKey).forEach(schedule => {
+                const badge = document.createElement('div');
+                badge.className = 'calendar-event-badge';
+                badge.dataset.id = `${schedule._id}-${dateKey}`;
+                badge.textContent = schedule.time ? `${schedule.time} ${schedule.title}` : schedule.title;
+                badge.title = getScheduleRepeatLabel(schedule);
+                cell.appendChild(badge);
+            });
         });
     }
 
     if (currentView === 'day') {
-        // Show events in the correct hour slot
-        const todayStr = currentDate.toISOString().split('T')[0];
-        allSchedules.forEach(schedule => {
-            if (schedule.date !== todayStr || !schedule.time) return;
+        const dayKey = dateKeyFromDate(currentDate);
+        schedulesForDate(dayKey).forEach(schedule => {
+            if (!schedule.time) return;
             const hour = parseInt(schedule.time.split(':')[0], 10);
             const slot = document.querySelector(`#day-slots .time-slot[data-hour="${hour}"] .time-content`);
             if (!slot) return;
@@ -641,35 +771,34 @@ function injectBadges() {
             const item = document.createElement('div');
             item.className = 'day-event-item';
             item.textContent = `${schedule.time} — ${schedule.title}`;
+            item.title = getScheduleRepeatLabel(schedule);
             slot.appendChild(item);
         });
     }
 }
 
-
 function parseScheduleDateTime(schedule) {
     if (!schedule || !schedule.date) return null;
     const time = schedule.time || '23:59';
-    const date = new Date(`${schedule.date}T${time}`);
+    const [year, month, day] = String(schedule.date).split('-').map(Number);
+    const [hour, minute] = String(time).split(':').map(Number);
+    const date = new Date(year, (month || 1) - 1, day || 1, hour || 23, minute || 59);
     return Number.isNaN(date.getTime()) ? null : date;
 }
 
 function updateScheduleOverview(schedules) {
     const items = Array.isArray(schedules) ? schedules : [];
     const now = new Date();
-    const todayKey = now.toISOString().split('T')[0];
+    const todayKey = dateKeyFromDate(now);
     const weekEnd = new Date(now);
     weekEnd.setDate(now.getDate() + 7);
-    weekEnd.setHours(23, 59, 59, 999);
+    const weekEndKey = dateKeyFromDate(weekEnd);
 
-    const todayCount = items.filter(item => item.date === todayKey).length;
-    const weekCount = items.filter(item => {
-        const date = parseScheduleDateTime(item);
-        return date && date >= now && date <= weekEnd;
-    }).length;
+    const todayOccurrences = getScheduleOccurrencesInRange(items, todayKey, todayKey);
+    const weekOccurrences = getScheduleOccurrencesInRange(items, todayKey, weekEndKey);
 
-    const upcoming = items
-        .map(item => ({ item, date: parseScheduleDateTime(item) }))
+    const upcoming = weekOccurrences
+        .map(item => ({ item, date: parseScheduleDateTime({ ...item, date: item.occurrence_date }) }))
         .filter(entry => entry.date && entry.date >= now)
         .sort((a, b) => a.date - b.date)[0];
 
@@ -679,8 +808,8 @@ function updateScheduleOverview(schedules) {
     const nextTitleEl = document.getElementById('schedule-next-title');
     const nextTimeEl = document.getElementById('schedule-next-time');
 
-    if (todayEl) todayEl.textContent = todayCount;
-    if (weekEl) weekEl.textContent = weekCount;
+    if (todayEl) todayEl.textContent = todayOccurrences.length;
+    if (weekEl) weekEl.textContent = weekOccurrences.length;
     if (totalEl) totalEl.textContent = items.length;
 
     if (nextTitleEl && nextTimeEl) {
@@ -695,7 +824,7 @@ function updateScheduleOverview(schedules) {
             });
         } else {
             nextTitleEl.textContent = 'No upcoming item';
-            nextTimeEl.textContent = items.length ? 'All scheduled items are in the past' : 'Add a schedule to get started';
+            nextTimeEl.textContent = items.length ? 'No schedule is due in the next 7 days' : 'Add a schedule to get started';
         }
     }
 }
@@ -715,14 +844,14 @@ function setupScheduleQuickActions() {
     });
 }
 
-//  LOAD & DISPLAY SCHEDULES
 function loadSchedules() {
     fetch('/api/schedules')
         .then(r => r.json())
         .then(schedules => {
-            allSchedules = schedules;
-            updateScheduleOverview(schedules);
-            displaySchedules(schedules);
+            allSchedules = Array.isArray(schedules) ? schedules : [];
+            updateScheduleOverview(allSchedules);
+            renderCalendar();
+            displaySchedules(allSchedules);
             injectBadges();
         })
         .catch(err => console.error('Error loading schedules:', err));
@@ -730,7 +859,10 @@ function loadSchedules() {
 
 function isScheduleOutdated(schedule) {
     if (!schedule || !schedule.date) return false;
-    const todayKey = new Date().toISOString().split('T')[0];
+    const todayKey = getTodayKeyNZ();
+    if ((schedule.repeat || 'never') !== 'never') {
+        return !!schedule.repeat_until && schedule.repeat_until < todayKey;
+    }
     return schedule.date < todayKey;
 }
 
@@ -761,15 +893,20 @@ function displaySchedules(schedules) {
 
     list.innerHTML = filteredSchedules.map(s => {
         const outdated = isScheduleOutdated(s);
+        const repeatLabel = getScheduleRepeatLabel(s);
+        const repeatUntil = s.repeat_until ? ` until ${formatDateNZ(s.repeat_until)}` : '';
+        const safeTitle = escapeHtml(s.title || 'Untitled Schedule');
+        const safeDescription = escapeHtml(s.description || '');
         return `
         <div class="schedule-item ${outdated ? 'outdated' : ''}" data-id="${s._id}">
             <div class="schedule-item-header">
                 <div class="schedule-item-info">
-                    <h4 class="schedule-title">${s.title}</h4>
+                    <h4 class="schedule-title">${safeTitle}</h4>
                     <div class="schedule-meta">
-                        ${s.date     ? `<span><i class="bi bi-calendar3"></i> ${s.date}</span>` : ''}
-                        ${s.time     ? `<span><i class="bi bi-clock"></i> ${s.time}</span>` : ''}
-                        ${s.duration ? `<span><i class="bi bi-hourglass-split"></i> ${s.duration} min</span>` : ''}
+                        ${s.date     ? `<span><i class="bi bi-calendar3"></i> Starts ${formatDateNZ(s.date)}</span>` : ''}
+                        ${s.time     ? `<span><i class="bi bi-clock"></i> ${escapeHtml(s.time)}</span>` : ''}
+                        ${s.duration ? `<span><i class="bi bi-hourglass-split"></i> ${escapeHtml(s.duration)} min</span>` : ''}
+                        <span class="repeat-badge"><i class="bi bi-arrow-repeat"></i> ${escapeHtml(repeatLabel + repeatUntil)}</span>
                     </div>
                 </div>
                 <div class="schedule-actions">
@@ -782,44 +919,50 @@ function displaySchedules(schedules) {
                 </div>
             </div>
             ${outdated ? '<div class="schedule-status-label">Outdated</div>' : ''}
-            ${s.description ? `<div class="schedule-description"><p>${s.description}</p></div>` : ''}
+            ${safeDescription ? `<div class="schedule-description"><p>${safeDescription}</p></div>` : ''}
         </div>`;
     }).join('');
 }
 
-// Called from the Edit button in the list
 function editSchedule(scheduleId) {
     const s = allSchedules.find(x => x._id === scheduleId);
     if (!s) return;
 
-    document.getElementById('editScheduleId').value          = s._id;
-    document.getElementById('editScheduleTitle').value       = s.title;
-    document.getElementById('editScheduleDate').value        = s.date        || '';
-    document.getElementById('editScheduleTime').value        = s.time        || '';
-    document.getElementById('editScheduleDuration').value    = s.duration    || '';
-    document.getElementById('editScheduleDescription').value = s.description || '';
+    document.getElementById('editScheduleId').value             = s._id;
+    document.getElementById('editScheduleTitle').value          = s.title || '';
+    document.getElementById('editScheduleDate').value           = s.date || '';
+    document.getElementById('editScheduleTime').value           = s.time || '';
+    document.getElementById('editScheduleDuration').value       = s.duration || '';
+    document.getElementById('editScheduleRepeat').value         = s.repeat || 'never';
+    document.getElementById('editScheduleRepeatUntil').value    = s.repeat_until || '';
+    document.getElementById('editScheduleRepeatInterval').value = s.repeat_interval || 1;
+    document.getElementById('editScheduleRepeatUnit').value     = s.repeat_unit || 'weeks';
+    document.getElementById('editScheduleDescription').value    = s.description || '';
+    toggleRepeatCustomRow('editSchedule');
 
     document.getElementById('editScheduleModal').classList.add('active');
 }
 
-// Called from the Delete button in the list
 function deleteSchedule(scheduleId) {
     document.getElementById('deleteScheduleId').value = scheduleId;
     document.getElementById('deleteScheduleModal').classList.add('active');
 }
 
-// Edit form submit
 const editScheduleForm = document.getElementById('editScheduleForm');
 if (editScheduleForm) {
     editScheduleForm.addEventListener('submit', async function (e) {
         e.preventDefault();
         const id   = document.getElementById('editScheduleId').value;
         const data = {
-            title:       document.getElementById('editScheduleTitle').value,
-            date:        document.getElementById('editScheduleDate').value,
-            time:        document.getElementById('editScheduleTime').value,
-            duration:    document.getElementById('editScheduleDuration').value,
-            description: document.getElementById('editScheduleDescription').value
+            title:           document.getElementById('editScheduleTitle').value,
+            date:            document.getElementById('editScheduleDate').value,
+            time:            document.getElementById('editScheduleTime').value,
+            duration:        document.getElementById('editScheduleDuration').value,
+            repeat:          document.getElementById('editScheduleRepeat')?.value || 'never',
+            repeat_until:    document.getElementById('editScheduleRepeatUntil')?.value || '',
+            repeat_interval: document.getElementById('editScheduleRepeatInterval')?.value || 1,
+            repeat_unit:     document.getElementById('editScheduleRepeatUnit')?.value || 'weeks',
+            description:     document.getElementById('editScheduleDescription').value
         };
         try {
             const res    = await fetch(`/api/schedules/${id}`, {
@@ -833,7 +976,7 @@ if (editScheduleForm) {
                 document.getElementById('editScheduleModal').classList.remove('active');
                 loadSchedules();
             } else {
-                showErrorToast('Failed to update schedule');
+                showErrorToast(result.error || 'Failed to update schedule');
             }
         } catch {
             showErrorToast('Failed to update schedule');
@@ -897,23 +1040,28 @@ function filterTasks() {
     const status   = document.getElementById('taskStatusFilter')?.value  || '';
     const sort     = document.getElementById('taskSort')?.value           || 'newest';
 
-    const todayKey = new Date().toISOString().split('T')[0];
+    const todayKey = getTodayKeyNZ();
     const activeTab = typeof currentTab !== 'undefined' ? currentTab : 'current';
 
     let filtered = allTasks.filter(task => {
         const name = task.name || '';
+        const completed = !!task.completed;
+        const isPast = !!task.date && task.date < todayKey;
+        const isOverdue = isPast && !completed;
+
         const matchSearch   = name.toLowerCase().includes(search) ||
                               (task.description || '').toLowerCase().includes(search);
         const matchPriority = !priority || task.priority === priority;
         const matchStatus   = !status ||
-                              (status === 'completed' && task.completed) ||
-                              (status === 'pending'   && !task.completed);
-        const isPast = !!task.date && task.date < todayKey;
-        const isOverdue = isPast && !task.completed;
+                              (status === 'completed' && completed) ||
+                              (status === 'pending'   && !completed);
+
         const matchTab =
-            activeTab === 'past' ? isPast :
-            activeTab === 'overdue' ? isOverdue :
-            !isPast;
+            activeTab === 'completed' ? completed :
+            activeTab === 'past'      ? isPast :
+            activeTab === 'overdue'   ? isOverdue :
+            (!completed && !isPast);
+
         return matchSearch && matchPriority && matchStatus && matchTab;
     });
 
@@ -923,43 +1071,60 @@ function filterTasks() {
     if (sort === 'priority') filtered.sort((a, b) => (priorityOrder[a.priority] || 9) - (priorityOrder[b.priority] || 9));
     if (sort === 'name')     filtered.sort((a, b) => a.name.localeCompare(b.name));
 
-    displayTasks(filtered);
+    displayTasks(filtered, activeTab);
 }
 
-function displayTasks(tasks) {
+function displayTasks(tasks, activeTab = 'current') {
     const grid = document.getElementById('tasks-grid');
     if (!grid) return;
 
     if (!tasks.length) {
-        grid.innerHTML = '<p class="empty-state">No tasks yet. Click "Add Task" to create one.</p>';
+        const emptyMessages = {
+            current: 'No current pending tasks. Click "Add Task" to create one.',
+            completed: 'No completed tasks yet. When you click "Mark Completed", finished work will appear here.',
+            past: 'No past tasks found.',
+            overdue: 'No overdue tasks. Great job staying on track!'
+        };
+        grid.innerHTML = `<p class="empty-state">${emptyMessages[activeTab] || 'No tasks found.'}</p>`;
         return;
     }
 
     grid.innerHTML = tasks.map(task => {
-        const done       = task.completed || false;
-        let colorClass   = 'card-border-low';
-        if (done)                          colorClass = 'card-border-done';
+        const done = !!task.completed;
+        const safeName = escapeHtml(task.name || 'Untitled Task');
+        const safeDescription = escapeHtml(task.description || 'No description');
+        const safePriority = escapeHtml(task.priority || 'medium');
+
+        let colorClass = 'card-border-low';
+        if (done) colorClass = 'card-border-done';
         else if (task.priority === 'high') colorClass = 'card-border-high';
         else if (task.priority === 'medium') colorClass = 'card-border-medium';
+
+        const doneStyle = done ? 'text-decoration:line-through;opacity:0.6;' : '';
+        const completeButtonClass = done ? 'btn-undo' : 'btn-done';
+        const completeIcon = done ? 'arrow-counterclockwise' : 'check-circle';
+        const completeLabel = done ? 'Undo Completed' : 'Mark Completed';
 
         return `
             <div class="item-card ${colorClass} ${done ? 'completed' : ''}">
                 <div class="item-card-header">
-                    <div class="task-checkbox">
-                        <input type="checkbox" ${done ? 'checked' : ''}
-                               onchange="toggleTaskComplete('${task._id}')" id="task-${task._id}">
+                    <h4 style="${doneStyle}">${safeName}</h4>
+                    <div class="task-header-badges">
+                        ${done ? '<span class="urgency-badge urgency-done">Completed</span>' : '<span class="urgency-badge urgency-medium">Pending</span>'}
+                        <span class="priority-badge priority-${safePriority}">${safePriority}</span>
                     </div>
-                    <h4 style="${done ? 'text-decoration:line-through;opacity:0.6;' : ''}">${task.name}</h4>
-                    <span class="priority-badge priority-${task.priority}">${task.priority}</span>
                 </div>
                 <div class="item-card-body">
-                    <p style="${done ? 'opacity:0.6;' : ''}">${task.description || 'No description'}</p>
+                    <p style="${done ? 'opacity:0.6;' : ''}">${safeDescription}</p>
                     <div class="item-meta">
                         ${task.date ? `<span><i class="bi bi-calendar"></i> ${formatDateNZ(task.date)}</span>` : ''}
                         ${task.time ? `<span><i class="bi bi-clock"></i> ${task.time}</span>` : ''}
                     </div>
                     <div class="item-actions">
-                        <button class="btn-action btn-edit"   onclick="editTask('${task._id}')">
+                        <button class="btn-action ${completeButtonClass}" onclick="toggleTaskComplete('${task._id}')">
+                            <i class="bi bi-${completeIcon}"></i> ${completeLabel}
+                        </button>
+                        <button class="btn-action btn-edit" onclick="editTask('${task._id}')">
                             <i class="bi bi-pencil"></i> Edit
                         </button>
                         <button class="btn-action btn-delete" onclick="deleteTask('${task._id}')">
@@ -992,7 +1157,9 @@ function initExams() {
                 date:     document.getElementById('examDate').value,
                 time:     document.getElementById('examTime').value,
                 duration: document.getElementById('examDuration').value,
-                notes:    document.getElementById('examNotes').value
+                notes:    document.getElementById('examNotes').value,
+                completed: false,
+                reflection: ''
             };
             fetch('/api/exams', {
                 method: 'POST',
@@ -1009,6 +1176,27 @@ function initExams() {
             .catch(() => showErrorToast('Failed to add exam'));
         });
     }
+
+    const reflectionModal = document.getElementById('examReflectionModal');
+    const reflectionForm = document.getElementById('examReflectionForm');
+    const reflectionClose = document.getElementById('exam-reflection-close');
+    const skipReflectionBtn = document.getElementById('skipExamReflectionBtn');
+
+    if (reflectionClose && reflectionModal) {
+        reflectionClose.addEventListener('click', () => { reflectionModal.style.display = 'none'; });
+    }
+    if (skipReflectionBtn && reflectionModal) {
+        skipReflectionBtn.addEventListener('click', () => {
+            reflectionModal.style.display = 'none';
+            document.getElementById('examCompletionReflection').value = '';
+            document.getElementById('reflectionExamId').value = '';
+            loadExams();
+        });
+    }
+    if (reflectionForm) {
+        reflectionForm.addEventListener('submit', saveExamReflection);
+    }
+
     loadExams();
 }
 
@@ -1064,6 +1252,9 @@ function buildExamCard(exam, isOutdated) {
     }
 
     const doneStyle = isDone ? 'text-decoration:line-through;opacity:0.6;' : '';
+    const reflectionHtml = exam.reflection
+        ? `<div class="reflection-note"><strong>How it went:</strong> ${escapeHtml(exam.reflection)}</div>`
+        : '';
 
     return `
         <div class="item-card ${colorClass} ${isDone ? 'completed' : ''}">
@@ -1072,7 +1263,8 @@ function buildExamCard(exam, isOutdated) {
                 ${urgencyBadge}
             </div>
             <div class="item-card-body">
-                <p style="${doneStyle}">${exam.notes || 'No notes'}</p>
+                <p style="${doneStyle}">${escapeHtml(exam.notes || 'No notes')}</p>
+                ${reflectionHtml}
                 <div class="item-meta">
                     <span><i class="bi bi-calendar"></i> ${formatDateNZ(exam.date)}</span>
                     <span><i class="bi bi-clock"></i> ${formatTimeNZ(exam.time)}</span>
@@ -1082,7 +1274,7 @@ function buildExamCard(exam, isOutdated) {
                     <button class="btn-action ${isDone ? 'btn-undo' : 'btn-done'}"
                             onclick="toggleExamDone('${exam._id}')">
                         <i class="bi bi-${isDone ? 'arrow-counterclockwise' : 'check-circle'}"></i>
-                        ${isDone ? 'Undo' : 'Mark Done'}
+                        ${isDone ? 'Move Back to Pending' : 'Complete Exam'}
                     </button>
                     <button class="btn-action btn-edit" onclick="editExam('${exam._id}')">
                         <i class="bi bi-pencil"></i> Edit
@@ -1099,67 +1291,112 @@ function displayExams(exams) {
     const grid = document.getElementById('exams-grid');
     if (!grid) return;
 
-    if (!exams.length) {
-        grid.innerHTML = '<p class="empty-state">No exams yet. Click "Add Exam" to create one.</p>';
-        return;
-    }
-
+    const activeTab = typeof currentTab !== 'undefined' ? currentTab : 'current';
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // Split into 3 groups: upcoming/done, and outdated (past + not done)
-    const upcoming = [];
-    const outdated = [];
-
-    exams.forEach(exam => {
-        if (!exam.date) { upcoming.push(exam); return; }
-        const [ey, em, ed] = exam.date.split('-').map(Number);
-        const examDate = new Date(ey, em - 1, ed);
-        // Outdated = date is in the past AND not marked done
-        if (examDate < today && !exam.completed) {
-            outdated.push(exam);
-        } else {
-            upcoming.push(exam);
+    const filtered = exams.filter(exam => {
+        const isDone = !!exam.completed;
+        let isPast = false;
+        if (exam.date) {
+            const [ey, em, ed] = exam.date.split('-').map(Number);
+            const examDate = new Date(ey, em - 1, ed);
+            isPast = examDate < today;
         }
+
+        if (activeTab === 'completed') return isDone;
+        if (activeTab === 'past') return !isDone && isPast;
+        return !isDone && !isPast;
     });
 
-    let html = '';
-
-    if (upcoming.length) {
-        html += upcoming.map(e => buildExamCard(e, false)).join('');
+    if (!filtered.length) {
+        const messages = {
+            current: 'No current exams. Click "Add Exam" to create one.',
+            past: 'No past incomplete exams.',
+            completed: 'No completed exams yet. Click "Mark Completed" after finishing an exam.'
+        };
+        grid.innerHTML = `<p class="empty-state">${messages[activeTab] || 'No exams found.'}</p>`;
+        return;
     }
 
-    if (outdated.length) {
-        html += `
-            <div class="group-divider">
-                <span><i class="bi bi-clock-history"></i> Outdated Exams (${outdated.length})</span>
-            </div>`;
-        html += outdated.map(e => buildExamCard(e, true)).join('');
-    }
-
-    grid.innerHTML = html;
+    grid.innerHTML = filtered.map(exam => {
+        let isOutdated = false;
+        if (exam.date && activeTab === 'past' && !exam.completed) {
+            const [ey, em, ed] = exam.date.split('-').map(Number);
+            const examDate = new Date(ey, em - 1, ed);
+            isOutdated = examDate < today;
+        }
+        return buildExamCard(exam, isOutdated);
+    }).join('');
 }
 
-// Toggle exam done/undone
+// Toggle exam done/undone. When marking completed, open the reflection pop-up.
 async function toggleExamDone(examId) {
     const exam = allExams.find(e => e._id === examId);
     if (!exam) return;
     const newCompleted = !exam.completed;
+
     try {
-        const res    = await fetch(`/api/exams/${examId}`, {
+        const res = await fetch(`/api/exams/${examId}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ completed: newCompleted })
         });
         const result = await res.json();
         if (result.success) {
-            showSuccessToast(newCompleted ? 'Exam marked as done!' : 'Exam marked as pending');
-            loadExams();
+            if (newCompleted) {
+                showSuccessToast('Exam marked as completed!');
+                openExamReflectionModal(examId, exam.reflection || '');
+            } else {
+                showSuccessToast('Exam moved back to pending.');
+                loadExams();
+            }
         } else {
             showErrorToast('Failed to update exam');
         }
     } catch {
         showErrorToast('Failed to update exam');
+    }
+}
+
+function openExamReflectionModal(examId, existingReflection = '') {
+    const modal = document.getElementById('examReflectionModal');
+    const idInput = document.getElementById('reflectionExamId');
+    const textInput = document.getElementById('examCompletionReflection');
+    if (!modal || !idInput || !textInput) {
+        loadExams();
+        return;
+    }
+    idInput.value = examId;
+    textInput.value = existingReflection || '';
+    modal.style.display = 'block';
+    textInput.focus();
+}
+
+async function saveExamReflection(e) {
+    e.preventDefault();
+    const examId = document.getElementById('reflectionExamId').value;
+    const reflection = document.getElementById('examCompletionReflection').value;
+    if (!examId) return;
+
+    try {
+        const res = await fetch(`/api/exams/${examId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ reflection })
+        });
+        const result = await res.json();
+        if (result.success) {
+            showSuccessToast('Exam reflection saved!');
+            document.getElementById('examReflectionModal').style.display = 'none';
+            document.getElementById('examCompletionReflection').value = '';
+            document.getElementById('reflectionExamId').value = '';
+            loadExams();
+        } else {
+            showErrorToast('Failed to save exam reflection');
+        }
+    } catch {
+        showErrorToast('Failed to save exam reflection');
     }
 }
 
@@ -1183,8 +1420,11 @@ function initClasses() {
                 name:       document.getElementById('className').value,
                 instructor: document.getElementById('classInstructor').value,
                 day:        document.getElementById('classDay').value,
+                date:       document.getElementById('classDate')?.value || '',
                 time:       document.getElementById('classTime').value,
-                room:       document.getElementById('classRoom').value
+                room:       document.getElementById('classRoom').value,
+                repeat:     document.getElementById('classRepeat')?.value || 'never',
+                repeat_until: document.getElementById('classRepeatUntil')?.value || ''
             };
             fetch('/api/classes', {
                 method: 'POST',
@@ -1232,30 +1472,90 @@ function filterClasses() {
     displayClasses(filtered);
 }
 
+function getRepeatLabel(value) {
+    const labels = {
+        never: 'Does not repeat',
+        daily: 'Repeats daily',
+        weekdays: 'Repeats Monday to Friday',
+        weekly: 'Repeats weekly',
+        monthly: 'Repeats monthly',
+        yearly: 'Repeats yearly'
+    };
+    return labels[value || 'never'] || 'Does not repeat';
+}
+
+function setupRepeatToggle(selectId, groupId) {
+    const select = document.getElementById(selectId);
+    const group = document.getElementById(groupId);
+    if (!select || !group) return;
+    const update = () => { group.style.display = select.value === 'never' ? 'none' : 'block'; };
+    select.addEventListener('change', update);
+    update();
+}
+
+setupRepeatToggle('classRepeat', 'classRepeatUntilGroup');
+setupRepeatToggle('editClassRepeat', 'editClassRepeatUntilGroup');
+
 function displayClasses(classes) {
     const grid = document.getElementById('classes-grid');
     if (!grid) return;
 
-    if (!classes.length) {
-        grid.innerHTML = '<p class="empty-state">No classes yet. Click "Add Class" to create one.</p>';
+    const activeTab = typeof currentTab !== 'undefined' ? currentTab : 'current';
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const filtered = classes.filter(c => {
+        const isDone = !!c.completed;
+        let isPast = false;
+        if (c.date) {
+            const [cy, cm, cd] = c.date.split('-').map(Number);
+            const classDate = new Date(cy, cm - 1, cd);
+            isPast = classDate < today;
+        }
+
+        if (activeTab === 'completed') return isDone;
+        if (activeTab === 'past') return !isDone && isPast;
+        return !isDone && !isPast;
+    });
+
+    if (!filtered.length) {
+        const messages = {
+            current: 'No current classes. Click "Add Class" to create one.',
+            past: 'No past incomplete classes.',
+            completed: 'No completed classes yet. Click "Mark Completed" when a class is finished.'
+        };
+        grid.innerHTML = `<p class="empty-state">${messages[activeTab] || 'No classes found.'}</p>`;
         return;
     }
 
-    grid.innerHTML = classes.map(c => `
-        <div class="item-card card-border-info">
+    grid.innerHTML = filtered.map(c => {
+        const isDone = !!c.completed;
+        const doneStyle = isDone ? 'text-decoration:line-through;opacity:0.6;' : '';
+        const colorClass = isDone ? 'card-border-done' : 'card-border-info';
+        return `
+        <div class="item-card ${colorClass} ${isDone ? 'completed' : ''}">
             <div class="item-card-header">
-                <h4>${c.name}</h4>
-                <span class="urgency-badge urgency-info">${c.day}</span>
+                <h4 style="${doneStyle}">${escapeHtml(c.name || '')}</h4>
+                <div class="task-header-badges">
+                    ${isDone ? '<span class="urgency-badge urgency-done">Completed</span>' : '<span class="urgency-badge urgency-info">Active</span>'}
+                    <span class="urgency-badge urgency-info">${escapeHtml(c.day || 'No day')}</span>
+                    <span class="repeat-badge-mini">${getRepeatLabel(c.repeat)}</span>
+                </div>
             </div>
             <div class="item-card-body">
-                <p><strong>Instructor:</strong> ${c.instructor || 'N/A'}</p>
+                <p style="${doneStyle}"><strong>Instructor:</strong> ${escapeHtml(c.instructor || 'N/A')}</p>
                 <div class="item-meta">
-                    <span><i class="bi bi-calendar"></i> ${c.day}</span>
+                    ${c.date ? `<span><i class="bi bi-calendar-date"></i> ${formatDateNZ(c.date)}</span>` : ''}
+                    <span><i class="bi bi-calendar"></i> ${escapeHtml(c.day || 'N/A')}</span>
                     <span><i class="bi bi-clock"></i> ${formatTimeNZ(c.time)}</span>
-                    ${c.room ? `<span><i class="bi bi-door-open"></i> ${c.room}</span>` : ''}
+                    ${c.room ? `<span><i class="bi bi-door-open"></i> ${escapeHtml(c.room)}</span>` : ''}
+                    ${c.repeat && c.repeat !== 'never' && c.repeat_until ? `<span><i class="bi bi-arrow-repeat"></i> until ${formatDateNZ(c.repeat_until)}</span>` : ''}
                 </div>
                 <div class="item-actions">
-                    <button class="btn-action btn-edit"   onclick="editClass('${c._id}')">
+                    <button class="btn-action ${isDone ? 'btn-undo' : 'btn-done'}" onclick="toggleClassDone('${c._id}')">
+                        <i class="bi bi-${isDone ? 'arrow-counterclockwise' : 'check-circle'}"></i> ${isDone ? 'Move Back to Pending' : 'Mark Completed'}
+                    </button>
+                    <button class="btn-action btn-edit" onclick="editClass('${c._id}')">
                         <i class="bi bi-pencil"></i> Edit
                     </button>
                     <button class="btn-action btn-delete" onclick="deleteClass('${c._id}')">
@@ -1263,7 +1563,31 @@ function displayClasses(classes) {
                     </button>
                 </div>
             </div>
-        </div>`).join('');
+        </div>`;
+    }).join('');
+}
+
+async function toggleClassDone(classId) {
+    const cls = allClasses.find(c => c._id === classId);
+    if (!cls) return;
+    const newCompleted = !cls.completed;
+
+    try {
+        const res = await fetch(`/api/classes/${classId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ completed: newCompleted })
+        });
+        const result = await res.json();
+        if (result.success) {
+            showSuccessToast(newCompleted ? 'Class marked as completed!' : 'Class moved back to pending.');
+            loadClasses();
+        } else {
+            showErrorToast('Failed to update class');
+        }
+    } catch {
+        showErrorToast('Failed to update class');
+    }
 }
 
 // VACATIONS
@@ -1286,7 +1610,10 @@ function initVacations() {
                 title:       document.getElementById('vacationTitle').value,
                 start_date:  document.getElementById('vacationStart').value,
                 end_date:    document.getElementById('vacationEnd').value,
-                description: document.getElementById('vacationDescription').value
+                description: document.getElementById('vacationDescription').value,
+                status:      document.getElementById('vacationStatus')?.value || 'planned',
+                reflection:  document.getElementById('vacationReflection')?.value || '',
+                completed:   (document.getElementById('vacationStatus')?.value || 'planned') === 'completed'
             };
             fetch('/api/vacations', {
                 method: 'POST',
@@ -1311,20 +1638,27 @@ let allVacations = [];
 function loadVacations() {
     fetch('/api/vacations')
         .then(r => r.json())
-        .then(vacations => { allVacations = vacations; displayVacations(vacations); })
+        .then(vacations => { allVacations = vacations; filterVacations(); })
         .catch(err => console.error('Error loading vacations:', err));
+}
+
+function filterVacations() {
+    displayVacations(allVacations);
 }
 
 // Helper: build one vacation card HTML string
 function buildVacationCard(v, isOutdated) {
-    const isDone      = v.completed || false;
+    const isDone      = v.completed || v.status === 'completed';
     const doneStyle   = isDone ? 'text-decoration:line-through;opacity:0.6;' : '';
-    let   colorClass  = 'card-border-info';
-    let   statusBadge = '<span class="urgency-badge urgency-info">Planned</span>';
+    const status = v.status || (isDone ? 'completed' : 'planned');
+    let   colorClass  = status === 'in_progress' ? 'card-border-medium' : 'card-border-info';
+    let   statusBadge = status === 'in_progress'
+        ? '<span class="urgency-badge urgency-medium">In Progress</span>'
+        : '<span class="urgency-badge urgency-info">Planned</span>';
 
     if (isDone) {
         colorClass  = 'card-border-done';
-        statusBadge = '<span class="urgency-badge urgency-done">Done</span>';
+        statusBadge = '<span class="urgency-badge urgency-done">Completed</span>';
     } else if (isOutdated) {
         colorClass  = 'card-border-outdated';
         statusBadge = '<span class="urgency-badge urgency-outdated">Outdated</span>';
@@ -1333,11 +1667,12 @@ function buildVacationCard(v, isOutdated) {
     return `
         <div class="item-card ${colorClass} ${isDone ? 'completed' : ''}">
             <div class="item-card-header">
-                <h4 style="${doneStyle}">${v.title}</h4>
+                <h4 style="${doneStyle}">${escapeHtml(v.title || '')}</h4>
                 ${statusBadge}
             </div>
             <div class="item-card-body">
-                <p style="${doneStyle}">${v.description || 'No description'}</p>
+                <p style="${doneStyle}">${escapeHtml(v.description || 'No description')}</p>
+                ${v.reflection ? `<div class="reflection-note"><strong>Vacation notes:</strong> ${escapeHtml(v.reflection)}</div>` : ''}
                 <div class="item-meta">
                     <span><i class="bi bi-calendar-check"></i> ${formatDateNZ(v.start_date)}</span>
                     <span><i class="bi bi-calendar-x"></i> ${formatDateNZ(v.end_date)}</span>
@@ -1346,7 +1681,7 @@ function buildVacationCard(v, isOutdated) {
                     <button class="btn-action ${isDone ? 'btn-undo' : 'btn-done'}"
                             onclick="toggleVacationDone('${v._id}')">
                         <i class="bi bi-${isDone ? 'arrow-counterclockwise' : 'check-circle'}"></i>
-                        ${isDone ? 'Undo' : 'Mark Done'}
+                        ${isDone ? 'Move Back to Pending' : 'Mark Completed'}
                     </button>
                     <button class="btn-action btn-edit" onclick="editVacation('${v._id}')">
                         <i class="bi bi-pencil"></i> Edit
@@ -1363,60 +1698,54 @@ function displayVacations(vacations) {
     const grid = document.getElementById('vacations-grid');
     if (!grid) return;
 
-    if (!vacations.length) {
-        grid.innerHTML = '<p class="empty-state">No vacations planned. Click "Add Vacation" to create one.</p>';
-        return;
-    }
-
+    const activeTab = typeof currentTab !== 'undefined' ? currentTab : 'planned';
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const upcoming = [];
-    const outdated = [];
-
-    vacations.forEach(v => {
-        if (!v.end_date) { upcoming.push(v); return; }
-        const [vy, vm, vd] = v.end_date.split('-').map(Number);
-        const endDate = new Date(vy, vm - 1, vd);
-        // Outdated = end date is in the past AND not marked done
-        if (endDate < today && !v.completed) {
-            outdated.push(v);
-        } else {
-            upcoming.push(v);
+    const filtered = vacations.filter(v => {
+        const isDone = !!v.completed || v.status === 'completed';
+        let isPast = false;
+        if (v.end_date) {
+            const [vy, vm, vd] = v.end_date.split('-').map(Number);
+            const endDate = new Date(vy, vm - 1, vd);
+            isPast = endDate < today;
         }
+
+        if (activeTab === 'completed') return isDone;
+        if (activeTab === 'past') return !isDone && isPast;
+        return !isDone && !isPast;
     });
 
-    let html = '';
-
-    if (upcoming.length) {
-        html += upcoming.map(v => buildVacationCard(v, false)).join('');
+    if (!filtered.length) {
+        const messages = {
+            planned: 'No planned vacations. Click "Add Vacation" to create one.',
+            past: 'No past incomplete vacations.',
+            completed: 'No completed vacations yet. Click "Mark Completed" when a vacation is finished.'
+        };
+        grid.innerHTML = `<p class="empty-state">${messages[activeTab] || 'No vacations found.'}</p>`;
+        return;
     }
 
-    if (outdated.length) {
-        html += `
-            <div class="group-divider">
-                <span><i class="bi bi-clock-history"></i> Outdated Vacations (${outdated.length})</span>
-            </div>`;
-        html += outdated.map(v => buildVacationCard(v, true)).join('');
-    }
-
-    grid.innerHTML = html;
+    grid.innerHTML = filtered.map(v => {
+        let isOutdated = false;
+        if (v.end_date && activeTab === 'past' && !v.completed && v.status !== 'completed') {
+            const [vy, vm, vd] = v.end_date.split('-').map(Number);
+            const endDate = new Date(vy, vm - 1, vd);
+            isOutdated = endDate < today;
+        }
+        return buildVacationCard(v, isOutdated);
+    }).join('');
 }
 
 // Toggle vacation done/undone
 async function toggleVacationDone(vacationId) {
-    // Find in the cached list from loadVacations
-    const allVacs = Array.from(document.querySelectorAll('[data-vacation-id]'))
-        .map(el => ({ _id: el.dataset.vacationId }));
+    const vacation = allVacations.find(v => v._id === vacationId);
+    if (!vacation) return;
 
-    // Re-fetch to get latest state
+    const currentCompleted = !!vacation.completed || vacation.status === 'completed';
+    const newCompleted = !currentCompleted;
+
     try {
-        const res      = await fetch('/api/vacations');
-        const vacations = await res.json();
-        const vacation  = vacations.find(v => v._id === vacationId);
-        if (!vacation) return;
-
-        const newCompleted = !vacation.completed;
         const patchRes = await fetch(`/api/vacations/${vacationId}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
@@ -1424,7 +1753,7 @@ async function toggleVacationDone(vacationId) {
         });
         const result = await patchRes.json();
         if (result.success) {
-            showSuccessToast(newCompleted ? 'Vacation marked as done!' : 'Vacation marked as pending');
+            showSuccessToast(newCompleted ? 'Vacation marked as completed!' : 'Vacation moved back to pending.');
             loadVacations();
         } else {
             showErrorToast('Failed to update vacation');
@@ -1453,8 +1782,12 @@ async function toggleTaskComplete(taskId) {
             body: JSON.stringify({ completed: newCompleted })
         });
         const result = await res.json();
-        if (result.success) loadTasks();
-        else showErrorToast('Failed to update task');
+        if (result.success) {
+            showSuccessToast(newCompleted ? 'Task marked as completed!' : 'Task moved back to pending.');
+            loadTasks();
+        } else {
+            showErrorToast('Failed to update task');
+        }
     } catch {
         showErrorToast('Failed to update task');
     }
@@ -1537,10 +1870,17 @@ async function deleteVacation(vacationId) {
 function editTask(taskId) {
     const task = allTasks.find(t => t._id === taskId);
     if (!task) return;
+
     document.getElementById('editTaskId').value          = task._id;
-    document.getElementById('editTaskName').value        = task.name;
-    document.getElementById('editTaskPriority').value    = task.priority;
-    document.getElementById('editTaskDate').value        = task.date        || '';
+    document.getElementById('editTaskName').value        = task.name || '';
+    document.getElementById('editTaskPriority').value    = task.priority || 'medium';
+    document.getElementById('editTaskDate').value        = task.date || '';
+
+    const editTaskTime = document.getElementById('editTaskTime');
+    if (editTaskTime) {
+        editTaskTime.value = task.time || '23:59';
+    }
+
     document.getElementById('editTaskDescription').value = task.description || '';
     document.getElementById('editTaskModal').style.display = 'block';
 }
@@ -1568,9 +1908,13 @@ function editClass(classId) {
     document.getElementById('editClassId').value         = c._id;
     document.getElementById('editClassName').value       = c.name;
     document.getElementById('editClassInstructor').value = c.instructor || '';
+    if (document.getElementById('editClassDate')) document.getElementById('editClassDate').value = c.date || '';
     document.getElementById('editClassDay').value        = c.day        || '';
     document.getElementById('editClassTime').value       = c.time       || '';
     document.getElementById('editClassRoom').value       = c.room       || '';
+    if (document.getElementById('editClassRepeat')) document.getElementById('editClassRepeat').value = c.repeat || 'never';
+    if (document.getElementById('editClassRepeatUntil')) document.getElementById('editClassRepeatUntil').value = c.repeat_until || '';
+    setupRepeatToggle('editClassRepeat', 'editClassRepeatUntilGroup');
     document.getElementById('editClassModal').style.display = 'block';
 }
 
@@ -1584,7 +1928,9 @@ function editVacation(vacationId) {
             document.getElementById('editVacationTitle').value       = v.title;
             document.getElementById('editVacationStart').value       = v.start_date   || '';
             document.getElementById('editVacationEnd').value         = v.end_date     || '';
+            if (document.getElementById('editVacationStatus')) document.getElementById('editVacationStatus').value = v.status || (v.completed ? 'completed' : 'planned');
             document.getElementById('editVacationDescription').value = v.description  || '';
+            if (document.getElementById('editVacationReflection')) document.getElementById('editVacationReflection').value = v.reflection || '';
             document.getElementById('editVacationModal').style.display = 'block';
         })
         .catch(() => showErrorToast('Failed to load vacation data'));
@@ -1600,6 +1946,7 @@ if (editTaskForm) {
             name:        document.getElementById('editTaskName').value,
             priority:    document.getElementById('editTaskPriority').value,
             date:        document.getElementById('editTaskDate').value,
+            time:        document.getElementById('editTaskTime')?.value || '23:59',
             description: document.getElementById('editTaskDescription').value
         };
         try {
@@ -1627,7 +1974,9 @@ if (editExamForm) {
             date:     document.getElementById('editExamDate').value,
             time:     document.getElementById('editExamTime').value,
             duration: document.getElementById('editExamDuration').value,
-            notes:    document.getElementById('editExamNotes').value
+            notes:    document.getElementById('editExamNotes').value,
+            completed: allExams.find(e => e._id === id)?.completed || false,
+            reflection: allExams.find(e => e._id === id)?.reflection || ''
         };
         try {
             const res    = await fetch(`/api/exams/${id}`, {
@@ -1652,9 +2001,13 @@ if (editClassForm) {
         const data = {
             name:       document.getElementById('editClassName').value,
             instructor: document.getElementById('editClassInstructor').value,
+            date:       document.getElementById('editClassDate')?.value || '',
             day:        document.getElementById('editClassDay').value,
             time:       document.getElementById('editClassTime').value,
-            room:       document.getElementById('editClassRoom').value
+            room:       document.getElementById('editClassRoom').value,
+            repeat:     document.getElementById('editClassRepeat')?.value || 'never',
+            repeat_until: document.getElementById('editClassRepeatUntil')?.value || '',
+            completed:   allClasses.find(c => c._id === id)?.completed || false
         };
         try {
             const res    = await fetch(`/api/classes/${id}`, {
@@ -1680,7 +2033,10 @@ if (editVacationForm) {
             title:       document.getElementById('editVacationTitle').value,
             start_date:  document.getElementById('editVacationStart').value,
             end_date:    document.getElementById('editVacationEnd').value,
-            description: document.getElementById('editVacationDescription').value
+            status:      document.getElementById('editVacationStatus')?.value || 'planned',
+            description: document.getElementById('editVacationDescription').value,
+            reflection:  document.getElementById('editVacationReflection')?.value || '',
+            completed:   (document.getElementById('editVacationStatus')?.value || 'planned') === 'completed'
         };
         try {
             const res    = await fetch(`/api/vacations/${id}`, {

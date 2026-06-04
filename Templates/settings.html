@@ -244,16 +244,6 @@
     }
     updateTime(); setInterval(updateTime, 1000);
 
-    // Sidebar
-    const sidebar = document.getElementById('sidebar');
-    const overlay = document.getElementById('sidebar-overlay');
-    document.getElementById('sidebar-toggle').addEventListener('click', () => {
-        sidebar.classList.toggle('collapsed'); overlay.classList.toggle('active');
-    });
-    overlay.addEventListener('click', () => {
-        sidebar.classList.add('collapsed'); overlay.classList.remove('active');
-    });
-
     // Activities submenu
     /* document.getElementById('activities-toggle').addEventListener('click', function(e) {
         e.preventDefault();

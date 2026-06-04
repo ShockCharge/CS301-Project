@@ -214,6 +214,39 @@
                 <input type="number" id="scheduleDuration" class="form-input" placeholder="e.g. 60" min="1">
             </div>
             <div class="form-group">
+                <label>Repeat</label>
+                <select id="scheduleRepeat" class="form-input repeat-select">
+                    <option value="never" selected>Never</option>
+                    <option value="daily">Daily</option>
+                    <option value="weekdays">Monday to Friday</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
+                    <option value="yearly">Yearly</option>
+                    <option value="custom">Custom</option>
+                </select>
+                <small class="form-help-text">Choose how often this schedule should appear on the calendar.</small>
+            </div>
+            <div class="repeat-custom-row" id="scheduleCustomRepeatRow" style="display:none;">
+                <div class="form-group">
+                    <label>Every</label>
+                    <input type="number" id="scheduleRepeatInterval" class="form-input" value="1" min="1" max="365">
+                </div>
+                <div class="form-group">
+                    <label>Repeat Unit</label>
+                    <select id="scheduleRepeatUnit" class="form-input">
+                        <option value="days">Day(s)</option>
+                        <option value="weeks" selected>Week(s)</option>
+                        <option value="months">Month(s)</option>
+                        <option value="years">Year(s)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Repeat Until</label>
+                <input type="date" id="scheduleRepeatUntil" class="form-input">
+                <small class="form-help-text">Optional. Leave empty if it should keep repeating.</small>
+            </div>
+            <div class="form-group">
                 <label>Description</label>
                 <textarea id="scheduleDescription" class="form-input" rows="2" placeholder="Optional notes…"></textarea>
             </div>
@@ -245,6 +278,39 @@
             <div class="form-group">
                 <label>Duration (minutes)</label>
                 <input type="number" id="editScheduleDuration" class="form-input" min="1">
+            </div>
+            <div class="form-group">
+                <label>Repeat</label>
+                <select id="editScheduleRepeat" class="form-input repeat-select">
+                    <option value="never">Never</option>
+                    <option value="daily">Daily</option>
+                    <option value="weekdays">Monday to Friday</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
+                    <option value="yearly">Yearly</option>
+                    <option value="custom">Custom</option>
+                </select>
+                <small class="form-help-text">Choose how often this schedule should appear on the calendar.</small>
+            </div>
+            <div class="repeat-custom-row" id="editScheduleCustomRepeatRow" style="display:none;">
+                <div class="form-group">
+                    <label>Every</label>
+                    <input type="number" id="editScheduleRepeatInterval" class="form-input" value="1" min="1" max="365">
+                </div>
+                <div class="form-group">
+                    <label>Repeat Unit</label>
+                    <select id="editScheduleRepeatUnit" class="form-input">
+                        <option value="days">Day(s)</option>
+                        <option value="weeks">Week(s)</option>
+                        <option value="months">Month(s)</option>
+                        <option value="years">Year(s)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Repeat Until</label>
+                <input type="date" id="editScheduleRepeatUntil" class="form-input">
+                <small class="form-help-text">Optional. Leave empty if it should keep repeating.</small>
             </div>
             <div class="form-group">
                 <label>Description</label>
@@ -283,16 +349,6 @@
         document.getElementById('header-date').textContent = now.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long' });
     }
     updateTime(); setInterval(updateTime, 1000);
-
-    // Sidebar
-    const sidebar = document.getElementById('sidebar');
-    const overlay = document.getElementById('sidebar-overlay');
-    document.getElementById('sidebar-toggle').addEventListener('click', () => {
-        sidebar.classList.toggle('collapsed'); overlay.classList.toggle('active');
-    });
-    overlay.addEventListener('click', () => {
-        sidebar.classList.add('collapsed'); overlay.classList.remove('active');
-    });
 
     // Activities submenu
     /* document.getElementById('activities-toggle').addEventListener('click', function(e) {

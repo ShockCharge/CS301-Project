@@ -227,7 +227,7 @@
                                 <h3 class="mini-list-title"><i class="bi bi-check2-square"></i> Tasks</h3>
                                 {% if tasks %}
                                     {% for task in tasks %}
-                                    <div class="task-item dashboard-mini-item">
+                                    <div class="task-item dashboard-mini-item" data-task-id="{{ task._id }}">
                                         <div class="task-toggle"></div>
                                         <span>{{ task.name }}</span>
                                         <span class="priority-badge priority-{{ task.priority }}">{{ task.priority }}</span>
@@ -347,15 +347,19 @@
                         <option value="medium" selected>Medium</option>
                         <option value="low">Low</option>
                     </select>
-                </div>
-                <div class="form-group">
-                    <label>Due Date</label>
-                    <input type="date" id="taskDate" class="form-input">
-                </div>
-                <div class="form-group">
-                    <label>Description</label>
-                    <textarea id="taskDescription" class="form-input" rows="3"></textarea>
-                </div>
+                            </div>
+                            <div class="form-group">
+                <label>Due Date</label>
+                <input type="date" id="taskDate" class="form-input" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Due Time</label>
+                                <input type="time" id="taskTime" class="form-input" value="23:59" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Description</label>
+                                <textarea id="taskDescription" class="form-input" rows="3" placeholder="Optional notes…"></textarea>
+                            </div>
                 <button type="submit" class="btn-primary">Add Task</button>
             </form>
         </div>
@@ -378,19 +382,7 @@
         updateTime();
         setInterval(updateTime, 1000);
 
-        // Sidebar toggle
-        const sidebar = document.getElementById('sidebar');
-        const overlay = document.getElementById('sidebar-overlay');
 
-        document.getElementById('sidebar-toggle').addEventListener('click', function () {
-            sidebar.classList.toggle('collapsed');
-            overlay.classList.toggle('active');
-        });
-
-        overlay.addEventListener('click', function () {
-            sidebar.classList.add('collapsed');
-            overlay.classList.remove('active');
-        });
 
         // Activities submenu
         /* document.getElementById('activities-toggle').addEventListener('click', function (e) {

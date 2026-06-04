@@ -70,6 +70,7 @@
                 <div class="tab-bar">
                     <button class="tab-btn active" data-tab="current" onclick="switchTab('current')">Current</button>
                     <button class="tab-btn" data-tab="past" onclick="switchTab('past')">Past</button>
+                    <button class="tab-btn" data-tab="completed" onclick="switchTab('completed')">Completed</button>
                 </div>
                 <div class="items-list" id="exams-grid">
                     <p class="empty-state">No exams yet. Click "Add Exam" to create one.</p>
@@ -91,7 +92,7 @@
             <div class="form-group"><label>Date</label><input type="date" id="examDate" class="form-input" required></div>
             <div class="form-group"><label>Time</label><input type="time" id="examTime" class="form-input" required></div>
             <div class="form-group"><label>Duration (minutes)</label><input type="number" id="examDuration" class="form-input" value="60"></div>
-            <div class="form-group"><label>Notes</label><textarea id="examNotes" class="form-input" rows="3"></textarea></div>
+            <div class="form-group"><label>Notes before exam</label><textarea id="examNotes" class="form-input" rows="3" placeholder="Revision plan, room, materials to bring..."></textarea></div>
             <button type="submit" class="btn-primary">Add Exam</button>
         </form>
     </div>
@@ -109,8 +110,27 @@
             <div class="form-group"><label>Date</label><input type="date" id="editExamDate" class="form-input" required></div>
             <div class="form-group"><label>Time</label><input type="time" id="editExamTime" class="form-input" required></div>
             <div class="form-group"><label>Duration (minutes)</label><input type="number" id="editExamDuration" class="form-input"></div>
-            <div class="form-group"><label>Notes</label><textarea id="editExamNotes" class="form-input" rows="3"></textarea></div>
+            <div class="form-group"><label>Notes before exam</label><textarea id="editExamNotes" class="form-input" rows="3"></textarea></div>
             <button type="submit" class="btn-primary">Update Exam</button>
+        </form>
+    </div>
+</div>
+
+<!-- Exam Reflection Modal: shown only after clicking Mark Completed -->
+<div id="examReflectionModal" class="modal">
+    <div class="modal-content">
+        <span class="close" id="exam-reflection-close">&times;</span>
+        <h2>Exam Reflection</h2>
+        <form id="examReflectionForm">
+            <input type="hidden" id="reflectionExamId">
+            <div class="form-group">
+                <label>Describe how your exam went and what you can improve for the future.</label>
+                <textarea id="examCompletionReflection" class="form-input" rows="5" placeholder="Example: The exam went well, but I need to improve time management and revise more practice questions next time..."></textarea>
+            </div>
+            <div class="item-actions">
+                <button type="button" class="btn-action btn-undo" id="skipExamReflectionBtn">Skip</button>
+                <button type="submit" class="btn-primary">Save Reflection</button>
+            </div>
         </form>
     </div>
 </div>
@@ -139,15 +159,6 @@
         document.getElementById('header-date').textContent = now.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long' });
     }
     updateTime(); setInterval(updateTime, 1000);
-
-    const sidebar = document.getElementById('sidebar');
-    const overlay = document.getElementById('sidebar-overlay');
-    document.getElementById('sidebar-toggle').addEventListener('click', function () {
-        sidebar.classList.toggle('collapsed'); overlay.classList.toggle('active');
-    });
-    overlay.addEventListener('click', function () {
-        sidebar.classList.add('collapsed'); overlay.classList.remove('active');
-    });
 
     let currentTab = 'current';
     function switchTab(tab) {

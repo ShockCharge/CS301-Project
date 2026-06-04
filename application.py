@@ -298,20 +298,15 @@ def start_deadline_checker():
 def get_task_status(date_str):
     """
     Determine the status of a task/exam/schedule based on its date.
-    Returns 'outdated', 'current', or 'invalid_date'.
+    Returns 'outdated', 'current', 'no_date', or 'invalid_date'.
     """
     if not date_str:
-        return 'current'
-    try:
-        task_date = datetime.strptime(date_str, '%Y-%m-%d').date()
-        
-       
-        today = datetime.now(NZ_TZ).date()
+        return 'no_date'
 
-        if task_date < today:
-            return 'outdated'
-        else:
-            return 'current'
+    try:
+        task_date = datetime.strptime(str(date_str), '%Y-%m-%d').date()
+        today = datetime.now(NZ_TZ).date()
+        return 'outdated' if task_date < today else 'current'
     except (ValueError, TypeError):
         print(f"Warning: Invalid date format encountered: {date_str}")
         return 'invalid_date'
@@ -706,15 +701,15 @@ def ai_task_status(task_id):
 def tasks():
     if 'user' not in session:
         return redirect(url_for('login'))
+
     if tasks_collection is not None:
-        all_tasks  = list(tasks_collection.find({'user': session['user']}).sort('date', 1))
-        tasks_list = []
-        for task in all_tasks:
-            if get_task_status(task.get('date')) != 'outdated':
-                task['_id'] = str(task['_id'])
-                tasks_list.append(task)
+        tasks_list = list(tasks_collection.find({'user': session['user']}).sort('date', 1))
+        for task in tasks_list:
+            task['_id'] = str(task['_id'])
+            task['status'] = get_task_status(task.get('date'))
     else:
         tasks_list = []
+
     return render_template('tasks.html', tasks=tasks_list)
 
 @app.route('/exams')
@@ -1048,15 +1043,38 @@ def api_schedules():
         if date and not validate_date(date):
             return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD.'}), 400
 
+        allowed_repeat = {'never', 'daily', 'weekdays', 'weekly', 'monthly', 'yearly', 'custom'}
+        repeat = sanitize(data.get('repeat', 'never')) or 'never'
+        if repeat not in allowed_repeat:
+            repeat = 'never'
+
+        repeat_until = sanitize(data.get('repeat_until', ''))
+        if repeat_until and not validate_date(repeat_until):
+            return jsonify({'error': 'Invalid repeat-until date format. Use YYYY-MM-DD.'}), 400
+
+        repeat_interval = data.get('repeat_interval') or 1
+        try:
+            repeat_interval = max(1, min(365, int(repeat_interval)))
+        except (TypeError, ValueError):
+            repeat_interval = 1
+
+        repeat_unit = sanitize(data.get('repeat_unit', 'weeks')) or 'weeks'
+        if repeat_unit not in {'days', 'weeks', 'months', 'years'}:
+            repeat_unit = 'weeks'
+
         schedule_item = {
-            'user':        session['user'],
-            'title':       title,
-            'date':        date or None,
-            'time':        sanitize(data.get('time', '')),
-            'duration':    data.get('duration'),
-            'description': sanitize(data.get('description', '')),
-            'completed':   False,
-            'created_at':  datetime.now()
+            'user':            session['user'],
+            'title':           title,
+            'date':            date or None,
+            'time':            sanitize(data.get('time', '')),
+            'duration':        data.get('duration'),
+            'description':     sanitize(data.get('description', '')),
+            'repeat':          repeat,
+            'repeat_until':    repeat_until or None,
+            'repeat_interval': repeat_interval,
+            'repeat_unit':     repeat_unit,
+            'completed':       False,
+            'created_at':      datetime.now()
         }
         if schedules_collection is not None:
             result = schedules_collection.insert_one(schedule_item)
@@ -1092,13 +1110,36 @@ def api_single_schedule(schedule_id):
 
     if request.method == 'PUT':
         data = request.json or {}
+        allowed_repeat = {'never', 'daily', 'weekdays', 'weekly', 'monthly', 'yearly', 'custom'}
+        repeat = sanitize(data.get('repeat', 'never')) or 'never'
+        if repeat not in allowed_repeat:
+            repeat = 'never'
+
+        repeat_until = sanitize(data.get('repeat_until', ''))
+        if repeat_until and not validate_date(repeat_until):
+            return jsonify({'error': 'Invalid repeat-until date format. Use YYYY-MM-DD.'}), 400
+
+        repeat_interval = data.get('repeat_interval') or 1
+        try:
+            repeat_interval = max(1, min(365, int(repeat_interval)))
+        except (TypeError, ValueError):
+            repeat_interval = 1
+
+        repeat_unit = sanitize(data.get('repeat_unit', 'weeks')) or 'weeks'
+        if repeat_unit not in {'days', 'weeks', 'months', 'years'}:
+            repeat_unit = 'weeks'
+
         update_data = {
-            'title':       sanitize(data.get('title', '')),
-            'date':        sanitize(data.get('date', '')),
-            'time':        sanitize(data.get('time', '')),
-            'duration':    data.get('duration'),
-            'description': sanitize(data.get('description', '')),
-            'updated_at':  datetime.now()
+            'title':           sanitize(data.get('title', '')),
+            'date':            sanitize(data.get('date', '')),
+            'time':            sanitize(data.get('time', '')),
+            'duration':        data.get('duration'),
+            'description':     sanitize(data.get('description', '')),
+            'repeat':          repeat,
+            'repeat_until':    repeat_until or None,
+            'repeat_interval': repeat_interval,
+            'repeat_unit':     repeat_unit,
+            'updated_at':      datetime.now()
         }
         if schedules_collection is not None:
             result = schedules_collection.update_one(
@@ -1211,27 +1252,27 @@ def api_tasks():
             return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD.'}), 400
         
         
-        # GET LOGGED-IN USER PHONE NUMBER
-        user_data = users_collection.find_one({
-        'email': session['user']
-        })
-        
+        # Get logged-in user's phone number if it exists.
+        # IMPORTANT: task_item must be created even if the user has no phone number
+        # or the user document cannot be found. Otherwise Add Task can fail with
+        # "local variable 'task_item' referenced before assignment".
         phone_number = ''
-        
-        if user_data:
-            phone_number = user_data.get('phone', '')
+        if users_collection is not None:
+            user_data = users_collection.find_one({'email': session['user']})
+            if user_data:
+                phone_number = user_data.get('phone', '') or ''
 
         task_item = {
-            'user':        session['user'],
-            'name':        name,
-            'priority':    priority,
-            'date':        date or None,
-            'description': sanitize(data.get('description', '')),
-            'time': sanitize(data.get('time', '23:59')),
+            'user': session['user'],
+            'name': name,
+            'priority': priority,
+            'date': date or None,
+            'time': sanitize(data.get('time', '23:59')) or '23:59',
             'phone_number': phone_number,
             'description': sanitize(data.get('description', '')),
             'completed': False,
-            'created_at': datetime.now(),
+            'created_at': datetime.now(NZ_TZ),
+            'updated_at': datetime.now(NZ_TZ),
             'reminder_12h_sent': False,
             'reminder_6h_sent': False
         }
@@ -1260,17 +1301,21 @@ def api_single_task(task_id):
 
     if request.method == 'PUT':
         data = request.json or {}
+
         update_data = {
-            'name':        sanitize(data.get('name', '')),
-            'priority':    sanitize(data.get('priority', 'medium')),
-            'date':        sanitize(data.get('date', '')) or None,
-            'time':        sanitize(data.get('time', '23:59')),
+            'name': sanitize(data.get('name', '')),
+            'priority': sanitize(data.get('priority', 'medium')),
+            'date': sanitize(data.get('date', '')) or None,
+            'time': sanitize(data.get('time', '23:59')) or '23:59',
             'description': sanitize(data.get('description', '')),
-            'completed':   data.get('completed', False),
-            'updated_at':  datetime.now(),
+            'updated_at': datetime.now(NZ_TZ),
             'reminder_12h_sent': False,
             'reminder_6h_sent': False
         }
+
+        if 'completed' in data:
+            update_data['completed'] = bool(data.get('completed'))
+
         if tasks_collection is not None:
             result = tasks_collection.update_one(
                 {'_id': ObjectId(task_id), 'user': session['user']},
@@ -1279,28 +1324,39 @@ def api_single_task(task_id):
             if result.matched_count > 0:
                 return jsonify({'success': True, 'message': 'Task updated successfully'})
             else:
-                return jsonify({'error': 'Task not found'})
+                return jsonify({'error': 'Task not found'}), 404
         else:
             return jsonify({'success': True, 'message': 'Task updated (dev mode)'})
 
     elif request.method == 'PATCH':
-        data       = request.json or {}
-        patch_data = {'updated_at': datetime.now()}
-        if 'completed' in data:
-            patch_data['completed'] = data['completed']
-            if data['completed']:
-                patch_data['completed_at'] = datetime.now()
-        if tasks_collection is not None:
-            result = tasks_collection.update_one(
-                {'_id': ObjectId(task_id), 'user': session['user']},
-                {'$set': patch_data}
-            )
-            if result.matched_count > 0:
-                return jsonify({'success': True, 'message': 'Task updated'})
+            data = request.json or {}
+            patch_data = {'updated_at': datetime.now(NZ_TZ)}
+            unset_data = {}
+
+            if 'completed' in data:
+                is_completed = bool(data.get('completed'))
+                patch_data['completed'] = is_completed
+
+                if is_completed:
+                    patch_data['completed_at'] = datetime.now(NZ_TZ)
+                else:
+                    unset_data['completed_at'] = ''
+
+            update_query = {'$set': patch_data}
+            if unset_data:
+                update_query['$unset'] = unset_data
+
+            if tasks_collection is not None:
+                result = tasks_collection.update_one(
+                    {'_id': ObjectId(task_id), 'user': session['user']},
+                    update_query
+                )
+                if result.matched_count > 0:
+                    return jsonify({'success': True, 'message': 'Task updated'})
+                else:
+                    return jsonify({'error': 'Task not found'}), 404
             else:
-                return jsonify({'error': 'Task not found'}), 404
-        else:
-            return jsonify({'success': True, 'message': 'Task updated (dev mode)'})
+                return jsonify({'success': True, 'message': 'Task updated (dev mode)'})
 
     elif request.method == 'DELETE':
         if tasks_collection is not None:
@@ -1339,7 +1395,8 @@ def api_exams():
             'time':       sanitize(data.get('time', '')),
             'duration':   data.get('duration'),
             'notes':      sanitize(data.get('notes', '')),
-            'completed':  False,
+            'reflection': sanitize(data.get('reflection', '')),
+            'completed':  bool(data.get('completed', False)),
             'created_at': datetime.now()
         }
         if exams_collection is not None:
@@ -1370,6 +1427,8 @@ def api_single_exam(exam_id):
         patch_data = {'updated_at': datetime.now()}
         if 'completed' in data:
             patch_data['completed'] = bool(data['completed'])
+        if 'reflection' in data:
+            patch_data['reflection'] = sanitize(data.get('reflection', ''))
         if exams_collection is not None:
             result = exams_collection.update_one(
                 {'_id': ObjectId(exam_id), 'user': session['user']},
@@ -1389,7 +1448,8 @@ def api_single_exam(exam_id):
             'time':       sanitize(data.get('time', '')),
             'duration':   data.get('duration'),
             'notes':      sanitize(data.get('notes', '')),
-            'completed':  data.get('completed'),
+            'reflection': sanitize(data.get('reflection', '')),
+            'completed':  bool(data.get('completed', False)),
             'updated_at': datetime.now()
         }
         if exams_collection is not None:
@@ -1443,6 +1503,8 @@ def api_classes():
             'time':        sanitize(data.get('time', '')),
             'duration':    data.get('duration'),
             'room':        sanitize(data.get('room', '')),
+            'repeat':      sanitize(data.get('repeat', 'never')) or 'never',
+            'repeat_until': sanitize(data.get('repeat_until', '')) or None,
             'completed':   False,
             'created_at':  datetime.now()
         }
@@ -1463,10 +1525,26 @@ def api_classes():
         return jsonify(classes)
 
 
-@app.route('/api/classes/<class_id>', methods=['PUT', 'DELETE'])
+@app.route('/api/classes/<class_id>', methods=['PUT', 'PATCH', 'DELETE'])
 def api_single_class(class_id):
     if 'user' not in session:
         return jsonify({'error': 'Not authenticated'}), 401
+
+    if request.method == 'PATCH':
+        data = request.json or {}
+        patch_data = {'updated_at': datetime.now()}
+        if 'completed' in data:
+            patch_data['completed'] = bool(data['completed'])
+        if classes_collection is not None:
+            result = classes_collection.update_one(
+                {'_id': ObjectId(class_id), 'user': session['user']},
+                {'$set': patch_data}
+            )
+            if result.matched_count > 0:
+                return jsonify({'success': True})
+            else:
+                return jsonify({'error': 'Class not found'}), 404
+        return jsonify({'success': True})
 
     if request.method == 'PUT':
         data = request.json or {}
@@ -1478,7 +1556,9 @@ def api_single_class(class_id):
             'time':        sanitize(data.get('time', '')),
             'duration':    data.get('duration'),
             'room':        sanitize(data.get('room', '')),
-            'completed':   data.get('completed'),
+            'repeat':      sanitize(data.get('repeat', 'never')) or 'never',
+            'repeat_until': sanitize(data.get('repeat_until', '')) or None,
+            'completed':   bool(data.get('completed', False)),
             'updated_at':  datetime.now()
         }
         if classes_collection is not None:
@@ -1532,7 +1612,9 @@ def api_vacations():
             'start_date':  start_date or None,
             'end_date':    end_date or None,
             'description': sanitize(data.get('description', '')),
-            'completed':   False,
+            'reflection':  sanitize(data.get('reflection', '')),
+            'status':      sanitize(data.get('status', 'planned')) or 'planned',
+            'completed':   (sanitize(data.get('status', 'planned')) == 'completed') or bool(data.get('completed', False)),
             'created_at':  datetime.now(NZ_TZ)
         }
         if vacations_collection is not None:
@@ -1563,6 +1645,12 @@ def api_single_vacation(vacation_id):
         patch_data = {'updated_at': datetime.now()}
         if 'completed' in data:
             patch_data['completed'] = bool(data['completed'])
+            patch_data['status'] = 'completed' if bool(data['completed']) else 'planned'
+        if 'status' in data:
+            patch_data['status'] = sanitize(data.get('status', 'planned')) or 'planned'
+            patch_data['completed'] = patch_data['status'] == 'completed'
+        if 'reflection' in data:
+            patch_data['reflection'] = sanitize(data.get('reflection', ''))
         if vacations_collection is not None:
             result = vacations_collection.update_one(
                 {'_id': ObjectId(vacation_id), 'user': session['user']},
@@ -1581,6 +1669,9 @@ def api_single_vacation(vacation_id):
             'start_date':  sanitize(data.get('start_date', '')),
             'end_date':    sanitize(data.get('end_date', '')),
             'description': sanitize(data.get('description', '')),
+            'reflection':  sanitize(data.get('reflection', '')),
+            'status':      sanitize(data.get('status', 'planned')) or 'planned',
+            'completed':   (sanitize(data.get('status', 'planned')) == 'completed') or bool(data.get('completed', False)),
             'updated_at':  datetime.now()
         }
         if vacations_collection is not None:
