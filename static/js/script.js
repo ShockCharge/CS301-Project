@@ -1,7 +1,8 @@
 let currentDate = new Date();
 let currentView = 'week';
 let scheduleStatusFilter = 'current';
-let allSchedules = [];   // cached so week/month badge injection can re-use them
+let allSchedules = [];   // editable schedule-only items
+let allCalendarItems = [];   // schedules + tasks + exams + classes + vacations for calendar/list display
 
 // DATE / TIME HELPERS
 function formatDateNZ(dateString) {
@@ -343,7 +344,7 @@ function initSchedule() {
             scheduleStatusFilter = this.getAttribute('data-status') || 'current';
             document.querySelectorAll('.schedule-filter-btn').forEach(b => b.classList.remove('active'));
             this.classList.add('active');
-            displaySchedules(allSchedules);
+            displaySchedules(allCalendarItems);
         });
     });
 
@@ -538,8 +539,119 @@ function scheduleOccursOnDate(schedule, dateKey) {
     return false;
 }
 
+function getItemTypeLabel(type) {
+    return {
+        schedule: 'Schedule',
+        task: 'Task',
+        exam: 'Exam',
+        class: 'Class',
+        vacation: 'Vacation'
+    }[type] || 'Item';
+}
+
+function getItemTypeIcon(type) {
+    return {
+        schedule: 'bi-calendar-event',
+        task: 'bi-check2-square',
+        exam: 'bi-mortarboard',
+        class: 'bi-journal-bookmark',
+        vacation: 'bi-airplane'
+    }[type] || 'bi-calendar3';
+}
+
+function normalizeCalendarItems(schedules, tasks, exams, classes, vacations) {
+    const items = [];
+
+    (Array.isArray(schedules) ? schedules : []).forEach(s => {
+        items.push({
+            ...s,
+            calendar_type: 'schedule',
+            calendar_id: `schedule-${s._id}`,
+            title: s.title || 'Untitled Schedule',
+            date: s.date || '',
+            end_date: s.date || '',
+            time: s.time || '',
+            duration: s.duration || '',
+            description: s.description || '',
+            source_url: '/schedule'
+        });
+    });
+
+    (Array.isArray(tasks) ? tasks : []).forEach(t => {
+        items.push({
+            ...t,
+            calendar_type: 'task',
+            calendar_id: `task-${t._id}`,
+            title: t.name || 'Untitled Task',
+            date: t.date || '',
+            end_date: t.date || '',
+            time: t.time || '',
+            description: t.description || '',
+            source_url: '/tasks'
+        });
+    });
+
+    (Array.isArray(exams) ? exams : []).forEach(e => {
+        items.push({
+            ...e,
+            calendar_type: 'exam',
+            calendar_id: `exam-${e._id}`,
+            title: e.subject || 'Untitled Exam',
+            date: e.date || '',
+            end_date: e.date || '',
+            time: e.time || '',
+            duration: e.duration || '',
+            description: e.notes || '',
+            source_url: '/exams'
+        });
+    });
+
+    (Array.isArray(classes) ? classes : []).forEach(c => {
+        items.push({
+            ...c,
+            calendar_type: 'class',
+            calendar_id: `class-${c._id}`,
+            title: c.name || 'Untitled Class',
+            date: c.date || '',
+            end_date: c.date || '',
+            time: c.time || '',
+            description: [c.instructor, c.room].filter(Boolean).join(' · '),
+            source_url: '/classes'
+        });
+    });
+
+    (Array.isArray(vacations) ? vacations : []).forEach(v => {
+        items.push({
+            ...v,
+            calendar_type: 'vacation',
+            calendar_id: `vacation-${v._id}`,
+            title: v.title || 'Untitled Vacation',
+            date: v.start_date || '',
+            end_date: v.end_date || v.start_date || '',
+            time: '',
+            description: v.description || '',
+            source_url: '/vacations'
+        });
+    });
+
+    return items.filter(item => item.date);
+}
+
+function calendarItemOccursOnDate(item, dateKey) {
+    if (!item || !dateKey) return false;
+    if (item.calendar_type === 'vacation') {
+        const start = item.date;
+        const end = item.end_date || item.date;
+        return start <= dateKey && dateKey <= end;
+    }
+    if (item.calendar_type === 'schedule' || item.calendar_type === 'class') {
+        return scheduleOccursOnDate(item, dateKey);
+    }
+    return item.date === dateKey;
+}
+
 function schedulesForDate(dateKey) {
-    return allSchedules.filter(schedule => scheduleOccursOnDate(schedule, dateKey));
+    return allCalendarItems.filter(item => calendarItemOccursOnDate(item, dateKey));
 }
 
 function getScheduleOccurrencesInRange(schedules, startKey, endKey) {
@@ -553,6 +665,23 @@ function getScheduleOccurrencesInRange(schedules, startKey, endKey) {
         const key = dateKeyFromDate(cursor);
         schedules.forEach(schedule => {
             if (scheduleOccursOnDate(schedule, key)) occurrences.push({ ...schedule, occurrence_date: key });
+        });
+        cursor.setDate(cursor.getDate() + 1);
+    }
+    return occurrences;
+}
+
+function getCalendarOccurrencesInRange(items, startKey, endKey) {
+    const start = parseDateKey(startKey);
+    const end = parseDateKey(endKey);
+    if (!start || !end) return [];
+
+    const occurrences = [];
+    const cursor = new Date(start);
+    while (cursor <= end) {
+        const key = dateKeyFromDate(cursor);
+        items.forEach(item => {
+            if (calendarItemOccursOnDate(item, key)) occurrences.push({ ...item, occurrence_date: key });
         });
         cursor.setDate(cursor.getDate() + 1);
     }
@@ -666,11 +795,11 @@ function injectTimeGridEvents(startHour, endHour) {
             const height = Math.max((parseInt(s.duration || 60, 10) / 60) * hourHeight, 20);
 
             const block = document.createElement('div');
-            block.className = 'sched-event-block';
+            block.className = `sched-event-block calendar-type-${s.calendar_type || 'schedule'}`;
             block.style.top    = `${top}px`;
             block.style.height = `${height}px`;
-            block.textContent  = s.title;
-            block.title        = `${s.time} — ${s.title} (${getScheduleRepeatLabel(s)})`;
+            block.textContent  = `${getItemTypeLabel(s.calendar_type)}: ${s.title}`;
+            block.title        = `${s.time ? s.time + ' — ' : ''}${s.title}`;
             col.appendChild(block);
         });
     });
@@ -751,10 +880,10 @@ function injectBadges() {
             const dateKey = cell.dataset.date;
             schedulesForDate(dateKey).forEach(schedule => {
                 const badge = document.createElement('div');
-                badge.className = 'calendar-event-badge';
+                badge.className = `calendar-event-badge calendar-type-${schedule.calendar_type || 'schedule'}`;
                 badge.dataset.id = `${schedule._id}-${dateKey}`;
                 badge.textContent = schedule.time ? `${schedule.time} ${schedule.title}` : schedule.title;
-                badge.title = getScheduleRepeatLabel(schedule);
+                badge.title = `${getItemTypeLabel(schedule.calendar_type)}: ${schedule.title}`;
                 cell.appendChild(badge);
             });
         });
@@ -769,9 +898,9 @@ function injectBadges() {
             if (!slot) return;
 
             const item = document.createElement('div');
-            item.className = 'day-event-item';
-            item.textContent = `${schedule.time} — ${schedule.title}`;
-            item.title = getScheduleRepeatLabel(schedule);
+            item.className = `day-event-item calendar-type-${schedule.calendar_type || 'schedule'}`;
+            item.textContent = `${schedule.time ? schedule.time + ' — ' : ''}${getItemTypeLabel(schedule.calendar_type)}: ${schedule.title}`;
+            item.title = `${getItemTypeLabel(schedule.calendar_type)}: ${schedule.title}`;
             slot.appendChild(item);
         });
     }
@@ -794,8 +923,8 @@ function updateScheduleOverview(schedules) {
     weekEnd.setDate(now.getDate() + 7);
     const weekEndKey = dateKeyFromDate(weekEnd);
 
-    const todayOccurrences = getScheduleOccurrencesInRange(items, todayKey, todayKey);
-    const weekOccurrences = getScheduleOccurrencesInRange(items, todayKey, weekEndKey);
+    const todayOccurrences = getCalendarOccurrencesInRange(items, todayKey, todayKey);
+    const weekOccurrences = getCalendarOccurrencesInRange(items, todayKey, weekEndKey);
 
     const upcoming = weekOccurrences
         .map(item => ({ item, date: parseScheduleDateTime({ ...item, date: item.occurrence_date }) }))
@@ -814,7 +943,7 @@ function updateScheduleOverview(schedules) {
 
     if (nextTitleEl && nextTimeEl) {
         if (upcoming) {
-            nextTitleEl.textContent = upcoming.item.title || 'Upcoming schedule';
+            nextTitleEl.textContent = upcoming.item.title || 'Upcoming item';
             nextTimeEl.textContent = upcoming.date.toLocaleString('en-NZ', {
                 weekday: 'short',
                 day: 'numeric',
@@ -824,7 +953,7 @@ function updateScheduleOverview(schedules) {
             });
         } else {
             nextTitleEl.textContent = 'No upcoming item';
-            nextTimeEl.textContent = items.length ? 'No schedule is due in the next 7 days' : 'Add a schedule to get started';
+            nextTimeEl.textContent = items.length ? 'No item is due in the next 7 days' : 'Add a schedule, task, exam, class, or vacation to get started';
         }
     }
 }
@@ -845,25 +974,45 @@ function setupScheduleQuickActions() {
 }
 
 function loadSchedules() {
-    fetch('/api/schedules')
-        .then(r => r.json())
-        .then(schedules => {
+    Promise.all([
+        fetch('/api/schedules').then(r => r.json()).catch(() => []),
+        fetch('/api/tasks').then(r => r.json()).catch(() => []),
+        fetch('/api/exams').then(r => r.json()).catch(() => []),
+        fetch('/api/classes').then(r => r.json()).catch(() => []),
+        fetch('/api/vacations').then(r => r.json()).catch(() => [])
+    ])
+        .then(([schedules, tasks, exams, classes, vacations]) => {
             allSchedules = Array.isArray(schedules) ? schedules : [];
-            updateScheduleOverview(allSchedules);
+            allCalendarItems = normalizeCalendarItems(schedules, tasks, exams, classes, vacations);
+            updateScheduleOverview(allCalendarItems);
             renderCalendar();
-            displaySchedules(allSchedules);
+            displaySchedules(allCalendarItems);
             injectBadges();
         })
-        .catch(err => console.error('Error loading schedules:', err));
+        .catch(err => console.error('Error loading calendar items:', err));
 }
 
 function isScheduleOutdated(schedule) {
     if (!schedule || !schedule.date) return false;
     const todayKey = getTodayKeyNZ();
+    if (schedule.calendar_type === 'vacation') {
+        return (schedule.end_date || schedule.date) < todayKey;
+    }
     if ((schedule.repeat || 'never') !== 'never') {
         return !!schedule.repeat_until && schedule.repeat_until < todayKey;
     }
     return schedule.date < todayKey;
+}
+
+function getCalendarItemDateLabel(item) {
+    if (item.calendar_type === 'vacation' && item.end_date && item.end_date !== item.date) {
+        return `${formatDateNZ(item.date)} to ${formatDateNZ(item.end_date)}`;
+    }
+    return formatDateNZ(item.date);
+}
+
+function openCalendarSource(url) {
+    if (url) window.location.href = url;
 }
 
 function displaySchedules(schedules) {
@@ -876,7 +1025,7 @@ function displaySchedules(schedules) {
         if (scheduleStatusFilter === 'current') return !outdated;
         if (scheduleStatusFilter === 'outdated') return outdated;
         return true;
-    });
+    }).sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')) || String(a.time || '').localeCompare(String(b.time || '')));
 
     if (!filteredSchedules.length) {
         const emptyMessage = scheduleStatusFilter === 'outdated'
@@ -886,39 +1035,43 @@ function displaySchedules(schedules) {
             <div class="empty-state">
                 <i class="bi bi-calendar-x" style="font-size:48px;color:#ccc;"></i>
                 <p>${emptyMessage}</p>
-                <p style="font-size:14px;color:#999;">${scheduleStatusFilter === 'outdated' ? 'Past schedules will appear here automatically.' : 'Click "Add Schedule" to create your first item'}</p>
+                <p style="font-size:14px;color:#999;">${scheduleStatusFilter === 'outdated' ? 'Past tasks, exams, classes, vacations, and schedules will appear here automatically.' : 'Add a schedule, task, exam, class, or vacation to show it here'}</p>
             </div>`;
         return;
     }
 
     list.innerHTML = filteredSchedules.map(s => {
         const outdated = isScheduleOutdated(s);
-        const repeatLabel = getScheduleRepeatLabel(s);
+        const type = s.calendar_type || 'schedule';
+        const typeLabel = getItemTypeLabel(type);
+        const repeatLabel = (type === 'schedule' || type === 'class') ? getScheduleRepeatLabel(s) : '';
         const repeatUntil = s.repeat_until ? ` until ${formatDateNZ(s.repeat_until)}` : '';
-        const safeTitle = escapeHtml(s.title || 'Untitled Schedule');
+        const safeTitle = escapeHtml(s.title || `Untitled ${typeLabel}`);
         const safeDescription = escapeHtml(s.description || '');
+        const sourceUrl = escapeHtml(s.source_url || '/schedule');
+        const dateLabel = getCalendarItemDateLabel(s);
+        const scheduleButtons = type === 'schedule'
+            ? `<button class="btn-icon btn-edit" onclick="editSchedule('${s._id}')" title="Edit schedule" aria-label="Edit schedule"><i class="bi bi-pencil-square"></i><span>Edit</span></button>
+               <button class="btn-icon btn-delete" onclick="deleteSchedule('${s._id}')" title="Delete schedule" aria-label="Delete schedule"><i class="bi bi-trash3"></i><span>Delete</span></button>`
+            : `<button class="btn-open-source" onclick="openCalendarSource('${sourceUrl}')" title="Open ${typeLabel} page" aria-label="Open ${typeLabel} page"><i class="bi bi-box-arrow-up-right"></i><span>Open</span></button>`;
         return `
-        <div class="schedule-item ${outdated ? 'outdated' : ''}" data-id="${s._id}">
+        <div class="schedule-item calendar-list-item calendar-type-${type} ${outdated ? 'outdated' : ''}" data-id="${s.calendar_id || s._id}">
             <div class="schedule-item-header">
                 <div class="schedule-item-info">
+                    <div class="calendar-title-row">
+                        <span class="calendar-type-pill calendar-type-${type}"><i class="bi ${getItemTypeIcon(type)}"></i> ${typeLabel}</span>
+                        ${outdated ? '<span class="schedule-status-label inline-status">Outdated</span>' : ''}
+                    </div>
                     <h4 class="schedule-title">${safeTitle}</h4>
                     <div class="schedule-meta">
-                        ${s.date     ? `<span><i class="bi bi-calendar3"></i> Starts ${formatDateNZ(s.date)}</span>` : ''}
-                        ${s.time     ? `<span><i class="bi bi-clock"></i> ${escapeHtml(s.time)}</span>` : ''}
+                        ${dateLabel ? `<span><i class="bi bi-calendar3"></i> ${dateLabel}</span>` : ''}
+                        ${s.time ? `<span><i class="bi bi-clock"></i> ${escapeHtml(s.time)}</span>` : ''}
                         ${s.duration ? `<span><i class="bi bi-hourglass-split"></i> ${escapeHtml(s.duration)} min</span>` : ''}
-                        <span class="repeat-badge"><i class="bi bi-arrow-repeat"></i> ${escapeHtml(repeatLabel + repeatUntil)}</span>
+                        ${repeatLabel ? `<span class="repeat-badge"><i class="bi bi-arrow-repeat"></i> ${escapeHtml(repeatLabel + repeatUntil)}</span>` : ''}
                     </div>
                 </div>
-                <div class="schedule-actions">
-                    <button class="btn-icon btn-edit"   onclick="editSchedule('${s._id}')"   title="Edit">
-                        <i class="bi bi-pencil"></i>
-                    </button>
-                    <button class="btn-icon btn-delete" onclick="deleteSchedule('${s._id}')" title="Delete">
-                        <i class="bi bi-trash"></i>
-                    </button>
-                </div>
+                <div class="schedule-actions">${scheduleButtons}</div>
             </div>
-            ${outdated ? '<div class="schedule-status-label">Outdated</div>' : ''}
             ${safeDescription ? `<div class="schedule-description"><p>${safeDescription}</p></div>` : ''}
         </div>`;
     }).join('');

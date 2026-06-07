@@ -99,8 +99,7 @@
 }
 
 .sidebar.collapsed .nav-link span,
-.sidebar.collapsed .submenu-arrow,
-.sidebar.collapsed .sidebar-footer .logout-btn {
+.sidebar.collapsed .submenu-arrow {
     display: none;
 }
 
@@ -1060,3 +1059,4 @@ body.dark-mode .hero-copy {
         padding: 0.85rem;
     }
 }
+

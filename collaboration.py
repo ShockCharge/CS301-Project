@@ -39,6 +39,14 @@ def normalize_email(email):
     return sanitize(email or '').lower()
 
 
+def safe_profile_picture(user):
+    """Return a safe saved profile-picture data URL, or an empty string."""
+    picture = user.get('profile_picture', '') if user else ''
+    if isinstance(picture, str) and picture.startswith('data:image/'):
+        return picture
+    return ''
+
+
 def serialize_public_user(user):
     """Return only safe public profile fields for collaboration user listing."""
     first_name = sanitize(user.get('first_name', '') or '')
@@ -51,6 +59,7 @@ def serialize_public_user(user):
         'email': user.get('email', ''),
         'institution': sanitize(user.get('institution', '') or ''),
         'major': sanitize(user.get('major', '') or ''),
+        'profile_picture': safe_profile_picture(user),
     }
 
 
@@ -71,17 +80,20 @@ def serialize_message(message, current_user):
     sender_email = message.get('sender_email', '')
     
     sender_name = sender_email
+    sender_picture = ''
     if users_collection is not None:
         sender = users_collection.find_one({'email': sender_email})
         if sender:
             first = sanitize(sender.get('first_name', '') or '')
             last = sanitize(sender.get('last_name', '') or '')
             sender_name = f"{first} {last}".strip() or sender_email
+            sender_picture = safe_profile_picture(sender)
 
     return {
         'id': str(message.get('_id')),
         'sender_email': sender_email,
         'sender_name': sender_name,
+        'sender_profile_picture': sender_picture,
         'receiver_email': message.get('receiver_email', ''),
         'body': sanitize(message.get('body', '') or ''),
         'created_at': message.get('created_at').isoformat() if message.get('created_at') else '',
@@ -380,10 +392,12 @@ def get_incoming_connection_requests():
             request_data['requester_name'] = public_requester.get('name', requester_email)
             request_data['requester_institution'] = public_requester.get('institution', '')
             request_data['requester_major'] = public_requester.get('major', '')
+            request_data['requester_profile_picture'] = public_requester.get('profile_picture', '')
         else:
             request_data['requester_name'] = requester_email or 'Study Planner User'
             request_data['requester_institution'] = ''
             request_data['requester_major'] = ''
+            request_data['requester_profile_picture'] = ''
 
         requests_list.append(request_data)
 
@@ -633,6 +647,33 @@ def send_direct_message():
     }), 201
 
 
+@collaboration_bp.route('/api/collaboration/messages/<message_id>', methods=['DELETE'])
+@collaboration_bp.route('/collaboration/messages/<message_id>', methods=['DELETE'])
+def delete_direct_message(message_id):
+    # Delete one direct message. Only the sender can delete their own message.
+    current_user = get_current_user_email()
+    if not current_user:
+        return jsonify({'error': 'Not logged in'}), 401
+
+    if group_messages_collection is None:
+        return jsonify({'error': 'Database is not connected.'}), 503
+
+    try:
+        object_id = ObjectId(message_id)
+    except Exception:
+        return jsonify({'error': 'Invalid message ID.'}), 400
+
+    message = group_messages_collection.find_one({'_id': object_id, 'conversation_type': 'direct'})
+    if not message:
+        return jsonify({'error': 'Message not found.'}), 404
+
+    if message.get('sender_email') != current_user:
+        return jsonify({'error': 'You can only delete messages you sent.'}), 403
+
+    group_messages_collection.delete_one({'_id': object_id})
+    return jsonify({'success': True, 'message': 'Message deleted successfully.'})
+
+
 # ====================== GROUP ROUTES ======================
 
 def get_group_object_id(group_id):
@@ -678,7 +719,8 @@ def serialize_group_member(member_doc):
         'name': email or 'Study Planner User',
         'email': email,
         'institution': '',
-        'major': ''
+        'major': '',
+        'profile_picture': ''
     }
     profile['role'] = member_doc.get('role', 'member')
     profile['joined_at'] = member_doc.get('joined_at').isoformat() if member_doc.get('joined_at') else ''
@@ -905,4 +947,43 @@ def send_group_message(group_id):
     result = group_messages_collection.insert_one(message_doc)
     message_doc['_id'] = result.inserted_id
     return jsonify({'message': 'Message sent successfully', 'chat_message': serialize_message(message_doc, current_user)}), 201
+
+
+
+@collaboration_bp.route('/api/collaboration/groups/<group_id>/messages/<message_id>', methods=['DELETE'])
+@collaboration_bp.route('/collaboration/groups/<group_id>/messages/<message_id>', methods=['DELETE'])
+def delete_group_message(group_id, message_id):
+    # Delete one group message. Only the sender can delete their own message.
+    current_user = get_current_user_email()
+    if not current_user:
+        return jsonify({'error': 'Not logged in'}), 401
+
+    if group_messages_collection is None or group_members_collection is None:
+        return jsonify({'error': 'Database not connected'}), 503
+
+    group_object_id = get_group_object_id(group_id)
+    if group_object_id is None:
+        return jsonify({'error': 'Invalid group ID'}), 400
+
+    if not get_group_membership(group_object_id, current_user):
+        return jsonify({'error': 'You are not a member of this group'}), 403
+
+    try:
+        object_id = ObjectId(message_id)
+    except Exception:
+        return jsonify({'error': 'Invalid message ID.'}), 400
+
+    message = group_messages_collection.find_one({
+        '_id': object_id,
+        'conversation_type': 'group',
+        'conversation_id': group_id
+    })
+    if not message:
+        return jsonify({'error': 'Message not found.'}), 404
+
+    if message.get('sender_email') != current_user:
+        return jsonify({'error': 'You can only delete messages you sent.'}), 403
+
+    group_messages_collection.delete_one({'_id': object_id})
+    return jsonify({'success': True, 'message': 'Message deleted successfully.'})
 

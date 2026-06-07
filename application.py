@@ -1006,14 +1006,22 @@ def api_profile():
     allowed_fields = [
         'first_name', 'last_name', 'phone', 'date_of_birth',
         'gender', 'address', 'institution', 'student_id',
-        'major', 'year_level', 'daily_study_goal', 'preferred_study_time'
+        'major', 'year_level', 'daily_study_goal', 'preferred_study_time',
+        'profile_picture'
     ]
 
     update_data = {}
     for k, v in data.items():
         if k in allowed_fields:
-            # Sanitize strings; leave numbers/booleans as-is
-            update_data[k] = sanitize(str(v)) if isinstance(v, str) else v
+            if k == 'profile_picture':
+                # Profile photos are saved as browser-generated data URLs so they can
+                # be shown to friends on the collaboration page. Keep only image data
+                # URLs and limit the stored size to avoid very large profile payloads.
+                if isinstance(v, str) and v.startswith('data:image/') and len(v) <= 2_000_000:
+                    update_data[k] = v
+            else:
+                # Sanitize strings; leave numbers/booleans as-is
+                update_data[k] = sanitize(str(v)) if isinstance(v, str) else v
 
     if not update_data:
         return jsonify({'error': 'No valid fields to update'})
