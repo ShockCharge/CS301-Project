@@ -21,6 +21,8 @@ from common import NZ_TZ, ZoneInfo, users_collection, schedules_collection, task
 
 from task import celery_app, get_ai_suggestions_task, get_ai_study_plan_task
 from collaboration import collaboration_bp
+from settings import settings_bp
+from schedule_routes import schedule_bp
 from web_aware_ai import answer_with_web_awareness
 
 import boto3
@@ -69,6 +71,8 @@ limiter = Limiter(
 )
 
 app.register_blueprint(collaboration_bp)
+app.register_blueprint(settings_bp)
+app.register_blueprint(schedule_bp)
 
 # Email configuration
 # Gmail app passwords are often displayed with spaces; SMTP expects the compact value.
@@ -848,81 +852,7 @@ def task_status(task_id):
     else:
         return jsonify({"status": task.state})
 
-@app.route('/api/settings', methods=['GET', 'POST'])
-def api_settings():
-    if 'user' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
-
-    if users_collection is None:
-        if request.method == 'GET':
-            return jsonify({'dark_mode': False, 'task_reminders': True, 'exam_alerts': True,
-                            'study_duration': '60', 'break_duration': '10', 'default_view': 'week'})
-        return jsonify({'success': True})
-
-    if request.method == 'GET':
-        user = users_collection.find_one({'email': session['user']}, {'settings': 1})
-        s    = user.get('settings', {}) if user else {}
-        return jsonify({
-            'dark_mode':      s.get('dark_mode',      False),
-            'task_reminders': s.get('task_reminders',  True),
-            'exam_alerts':    s.get('exam_alerts',     True),
-            'study_duration': s.get('study_duration', '60'),
-            'break_duration': s.get('break_duration', '10'),
-            'default_view':   s.get('default_view',  'week')
-        })
-
-    data = request.json or {}
-    users_collection.update_one(
-        {'email': session['user']},
-        {'$set': {
-            'settings.dark_mode':      bool(data.get('dark_mode',      False)),
-            'settings.task_reminders': bool(data.get('task_reminders',  True)),
-            'settings.exam_alerts':    bool(data.get('exam_alerts',     True)),
-            'settings.study_duration': str(data.get('study_duration',  '60')),
-            'settings.break_duration': str(data.get('break_duration',  '10')),
-            'settings.default_view':   str(data.get('default_view',   'week'))
-        }}
-    )
-    return jsonify({'success': True})
-
-
-@app.route('/api/export', methods=['GET'])
-def api_export_data():
-    if 'user' not in session:
-        return redirect(url_for('login'))
-
-    user_email  = session['user']
-    export_data = {'user': user_email}
-
-    if tasks_collection is not None:
-        export_data['tasks']     = list(tasks_collection.find({'user': user_email},     {'_id': 0}))
-        export_data['exams']     = list(exams_collection.find({'user': user_email},     {'_id': 0}))
-        export_data['classes']   = list(classes_collection.find({'user': user_email},   {'_id': 0}))
-        export_data['schedules'] = list(schedules_collection.find({'user': user_email}, {'_id': 0}))
-
-    response = Response(
-        json.dumps(export_data, indent=4, default=str),
-        mimetype='application/json',
-        headers={'Content-Disposition': 'attachment;filename=study_planner_export.json'}
-    )
-    return response
-
-
-@app.route('/api/clear-all', methods=['POST'])
-def api_clear_all_data():
-    if 'user' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
-
-    user_email = session['user']
-
-    if tasks_collection is not None:
-        tasks_collection.delete_many({'user': user_email})
-        exams_collection.delete_many({'user': user_email})
-        classes_collection.delete_many({'user': user_email})
-        schedules_collection.delete_many({'user': user_email})
-        vacations_collection.delete_many({'user': user_email})
-
-    return jsonify({'success': True, 'message': 'All user data cleared'})
+# Settings/account API routes moved to settings.py.
 
 
 # PROFILE ROUTES
@@ -1032,144 +962,7 @@ def api_profile():
     return jsonify({'success': True})
 
 
-# SCHEDULE API
-
-@app.route('/api/schedules', methods=['GET', 'POST'])
-def api_schedules():
-    if 'user' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
-
-    if request.method == 'POST':
-        data  = request.json or {}
-        title = sanitize(data.get('title', ''))
-        date  = sanitize(data.get('date', ''))
-
-        if not title:
-            return jsonify({'error': 'Schedule title is required.'}), 400
-        if len(title) > 200:
-            return jsonify({'error': 'Title must be under 200 characters.'}), 400
-        if date and not validate_date(date):
-            return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD.'}), 400
-
-        allowed_repeat = {'never', 'daily', 'weekdays', 'weekly', 'monthly', 'yearly', 'custom'}
-        repeat = sanitize(data.get('repeat', 'never')) or 'never'
-        if repeat not in allowed_repeat:
-            repeat = 'never'
-
-        repeat_until = sanitize(data.get('repeat_until', ''))
-        if repeat_until and not validate_date(repeat_until):
-            return jsonify({'error': 'Invalid repeat-until date format. Use YYYY-MM-DD.'}), 400
-
-        repeat_interval = data.get('repeat_interval') or 1
-        try:
-            repeat_interval = max(1, min(365, int(repeat_interval)))
-        except (TypeError, ValueError):
-            repeat_interval = 1
-
-        repeat_unit = sanitize(data.get('repeat_unit', 'weeks')) or 'weeks'
-        if repeat_unit not in {'days', 'weeks', 'months', 'years'}:
-            repeat_unit = 'weeks'
-
-        schedule_item = {
-            'user':            session['user'],
-            'title':           title,
-            'date':            date or None,
-            'time':            sanitize(data.get('time', '')),
-            'duration':        data.get('duration'),
-            'description':     sanitize(data.get('description', '')),
-            'repeat':          repeat,
-            'repeat_until':    repeat_until or None,
-            'repeat_interval': repeat_interval,
-            'repeat_unit':     repeat_unit,
-            'completed':       False,
-            'created_at':      datetime.now()
-        }
-        if schedules_collection is not None:
-            result = schedules_collection.insert_one(schedule_item)
-            schedule_item['_id'] = str(result.inserted_id)
-        else:
-            schedule_item['_id'] = 'temp_id'
-        return jsonify(schedule_item), 201
-
-    else:
-        if schedules_collection is not None:
-            status = request.args.get('status', 'all')
-            schedules = list(schedules_collection.find({'user': session['user']}))
-            filtered_schedules = []
-            for schedule in schedules:
-                schedule['_id'] = str(schedule['_id'])
-                schedule_status = get_task_status(schedule.get('date'))
-                schedule['status'] = schedule_status
-                if status == 'current' and schedule_status == 'outdated':
-                    continue
-                if status == 'outdated' and schedule_status != 'outdated':
-                    continue
-                filtered_schedules.append(schedule)
-            schedules = filtered_schedules
-        else:
-            schedules = []
-        return jsonify(schedules)
-
-
-@app.route('/api/schedules/<schedule_id>', methods=['PUT', 'DELETE'])
-def api_single_schedule(schedule_id):
-    if 'user' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
-
-    if request.method == 'PUT':
-        data = request.json or {}
-        allowed_repeat = {'never', 'daily', 'weekdays', 'weekly', 'monthly', 'yearly', 'custom'}
-        repeat = sanitize(data.get('repeat', 'never')) or 'never'
-        if repeat not in allowed_repeat:
-            repeat = 'never'
-
-        repeat_until = sanitize(data.get('repeat_until', ''))
-        if repeat_until and not validate_date(repeat_until):
-            return jsonify({'error': 'Invalid repeat-until date format. Use YYYY-MM-DD.'}), 400
-
-        repeat_interval = data.get('repeat_interval') or 1
-        try:
-            repeat_interval = max(1, min(365, int(repeat_interval)))
-        except (TypeError, ValueError):
-            repeat_interval = 1
-
-        repeat_unit = sanitize(data.get('repeat_unit', 'weeks')) or 'weeks'
-        if repeat_unit not in {'days', 'weeks', 'months', 'years'}:
-            repeat_unit = 'weeks'
-
-        update_data = {
-            'title':           sanitize(data.get('title', '')),
-            'date':            sanitize(data.get('date', '')),
-            'time':            sanitize(data.get('time', '')),
-            'duration':        data.get('duration'),
-            'description':     sanitize(data.get('description', '')),
-            'repeat':          repeat,
-            'repeat_until':    repeat_until or None,
-            'repeat_interval': repeat_interval,
-            'repeat_unit':     repeat_unit,
-            'updated_at':      datetime.now()
-        }
-        if schedules_collection is not None:
-            result = schedules_collection.update_one(
-                {'_id': ObjectId(schedule_id), 'user': session['user']},
-                {'$set': update_data}
-            )
-            if result.matched_count > 0:
-                return jsonify({'success': True, 'message': 'Schedule updated successfully'})
-            else:
-                return jsonify({'error': 'Schedule not found'})
-        else:
-            return jsonify({'success': True, 'message': 'Schedule updated (dev mode)'})
-
-    elif request.method == 'DELETE':
-        if schedules_collection is not None:
-            result = schedules_collection.delete_one({'_id': ObjectId(schedule_id), 'user': session['user']})
-            if result.deleted_count > 0:
-                return jsonify({'success': True, 'message': 'Schedule deleted successfully'})
-            else:
-                return jsonify({'error': 'Schedule not found'})
-        else:
-            return jsonify({'success': True, 'message': 'Schedule deleted (dev mode)'})
+# Schedule API routes moved to schedule_routes.py.
 
 
 # CHAT API
@@ -1707,57 +1500,8 @@ def api_single_vacation(vacation_id):
 
 # ACCOUNT / PASSWORD
 
-@app.route('/api/change_password', methods=['POST'])
-def api_change_password():
-    if 'user' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
+# Settings/account API routes moved to settings.py.
 
-    data             = request.json or {}
-    current_password = data.get('current_password', '')
-    new_password     = data.get('new_password', '')
-
-    if not current_password or not new_password:
-        return jsonify({'error': 'Both current and new password are required.'}), 400
-    if len(new_password) < 8:
-        return jsonify({'error': 'New password must be at least 8 characters.'}), 400
-    if not re.search(r'[A-Z]', new_password):
-        return jsonify({'error': 'New password must contain at least one uppercase letter.'}), 400
-    if not re.search(r'[0-9]', new_password):
-        return jsonify({'error': 'New password must contain at least one number.'}), 400
-
-    if users_collection is None:
-        return jsonify({'error': 'Database connection is unavailable.'}), 500
-
-    user = users_collection.find_one({'email': session['user']})
-    if not user or not check_password_hash(user.get('password', ''), current_password):
-        return jsonify({'error': 'Current password is incorrect.'}), 403
-
-    users_collection.update_one(
-        {'email': session['user']},
-        {'$set': {'password': generate_password_hash(new_password)}}
-    )
-    return jsonify({'success': True})
-
-
-@app.route('/api/account', methods=['DELETE'])
-def api_delete_account():
-    if 'user' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
-
-    user_email = session['user']
-
-    if users_collection is not None:
-        # Delete all associated data first
-        tasks_collection.delete_many({'user': user_email})
-        exams_collection.delete_many({'user': user_email})
-        classes_collection.delete_many({'user': user_email})
-        schedules_collection.delete_many({'user': user_email})
-        vacations_collection.delete_many({'user': user_email})
-        # Finally delete the user account itself
-        users_collection.delete_one({'email': user_email})
-
-    session.pop('user', None)
-    return jsonify({'success': True})
 
 # LOGOUT
 
