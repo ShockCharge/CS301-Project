@@ -22,7 +22,7 @@ from common import NZ_TZ, ZoneInfo, users_collection, schedules_collection, task
 from task import celery_app, get_ai_suggestions_task, get_ai_study_plan_task
 from collaboration import collaboration_bp
 from settings import settings_bp
-from schedule_routes import schedule_bp
+from schedule import schedule_bp
 from web_aware_ai import answer_with_web_awareness
 
 import boto3
