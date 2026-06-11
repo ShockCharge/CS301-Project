@@ -18,6 +18,8 @@
     --surface:              #ffffff;
     --surface-alt:          #eef3ff;
     --surface-raised:       #f5f8ff;
+    --surface-item:         #f0f5ff;
+    --surface-item-hover:   #e4ecff;
 
     /* Header / Sidebar always stay deep blue */
     --header-bg:            #1e40af;
@@ -102,6 +104,8 @@ body.dark-mode {
     --surface:              #1a2540;
     --surface-alt:          #1a2540;
     --surface-raised:       #243050;
+    --surface-item:         #1e2d4a;
+    --surface-item-hover:   #243356;
 
     /* Header distinct from page */
     --header-bg:            #1e3a8a;
@@ -180,8 +184,9 @@ body {
     display:none; position:fixed; z-index:2000;
     inset:0; background:var(--modal-overlay);
     align-items:center; justify-content:center;
+    overflow:hidden; padding:0;
 }
-.modal.active { display:flex; }
+.modal.active { display:flex !important; }
 
 .modal-content {
     background:var(--modal-bg);
@@ -192,6 +197,9 @@ body {
     border:1px solid var(--border-card);
     box-shadow:var(--shadow-md);
     transition:background 0.25s, border-color 0.25s;
+    margin:auto;
+    max-height:90vh;
+    overflow-y:auto;
 }
 .modal-content h2 { margin-bottom:1.25rem; font-size:1.4rem; font-weight:700; color:var(--text-primary); }
 

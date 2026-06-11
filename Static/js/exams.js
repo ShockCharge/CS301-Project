@@ -11,10 +11,10 @@ function initExams() {
     const addExamForm  = document.getElementById('addExamForm');
 
     if (addExamBtn && addExamModal) {
-        addExamBtn.addEventListener('click', () => { addExamModal.style.display = 'block'; });
+        addExamBtn.addEventListener('click', () => { addExamModal.style.display = 'flex'; });
     }
     if (closeModal) {
-        closeModal.addEventListener('click', () => { addExamModal.style.display = 'none'; });
+        closeModal.addEventListener('click', () => { addExamModal.style.display = ''; });
     }
     if (addExamForm) {
         addExamForm.addEventListener('submit', function (e) {
@@ -36,7 +36,7 @@ function initExams() {
             .then(r => r.json())
             .then(() => {
                 showSuccessToast('Exam added successfully!');
-                addExamModal.style.display = 'none';
+                addExamModal.style.display = '';
                 addExamForm.reset();
                 loadExams();
             })
@@ -50,11 +50,11 @@ function initExams() {
     const skipReflectionBtn = document.getElementById('skipExamReflectionBtn');
 
     if (reflectionClose && reflectionModal) {
-        reflectionClose.addEventListener('click', () => { reflectionModal.style.display = 'none'; });
+        reflectionClose.addEventListener('click', () => { reflectionModal.style.display = ''; });
     }
     if (skipReflectionBtn && reflectionModal) {
         skipReflectionBtn.addEventListener('click', () => {
-            reflectionModal.style.display = 'none';
+            reflectionModal.style.display = '';
             document.getElementById('examCompletionReflection').value = '';
             document.getElementById('reflectionExamId').value = '';
             loadExams();
@@ -236,7 +236,7 @@ function openExamReflectionModal(examId, existingReflection = '') {
     }
     idInput.value = examId;
     textInput.value = existingReflection || '';
-    modal.style.display = 'block';
+    modal.style.display = 'flex';
     textInput.focus();
 }
 
@@ -255,7 +255,7 @@ async function saveExamReflection(e) {
         const result = await res.json();
         if (result.success) {
             showSuccessToast('Exam reflection saved!');
-            document.getElementById('examReflectionModal').style.display = 'none';
+            document.getElementById('examReflectionModal').style.display = '';
             document.getElementById('examCompletionReflection').value = '';
             document.getElementById('reflectionExamId').value = '';
             loadExams();
@@ -290,7 +290,7 @@ function editExam(examId) {
             document.getElementById('editExamTime').value     = exam.time     || '';
             document.getElementById('editExamDuration').value = exam.duration || '';
             document.getElementById('editExamNotes').value    = exam.notes    || '';
-            document.getElementById('editExamModal').style.display = 'block';
+            document.getElementById('editExamModal').style.display = 'flex';
         })
         .catch(() => showErrorToast('Failed to load exam data'));
 }
@@ -317,7 +317,7 @@ if (editExamForm) {
             const result = await res.json();
             if (result.success) {
                 showSuccessToast('Exam updated!');
-                document.getElementById('editExamModal').style.display = 'none';
+                document.getElementById('editExamModal').style.display = '';
                 loadExams();
             } else showErrorToast('Failed to update exam');
         } catch { showErrorToast('Failed to update exam'); }
