@@ -20,6 +20,9 @@
     --surface-raised:       #f5f8ff;
     --surface-item:         #f0f5ff;
     --surface-item-hover:   #e4ecff;
+    --surface-primary:      #ffffff;
+    --surface-secondary:    #eef3ff;
+    --brand-dark:           #1d4ed8;
 
     /* Header / Sidebar always stay deep blue */
     --header-bg:            #1e40af;
@@ -106,6 +109,9 @@ body.dark-mode {
     --surface-raised:       #243050;
     --surface-item:         #1e2d4a;
     --surface-item-hover:   #243356;
+    --surface-primary:      #1a2540;
+    --surface-secondary:    #243050;
+    --brand-dark:           #60a5fa;
 
     /* Header distinct from page */
     --header-bg:            #1e3a8a;
@@ -120,7 +126,7 @@ body.dark-mode {
 
     --text-primary:         #e2e8f0;
     --text-secondary:       #94a3b8;
-    --text-muted:           #475569;
+    --text-muted:           #64748b;
 
     --border:               #2d3f5e;
     --border-card:          #2a3b5a;
