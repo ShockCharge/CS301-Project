@@ -11,10 +11,10 @@ function initTasks() {
     const addTaskForm  = document.getElementById('addTaskForm');
 
     if (addTaskBtn && addTaskModal) {
-        addTaskBtn.addEventListener('click', () => { addTaskModal.style.display = 'block'; });
+        addTaskBtn.addEventListener('click', () => { addTaskModal.style.display = 'flex'; });
     }
     if (closeModal) {
-        closeModal.addEventListener('click', () => { addTaskModal.style.display = 'none'; });
+        closeModal.addEventListener('click', () => { addTaskModal.style.display = ''; });
     }
     if (addTaskForm) {
         addTaskForm.addEventListener('submit', function (e) {
@@ -34,7 +34,7 @@ function initTasks() {
             .then(r => r.json())
             .then(() => {
                 showSuccessToast('Task added successfully!');
-                addTaskModal.style.display = 'none';
+                addTaskModal.style.display = '';
                 addTaskForm.reset();
                 loadTasks();
             })
@@ -203,7 +203,7 @@ function editTask(taskId) {
     }
 
     document.getElementById('editTaskDescription').value = task.description || '';
-    document.getElementById('editTaskModal').style.display = 'block';
+    document.getElementById('editTaskModal').style.display = 'flex';
 }
 
 const editTaskForm = document.getElementById('editTaskForm');
@@ -226,7 +226,7 @@ if (editTaskForm) {
             const result = await res.json();
             if (result.success) {
                 showSuccessToast('Task updated!');
-                document.getElementById('editTaskModal').style.display = 'none';
+                document.getElementById('editTaskModal').style.display = '';
                 loadTasks();
             } else showErrorToast('Failed to update task');
         } catch { showErrorToast('Failed to update task'); }

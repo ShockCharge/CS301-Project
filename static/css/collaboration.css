@@ -298,10 +298,18 @@ body.dark-mode .collab-card-header { background: var(--surface-raised); }
     text-transform: uppercase;
 }
 
-.person-info { min-width: 0; }
+.person-info { min-width: 0; flex: 1; }
 .person-name  { font-size: 0.88rem; font-weight: 700; color: var(--text-primary); margin: 0; transition: color 0.25s; }
 .person-email { font-size: 0.78rem; color: var(--text-muted); margin: 0.1rem 0 0; word-break: break-all; transition: color 0.25s; }
 .person-meta  { font-size: 0.75rem; color: var(--text-muted); margin: 0.1rem 0 0; transition: color 0.25s; }
+
+.person-card .connect-btn {
+    flex-shrink: 0;
+    width: auto;
+    padding: 0.35rem 1rem;
+    font-size: 0.8rem;
+    line-height: 1.4;
+}
 
 /* Friend card (grid tile) */
 .friend-card {
@@ -346,6 +354,30 @@ body.dark-mode .collab-card-header { background: var(--surface-raised); }
 
 .friend-name  { font-size: 0.85rem; font-weight: 700; color: var(--text-primary); margin: 0; transition: color 0.25s; }
 .friend-email { font-size: 0.72rem; color: var(--text-muted); margin: 0; word-break: break-all; transition: color 0.25s; }
+
+.friend-details {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.15rem;
+    min-width: 0;
+    flex: 1;
+}
+.friend-details strong {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+    word-break: break-word;
+    transition: color 0.25s;
+}
+.friend-details small {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    margin: 0;
+    word-break: break-all;
+    transition: color 0.25s;
+}
 
 /* Group card (grid tile) */
 .group-card {
@@ -777,7 +809,7 @@ body.dark-mode .collab-card-header { background: var(--surface-raised); }
     width: 28px;
     height: 28px;
     border: 1px solid rgba(220, 53, 69, 0.35);
-    background: rgba(255, 255, 255, 0.9);
+    background: var(--surface-raised);
     color: #dc3545;
     opacity: 1;
     cursor: pointer;
