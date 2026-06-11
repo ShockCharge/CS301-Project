@@ -27,6 +27,7 @@ from task_routes import task_bp
 from exam import exam_bp
 from classes import class_bp
 from vacation import vacation_bp
+from profile import profile_bp
 from web_aware_ai import answer_with_web_awareness
 
 import boto3
@@ -81,6 +82,7 @@ app.register_blueprint(task_bp)
 app.register_blueprint(exam_bp)
 app.register_blueprint(class_bp)
 app.register_blueprint(vacation_bp)
+app.register_blueprint(profile_bp)
 
 # Email configuration
 # Gmail app passwords are often displayed with spaces; SMTP expects the compact value.
@@ -927,48 +929,7 @@ def profile():
     return render_template('profile.html', user=user_data, stats=stats)
 
 
-@app.route('/api/profile', methods=['PUT'])
-def api_profile():
-    """
-    Update the current user's profile fields.
-    Accepts both personal info (first_name, last_name, phone, date_of_birth, gender, address)
-    and study info (institution, student_id, major, year_level, daily_study_goal, preferred_study_time).
-    Both forms on the profile page POST to this single endpoint.
-    """
-    if 'user' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
-
-    data = request.json or {}
-
-    # Whitelist of fields that are allowed to be updated — prevents mass-assignment attacks
-    allowed_fields = [
-        'first_name', 'last_name', 'phone', 'date_of_birth',
-        'gender', 'address', 'institution', 'student_id',
-        'major', 'year_level', 'daily_study_goal', 'preferred_study_time',
-        'profile_picture'
-    ]
-
-    update_data = {}
-    for k, v in data.items():
-        if k in allowed_fields:
-            if k == 'profile_picture':
-                # Profile photos are saved as browser-generated data URLs so they can
-                # be shown to friends on the collaboration page. Keep only image data
-                # URLs and limit the stored size to avoid very large profile payloads.
-                if isinstance(v, str) and v.startswith('data:image/') and len(v) <= 2_000_000:
-                    update_data[k] = v
-            else:
-                # Sanitize strings; leave numbers/booleans as-is
-                update_data[k] = sanitize(str(v)) if isinstance(v, str) else v
-
-    if not update_data:
-        return jsonify({'error': 'No valid fields to update'})
-
-    if users_collection is not None:
-        users_collection.update_one({'email': session['user']}, {'$set': update_data})
-
-    return jsonify({'success': True})
-
+# Profile API routes moved to profile.py.
 
 # Schedule API routes moved to schedule_routes.py.
 
@@ -1049,114 +1010,7 @@ def chat():
 # VACATIONS API
 
 
-@app.route('/api/vacations', methods=['GET', 'POST'])
-def api_vacations():
-    if 'user' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
-
-    if request.method == 'POST':
-        data       = request.json or {}
-        title      = sanitize(data.get('title', ''))
-        start_date = sanitize(data.get('start_date', ''))
-        end_date   = sanitize(data.get('end_date', ''))
-
-        if not title:
-            return jsonify({'error': 'Vacation title is required.'}), 400
-        if start_date and not validate_date(start_date):
-            return jsonify({'error': 'Invalid start date format. Use YYYY-MM-DD.'}), 400
-        if end_date and not validate_date(end_date):
-            return jsonify({'error': 'Invalid end date format. Use YYYY-MM-DD.'}), 400
-
-        vacation_item = {
-            'user':        session['user'],
-            'title':       title,
-            'start_date':  start_date or None,
-            'end_date':    end_date or None,
-            'description': sanitize(data.get('description', '')),
-            'reflection':  sanitize(data.get('reflection', '')),
-            'status':      sanitize(data.get('status', 'planned')) or 'planned',
-            'completed':   (sanitize(data.get('status', 'planned')) == 'completed') or bool(data.get('completed', False)),
-            'created_at':  datetime.now(NZ_TZ)
-        }
-        if vacations_collection is not None:
-            result = vacations_collection.insert_one(vacation_item)
-            vacation_item['_id'] = str(result.inserted_id)
-        else:
-            vacation_item['_id'] = 'temp_id'
-        return jsonify(vacation_item), 201
-
-    else:
-        if vacations_collection is not None:
-            vacations = list(vacations_collection.find({'user': session['user']}))
-            for vacation in vacations:
-                vacation['_id'] = str(vacation['_id'])
-        else:
-            vacations = []
-        return jsonify(vacations)
-
-
-@app.route('/api/vacations/<vacation_id>', methods=['PUT', 'PATCH', 'DELETE'])
-def api_single_vacation(vacation_id):
-    if 'user' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
-
-    if request.method == 'PATCH':
-        # Lightweight update — only update the fields that are sent
-        data = request.json or {}
-        patch_data = {'updated_at': datetime.now()}
-        if 'completed' in data:
-            patch_data['completed'] = bool(data['completed'])
-            patch_data['status'] = 'completed' if bool(data['completed']) else 'planned'
-        if 'status' in data:
-            patch_data['status'] = sanitize(data.get('status', 'planned')) or 'planned'
-            patch_data['completed'] = patch_data['status'] == 'completed'
-        if 'reflection' in data:
-            patch_data['reflection'] = sanitize(data.get('reflection', ''))
-        if vacations_collection is not None:
-            result = vacations_collection.update_one(
-                {'_id': ObjectId(vacation_id), 'user': session['user']},
-                {'$set': patch_data}
-            )
-            if result.matched_count > 0:
-                return jsonify({'success': True})
-            else:
-                return jsonify({'error': 'Vacation not found'}), 404
-        return jsonify({'success': True})
-
-    if request.method == 'PUT':
-        data = request.json or {}
-        update_data = {
-            'title':       sanitize(data.get('title', '')),
-            'start_date':  sanitize(data.get('start_date', '')),
-            'end_date':    sanitize(data.get('end_date', '')),
-            'description': sanitize(data.get('description', '')),
-            'reflection':  sanitize(data.get('reflection', '')),
-            'status':      sanitize(data.get('status', 'planned')) or 'planned',
-            'completed':   (sanitize(data.get('status', 'planned')) == 'completed') or bool(data.get('completed', False)),
-            'updated_at':  datetime.now()
-        }
-        if vacations_collection is not None:
-            result = vacations_collection.update_one(
-                {'_id': ObjectId(vacation_id), 'user': session['user']},
-                {'$set': update_data}
-            )
-            if result.matched_count > 0:
-                return jsonify({'success': True, 'message': 'Vacation updated successfully'})
-            else:
-                return jsonify({'error': 'Vacation not found'})
-        else:
-            return jsonify({'success': True, 'message': 'Vacation updated (dev mode)'})
-
-    elif request.method == 'DELETE':
-        if vacations_collection is not None:
-            result = vacations_collection.delete_one({'_id': ObjectId(vacation_id), 'user': session['user']})
-            if result.deleted_count > 0:
-                return jsonify({'success': True, 'message': 'Vacation deleted successfully'})
-            else:
-                return jsonify({'error': 'Vacation not found'})
-        else:
-            return jsonify({'success': True, 'message': 'Vacation deleted (dev mode)'})
-
+# Vacations API routes moved to vacation.py.
 
 # ACCOUNT / PASSWORD
 
