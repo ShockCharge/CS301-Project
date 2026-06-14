@@ -119,10 +119,12 @@
     border-radius: 50%;
 }
 
-.sidebar.collapsed .logout-btn::before {
-    content: "\F4E1"; /* Bootstrap icon bi-box-arrow-right */
-    font-family: "bootstrap-icons";
-    font-size: 1.2rem;
+.sidebar.collapsed .logout-btn .logout-text {
+    display: none;
+}
+
+.sidebar.collapsed .logout-btn i {
+    font-size: 1.3rem;
 }
 
 .sidebar.collapsed .submenu {
@@ -152,11 +154,13 @@
 
 .sidebar-footer { padding:1rem 1.25rem; border-top:1px solid rgba(255,255,255,0.08); }
 .logout-btn {
-    display:block; width:100%; padding:0.6rem; text-align:center;
+    display:flex; width:100%; padding:0.6rem 1rem;
+    align-items:center; justify-content:center; gap:0.5rem;
     background:var(--btn-danger-bg); color:#fff;
     text-decoration:none; border-radius:8px; font-size:0.9rem; font-weight:700;
     transition:background 0.2s;
 }
+.logout-btn i { font-size:1.1rem; flex-shrink:0; }
 .logout-btn:hover { background:var(--btn-danger-hover); color:#fff; }
 
 /* ════════════════════════════════════════════
@@ -1059,4 +1063,3 @@ body.dark-mode .hero-copy {
         padding: 0.85rem;
     }
 }
-

@@ -228,11 +228,11 @@ body.dark-mode .btn-done:hover   { background: #16a34a; color: #fff; }
 .schedule-item-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
 .schedule-item-info   { flex: 1; }
 .schedule-title { font-size: 1rem; font-weight: 700; color: var(--text-primary); margin: 0 0 0.3rem; transition: color 0.3s; }
-.schedule-meta  { display: flex; flex-wrap: wrap; gap: 0.75rem; font-size: 0.82rem; color: var(--text-muted); transition: color 0.3s; }
-.schedule-meta span { display: flex; align-items: center; gap: 4px; }
+.schedule-meta  { display: flex; flex-wrap: wrap; gap: 0.5rem; font-size: 0.82rem; color: var(--text-secondary); transition: color 0.3s; }
+.schedule-meta span { display: flex; align-items: center; gap: 4px; background: var(--surface-secondary); border: 1px solid var(--border); padding: 0.2rem 0.6rem; border-radius: 20px; transition: background 0.3s, border-color 0.3s, color 0.3s; }
 .schedule-meta i { color: var(--brand); }
 .schedule-actions { display: flex; gap: 6px; }
-.schedule-description { margin-top: 0.6rem; padding-top: 0.6rem; border-top: 1px solid var(--border); font-size: 0.85rem; color: var(--text-muted); transition: color 0.3s, border-color 0.3s; }
+.schedule-description { margin-top: 0.6rem; padding: 0.5rem 0.75rem; border-radius: 8px; background: var(--surface-secondary); border: 1px solid var(--border); font-size: 0.85rem; color: var(--text-secondary); transition: color 0.3s, border-color 0.3s, background 0.3s; }
 
 .btn-icon {
     width: 34px; height: 34px;

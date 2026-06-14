@@ -58,7 +58,7 @@
                 </ul>
             </nav>
             <div class="sidebar-footer">
-                <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+                <a href="{{ url_for('logout') }}" class="logout-btn"><i class="bi bi-box-arrow-right"></i><span class="logout-text">Logout</span></a>
             </div>
         </aside>
 
@@ -302,18 +302,6 @@
                             <a href="{{ url_for('logout') }}" class="profile-action-btn neutral">
                                 Log Out <i class="bi bi-chevron-right"></i>
                             </a>
-                        </div>
-                        <div class="profile-action-row">
-                            <div class="profile-action-left">
-                                <i class="bi bi-crown-fill profile-action-icon warning"></i>
-                                <div>
-                                    <strong>Premium Subscription</strong>
-                                    <p>Upgrade for advanced features</p>
-                                </div>
-                            </div>
-                            <button class="profile-action-btn warning" onclick="alert('Premium coming soon!')">
-                                Upgrade <i class="bi bi-chevron-right"></i>
-                            </button>
                         </div>
                         <div class="profile-action-row danger-row">
                             <div class="profile-action-left">
