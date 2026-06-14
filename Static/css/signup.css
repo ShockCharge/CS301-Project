@@ -49,24 +49,6 @@
             margin-bottom: 1.75rem;
         }
 
-        .auth-brand-icon {
-            width: 60px;
-            height: 60px;
-            border-radius: 18px;
-            background: rgba(255,255,255,0.14);
-            border: 1px solid rgba(255,255,255,0.22);
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 0.85rem;
-            backdrop-filter: blur(10px);
-        }
-
-        .auth-brand-icon i {
-            font-size: 1.6rem;
-            color: #fff;
-        }
-
         .auth-brand h1 {
             color: #fff;
             font-size: 1.5rem;

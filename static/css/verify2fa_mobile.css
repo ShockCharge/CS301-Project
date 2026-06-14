@@ -44,20 +44,6 @@
             margin-bottom: 2rem;
         }
 
-        .verify-lock-icon {
-            width: 76px;
-            height: 76px;
-            border-radius: 24px;
-            background: rgba(255,255,255,0.15);
-            border: 1px solid rgba(255,255,255,0.22);
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2rem;
-            margin-bottom: 1rem;
-            backdrop-filter: blur(10px);
-        }
-
         .verify-brand h1 {
             color: #fff;
             font-size: 1.6rem;
