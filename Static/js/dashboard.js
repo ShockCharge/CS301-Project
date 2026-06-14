@@ -311,3 +311,42 @@ window.dashboardUtils = {
     formatDateNZDashboard,
     showNotification
 };
+
+/* ──────────────────────────────────────────────
+   Moved from inline <script> in dashboard.html
+────────────────────────────────────────────── */
+        // Live clock
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('header-time').textContent =
+                now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+            document.getElementById('header-date').textContent =
+                now.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long' });
+        }
+        updateTime();
+        setInterval(updateTime, 1000);
+
+
+
+        // Activities submenu
+        /* document.getElementById('activities-toggle').addEventListener('click', function (e) {
+            e.preventDefault();
+            document.getElementById('activities-submenu').classList.toggle('active');
+            document.getElementById('activities-arrow').classList.toggle('rotated');
+        }); */
+
+        // Modal open
+        document.getElementById('add-task-btn').addEventListener('click', function () {
+            document.getElementById('addTaskModal').classList.add('active');
+        });
+
+        // Modal close
+        document.getElementById('modal-close').addEventListener('click', function () {
+            document.getElementById('addTaskModal').classList.remove('active');
+        });
+
+        document.getElementById('addTaskModal').addEventListener('click', function (e) {
+            if (e.target === this) this.classList.remove('active');
+        });
+
+        // Progress circle is styled through the --progress CSS variable in the hero card.

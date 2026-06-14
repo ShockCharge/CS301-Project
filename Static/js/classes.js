@@ -253,3 +253,21 @@ if (editClassForm) {
         } catch { showErrorToast('Failed to update class'); }
     });
 }
+
+/* ──────────────────────────────────────────────
+   Moved from inline <script> in classes.html
+────────────────────────────────────────────── */
+    function updateTime() {
+        const now = new Date();
+        document.getElementById('header-time').textContent = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        document.getElementById('header-date').textContent = now.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long' });
+    }
+    updateTime(); setInterval(updateTime, 1000);
+
+    let currentTab = 'current';
+    function switchTab(tab) {
+        currentTab = tab;
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+        filterClasses();
+    }

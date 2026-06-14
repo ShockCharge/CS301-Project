@@ -813,3 +813,42 @@ if (editScheduleForm) {
     });
 }
 
+
+/* ──────────────────────────────────────────────
+   Moved from inline <script> in schedule.html
+────────────────────────────────────────────── */
+    // Live clock
+    function updateTime() {
+        const now = new Date();
+        document.getElementById('header-time').textContent = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        document.getElementById('header-date').textContent = now.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long' });
+    }
+    updateTime(); setInterval(updateTime, 1000);
+
+    // Activities submenu
+    /* document.getElementById('activities-toggle').addEventListener('click', function(e) {
+        e.preventDefault();
+        document.getElementById('activities-submenu').classList.toggle('active');
+        document.getElementById('activities-arrow').classList.toggle('rotated');
+    }); */
+
+    // Modal helpers
+    function openModal(id) { document.getElementById(id).classList.add('active'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+    document.getElementById('add-schedule-btn').addEventListener('click', () => openModal('addScheduleModal'));
+    document.getElementById('closeAddScheduleModal').addEventListener('click', () => closeModal('addScheduleModal'));
+    document.getElementById('closeEditScheduleModal').addEventListener('click', () => closeModal('editScheduleModal'));
+    document.getElementById('closeDeleteScheduleModal').addEventListener('click', () => closeModal('deleteScheduleModal'));
+    document.getElementById('cancelDeleteSchedule').addEventListener('click', () => closeModal('deleteScheduleModal'));
+
+    document.querySelectorAll('.modal').forEach(m => {
+        m.addEventListener('click', function(e) { if (e.target === this) this.classList.remove('active'); });
+    });
+
+    // Tab switching — uses data-view attribute
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            switchView(this.getAttribute('data-view'));
+        });
+    });
