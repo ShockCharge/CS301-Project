@@ -104,8 +104,12 @@ def generate_otp():
     """Generate a secure 6-digit verification code."""
     return ''.join(str(secrets.randbelow(10)) for _ in range(6))
 
-def send_otp_email(user_email, phone, otp_code):
-    """Send a login verification code by email and phone."""
+def send_otp_email(user_email, otp_code, phone=None):
+    """Send a login verification code by email.
+
+    The optional phone parameter is kept only for compatibility with older calls.
+    Login verification is currently delivered by email.
+    """
     if not app.config.get('MAIL_USERNAME') or not app.config.get('MAIL_PASSWORD'):
         print('OTP Email Error: MAIL_USERNAME or MAIL_PASSWORD is not configured.')
         return False
@@ -145,7 +149,7 @@ def start_2fa_session(user_email, phone, user_name=''):
     session['otp_attempts'] = 0
     session['last_otp_sent_at'] = datetime.utcnow().isoformat()
 
-    if send_otp_email(user_email, phone, otp_code):
+    if send_otp_email(user_email, otp_code, phone):
         return True
 
     session.pop('pending_user', None)
@@ -383,7 +387,7 @@ def login():
             user_name = f"{user.get('first_name', '')} {user.get('last_name', '')}".strip()
 
             if login_2fa_enabled():
-                if start_2fa_session(email, user_name):
+                if start_2fa_session(email, user.get('phone', ''), user_name):
                     return redirect(url_for('verify_2fa'))
                 return render_template(
                     'login.html',
@@ -474,8 +478,11 @@ def verify_2fa():
 
             session.pop('pending_user', None)
             session.pop('pending_user_name', None)
+            session.pop('pending_phone', None)
             session.pop('otp_code', None)
             session.pop('otp_expiry', None)
+            session.pop('otp_attempts', None)
+            session.pop('last_otp_sent_at', None)
 
             return redirect(url_for('dashboard'))
 
@@ -495,7 +502,7 @@ def resend_2fa():
     session['otp_code'] = otp_code
     session['otp_expiry'] = (datetime.utcnow() + timedelta(minutes=10)).isoformat()
 
-    if send_otp_email(pending_user, otp_code):
+    if send_otp_email(pending_user, otp_code, session.get('pending_phone', '')):
         return render_template('verify2fa_mobile.html', email=pending_user, info='A new verification code has been sent to your email.')
 
     return render_template('verify2fa_mobile.html', email=pending_user, error='Could not resend the verification code. Please try again later.')
@@ -785,7 +792,7 @@ def profile():
 
 # Profile API routes moved to profile.py.
 
-# Schedule API routes moved to schedule_routes.py.
+# Schedule API routes moved to schedule.py.
 
 
 # CHAT API
@@ -795,9 +802,9 @@ def profile():
 # Tasks API routes moved to task_routes.py.
 
 
-# Exams API routes moved to exam_routes.py.
+# Exams API routes moved to exam.py.
 
-# Classes API routes moved to class_routes.py.
+# Classes API routes moved to classes.py.
 
 
 # VACATIONS API
