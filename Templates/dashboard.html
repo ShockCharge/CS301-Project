@@ -111,7 +111,7 @@
                     </ul>
                 </nav>
                 <div class="sidebar-footer">
-                    <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+                    <a href="{{ url_for('logout') }}" class="logout-btn"><i class="bi bi-box-arrow-right"></i><span class="logout-text">Logout</span></a>
                 </div>
             </aside>
 
@@ -370,43 +370,6 @@
     <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
     <script src="{{ url_for('static', filename='js/darkmode.js') }}"></script>
 
-    <script>
-        // Live clock
-        function updateTime() {
-            const now = new Date();
-            document.getElementById('header-time').textContent =
-                now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-            document.getElementById('header-date').textContent =
-                now.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long' });
-        }
-        updateTime();
-        setInterval(updateTime, 1000);
-
-
-
-        // Activities submenu
-        /* document.getElementById('activities-toggle').addEventListener('click', function (e) {
-            e.preventDefault();
-            document.getElementById('activities-submenu').classList.toggle('active');
-            document.getElementById('activities-arrow').classList.toggle('rotated');
-        }); */
-
-        // Modal open
-        document.getElementById('add-task-btn').addEventListener('click', function () {
-            document.getElementById('addTaskModal').classList.add('active');
-        });
-
-        // Modal close
-        document.getElementById('modal-close').addEventListener('click', function () {
-            document.getElementById('addTaskModal').classList.remove('active');
-        });
-
-        document.getElementById('addTaskModal').addEventListener('click', function (e) {
-            if (e.target === this) this.classList.remove('active');
-        });
-
-        // Progress circle is styled through the --progress CSS variable in the hero card.
-    </script>
 
 </body>
 </html>

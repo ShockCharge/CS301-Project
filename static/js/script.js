@@ -1,4 +1,3 @@
-
 // DATE / TIME HELPERS
 function formatDateNZ(dateString) {
     if (!dateString) return '';
@@ -114,13 +113,13 @@ function initDashboard() {
 
     function openTaskModal() {
         if (!addTaskModal) return;
-        addTaskModal.style.display = 'block';
+        addTaskModal.style.display = 'flex';
         addTaskModal.classList.add('active');
     }
 
     function closeTaskModal() {
         if (!addTaskModal) return;
-        addTaskModal.style.display = 'none';
+        addTaskModal.style.display = '';
         addTaskModal.classList.remove('active');
     }
 
@@ -271,7 +270,7 @@ function fetchAISuggestions() {
 // CLOSE MODAL ON OUTSIDE CLICK (legacy modals)
 window.onclick = function (event) {
     document.querySelectorAll('.modal').forEach(modal => {
-        if (event.target === modal) modal.style.display = 'none';
+        if (event.target === modal) modal.style.display = '';
     });
 };
 

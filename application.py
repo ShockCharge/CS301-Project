@@ -15,19 +15,21 @@ from bson import ObjectId
 import threading
 import random
 import warnings
-import redis
 
-from common import NZ_TZ, ZoneInfo, users_collection, schedules_collection, tasks_collection, exams_collection, classes_collection, vacations_collection, chain, llm, safe_ai_invoke, social_connections_collection, study_groups_collection, group_members_collection, group_messages_collection
+from common import NZ_TZ, ZoneInfo, users_collection, schedules_collection, tasks_collection, exams_collection, classes_collection, vacations_collection, social_connections_collection, study_groups_collection, group_members_collection, group_messages_collection
 
-from task import celery_app, get_ai_suggestions_task, get_ai_study_plan_task
 from collaboration import collaboration_bp
 from settings import settings_bp
-from schedule_routes import schedule_bp
-from web_aware_ai import answer_with_web_awareness
+from schedule import schedule_bp
+from task_routes import task_bp
+from exam import exam_bp
+from classes import class_bp
+from vacation import vacation_bp
+from profile import profile_bp
+from ai import ai_bp
 
 import boto3
 
-redis_client = redis.from_url(os.environ.get('REDIS_URL', os.environ.get('CELERY_BROKER_URL', 'redis://localhost:6379/0')))
 
 
 
@@ -73,6 +75,12 @@ limiter = Limiter(
 app.register_blueprint(collaboration_bp)
 app.register_blueprint(settings_bp)
 app.register_blueprint(schedule_bp)
+app.register_blueprint(task_bp)
+app.register_blueprint(exam_bp)
+app.register_blueprint(class_bp)
+app.register_blueprint(vacation_bp)
+app.register_blueprint(profile_bp)
+app.register_blueprint(ai_bp)
 
 # Email configuration
 # Gmail app passwords are often displayed with spaces; SMTP expects the compact value.
@@ -96,8 +104,12 @@ def generate_otp():
     """Generate a secure 6-digit verification code."""
     return ''.join(str(secrets.randbelow(10)) for _ in range(6))
 
-def send_otp_email(user_email, phone, otp_code):
-    """Send a login verification code by email and phone."""
+def send_otp_email(user_email, otp_code, phone=None):
+    """Send a login verification code by email.
+
+    The optional phone parameter is kept only for compatibility with older calls.
+    Login verification is currently delivered by email.
+    """
     if not app.config.get('MAIL_USERNAME') or not app.config.get('MAIL_PASSWORD'):
         print('OTP Email Error: MAIL_USERNAME or MAIL_PASSWORD is not configured.')
         return False
@@ -137,7 +149,7 @@ def start_2fa_session(user_email, phone, user_name=''):
     session['otp_attempts'] = 0
     session['last_otp_sent_at'] = datetime.utcnow().isoformat()
 
-    if send_otp_email(user_email, phone, otp_code):
+    if send_otp_email(user_email, otp_code, phone):
         return True
 
     session.pop('pending_user', None)
@@ -375,7 +387,7 @@ def login():
             user_name = f"{user.get('first_name', '')} {user.get('last_name', '')}".strip()
 
             if login_2fa_enabled():
-                if start_2fa_session(email, user_name):
+                if start_2fa_session(email, user.get('phone', ''), user_name):
                     return redirect(url_for('verify_2fa'))
                 return render_template(
                     'login.html',
@@ -466,8 +478,11 @@ def verify_2fa():
 
             session.pop('pending_user', None)
             session.pop('pending_user_name', None)
+            session.pop('pending_phone', None)
             session.pop('otp_code', None)
             session.pop('otp_expiry', None)
+            session.pop('otp_attempts', None)
+            session.pop('last_otp_sent_at', None)
 
             return redirect(url_for('dashboard'))
 
@@ -487,7 +502,7 @@ def resend_2fa():
     session['otp_code'] = otp_code
     session['otp_expiry'] = (datetime.utcnow() + timedelta(minutes=10)).isoformat()
 
-    if send_otp_email(pending_user, otp_code):
+    if send_otp_email(pending_user, otp_code, session.get('pending_phone', '')):
         return render_template('verify2fa_mobile.html', email=pending_user, info='A new verification code has been sent to your email.')
 
     return render_template('verify2fa_mobile.html', email=pending_user, error='Could not resend the verification code. Please try again later.')
@@ -628,78 +643,7 @@ def chatbot():
     return render_template('chatbot.html')
 
 
-@app.route('/get_ai_suggestions')
-def get_ai_suggestions():
-    if 'user' not in session:
-        return jsonify({"error": "User not logged in"}), 401
-    try:
-        user_email    = session['user']
-        today         = datetime.now(NZ_TZ)
-        today_str     = today.strftime('%Y-%m-%d')
-        priority_order = {'high': 0, 'medium': 1, 'low': 2}
-
-        today_tasks = list(tasks_collection.find({
-            "user": user_email,
-            "date": today_str,
-            "completed": {"$ne": True}
-        }))
-        today_tasks.sort(key=lambda x: priority_order.get(x.get('priority', 'medium').lower(), 1))
-
-        today_exams = list(exams_collection.find({
-            "user": user_email,
-            "completed": {"$ne": True}
-        }).limit(3))
-
-        filtered_exams = []
-        for exam in today_exams:
-            exam_date_str = exam.get('date', '')
-            try:
-                exam_date = datetime.strptime(exam_date_str, '%Y-%m-%d')
-                if exam_date.date() >= today.date():
-                    filtered_exams.append(exam)
-            except:
-                pass
-
-        context = {
-            "exams": [{"name": e.get("subject"), "date": e.get("date")} for e in filtered_exams],
-            "tasks": [{"name": t.get("name"), "priority": t.get("priority", "medium")} for t in today_tasks]
-        }
-
-        from common import get_ai_suggestion_sync
-        ai_response = get_ai_suggestion_sync(context)
-        return jsonify({"suggestions": ai_response})
-
-    except Exception as e:
-        print(f"Error in get_ai_suggestions: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({"error": str(e)})
-
-
-@app.route('/api/suggestions')
-def api_suggestions_alias():
-    """Compatibility route for frontend JavaScript that calls /api/suggestions."""
-    return get_ai_suggestions()
-
-
-@app.route('/api/ai-task-status/<task_id>')
-def ai_task_status(task_id):
-    """Return Celery task status in a frontend-friendly format."""
-    task = celery_app.AsyncResult(task_id)
-
-    if task.state == 'PENDING':
-        response = {'state': task.state, 'status': 'pending', 'message': 'Pending...'}
-    elif task.state == 'STARTED':
-        response = {'state': task.state, 'status': 'started', 'message': 'Task started...'}
-    elif task.state == 'SUCCESS':
-        response = {'state': task.state, 'status': 'success', 'result': task.result}
-    elif task.state == 'FAILURE':
-        response = {'state': task.state, 'status': 'failed', 'error': str(task.info), 'result': None}
-    else:
-        response = {'state': task.state, 'status': task.state.lower(), 'message': str(task.info)}
-
-    return jsonify(response)
-
+# AI suggestion and task-status API routes moved to ai.py.
 
 @app.route('/tasks')
 def tasks():
@@ -766,16 +710,7 @@ def vacations():
     return render_template('vacations.html', vacations=vacations_list)
 
 
-@app.route('/api/daily-advice')
-def daily_advice():
-    if 'user' not in session:
-        return jsonify({'error': 'Not logged in'})
-    tasks_data = list(tasks_collection.find({'user': session['user']})) if tasks_collection is not None else []
-    exams_data = list(exams_collection.find({'user': session['user']})) if exams_collection is not None else []
-    context    = f"Tasks: {tasks_data}\nExams: {exams_data}"
-    advice     = safe_ai_invoke({"question": "Give the student helpful study advice for today", "user_context": context})
-    return jsonify({"advice": advice})
-
+# Daily advice API routes moved to ai.py.
 
 @app.route('/settings')
 def settings():
@@ -786,71 +721,7 @@ def settings():
 
 # API ROUTES
 
-@app.route('/api/study_plan', methods=['POST'])
-def api_study_plan():
-    if 'user' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
-
-    try:
-        user_email = session['user']
-        today = datetime.now(NZ_TZ).strftime('%Y-%m-%d')
-
-        # Gather user data (fast part - stays in Flask)
-        upcoming_tasks = []
-        if tasks_collection is not None:
-            raw_tasks = list(tasks_collection.find({'user': user_email, 'completed': {'$ne': True}}))
-            upcoming_tasks = [
-                {'name': t.get('name'), 'priority': t.get('priority', 'medium'), 'date': t.get('date')}
-                for t in raw_tasks
-                if get_task_status(t.get('date')) != 'outdated'
-            ]
-
-        upcoming_exams = []
-        if exams_collection is not None:
-            raw_exams = list(exams_collection.find({'user': user_email, 'completed': {'$ne': True}}))
-            upcoming_exams = [
-                {'name': e.get('subject', e.get('name')), 'date': e.get('date')}
-                for e in raw_exams
-                if get_task_status(e.get('date')) != 'outdated'
-            ]
-
-        upcoming_classes = []
-        if classes_collection is not None:
-            raw_classes = list(classes_collection.find({'user': user_email}))
-            upcoming_classes = [
-                {'name': c.get('name', c.get('subject', 'Class')), 'date': c.get('date')}
-                for c in raw_classes
-                if get_task_status(c.get('date')) != 'outdated'
-            ]
-
-        # Offload the heavy AI work to Celery
-        task = get_ai_study_plan_task.delay(user_email)   # ← Only pass user_email
-
-        return jsonify({
-            'task_id': task.id,
-            'status': 'processing',
-            'message': 'Generating your personalized study plan... (this may take 15-40 seconds)'
-        }), 202   
-
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
-    
-
-@app.route('/api/task/<task_id>')
-def task_status(task_id):
-    
-    task = get_ai_study_plan_task.AsyncResult(task_id)
-    
-    if task.state == 'PENDING':
-        return jsonify({"status": "pending", "message": "Still generating..."})
-    elif task.state == 'SUCCESS':
-        return jsonify({"status": "success", "result": task.result})
-    elif task.state == 'FAILURE':
-        return jsonify({"status": "failed", "error": str(task.info)})
-    else:
-        return jsonify({"status": task.state})
+# AI study plan API routes moved to ai.py.
 
 # Settings/account API routes moved to settings.py.
 
@@ -919,584 +790,27 @@ def profile():
     return render_template('profile.html', user=user_data, stats=stats)
 
 
-@app.route('/api/profile', methods=['PUT'])
-def api_profile():
-    """
-    Update the current user's profile fields.
-    Accepts both personal info (first_name, last_name, phone, date_of_birth, gender, address)
-    and study info (institution, student_id, major, year_level, daily_study_goal, preferred_study_time).
-    Both forms on the profile page POST to this single endpoint.
-    """
-    if 'user' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
+# Profile API routes moved to profile.py.
 
-    data = request.json or {}
-
-    # Whitelist of fields that are allowed to be updated — prevents mass-assignment attacks
-    allowed_fields = [
-        'first_name', 'last_name', 'phone', 'date_of_birth',
-        'gender', 'address', 'institution', 'student_id',
-        'major', 'year_level', 'daily_study_goal', 'preferred_study_time',
-        'profile_picture'
-    ]
-
-    update_data = {}
-    for k, v in data.items():
-        if k in allowed_fields:
-            if k == 'profile_picture':
-                # Profile photos are saved as browser-generated data URLs so they can
-                # be shown to friends on the collaboration page. Keep only image data
-                # URLs and limit the stored size to avoid very large profile payloads.
-                if isinstance(v, str) and v.startswith('data:image/') and len(v) <= 2_000_000:
-                    update_data[k] = v
-            else:
-                # Sanitize strings; leave numbers/booleans as-is
-                update_data[k] = sanitize(str(v)) if isinstance(v, str) else v
-
-    if not update_data:
-        return jsonify({'error': 'No valid fields to update'})
-
-    if users_collection is not None:
-        users_collection.update_one({'email': session['user']}, {'$set': update_data})
-
-    return jsonify({'success': True})
-
-
-# Schedule API routes moved to schedule_routes.py.
+# Schedule API routes moved to schedule.py.
 
 
 # CHAT API
 
-@app.route('/api/chat', methods=['POST'])
-def chat():
-    if 'user' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
+# Chat API routes moved to ai.py.
 
-    data         = request.json or {}
-    user_message = sanitize(data.get('message', ''))
-
-    if not user_message:
-        return jsonify({'error': 'No message provided'}), 400
-
-    today = datetime.now(NZ_TZ).strftime('%Y-%m-%d')
-
-    user_tasks = list(tasks_collection.find({
-        'user': session['user'],
-        'completed': {'$ne': True},
-        '$or': [{'date': {'$gte': today}}, {'date': None}, {'date': ''}, {'date': {'$exists': False}}]
-    })) if tasks_collection is not None else []
-    user_exams     = list(exams_collection.find({'user': session['user'], 'date': {'$gte': today}, 'completed': {'$ne': True}})) if exams_collection is not None else []
-    user_classes   = list(classes_collection.find({'user': session['user']})) if classes_collection is not None else []
-    user_schedules = list(schedules_collection.find({'user': session['user'], '$or': [{'date': {'$gte': today}}, {'date': None}, {'date': ''}, {'date': {'$exists': False}}]})) if schedules_collection is not None else []
-
-    for col in [user_tasks, user_exams, user_classes, user_schedules]:
-        for item in col:
-            if '_id' in item:
-                item['_id'] = str(item['_id'])
-
-    context = f"""
-    Today's date: {today}
-    Tasks: {user_tasks}
-    Exams: {user_exams}
-    Classes: {user_classes}
-    Schedules: {user_schedules}
-""".strip()
-
-    try:
-        cache_key = f"chat:{session['user']}:{today}:{user_message}"
-        cached = None
-        try:
-            cached = redis_client.get(cache_key)
-        except Exception as redis_error:
-            print('Redis cache unavailable:', redis_error)
-        if cached:
-            return jsonify({'response': cached.decode('utf-8')})
-        ai_result = answer_with_web_awareness(chain, user_message, context)
-
-        ai_response = ai_result.get('response', '')
-        try:
-            redis_client.set(cache_key, ai_response, ex=3600)
-        except Exception as redis_error:
-            print('Redis cache save failed:', redis_error)
-        return jsonify({
-            'response': ai_response,
-            'web_used': ai_result.get('web_used', False),
-            'sources': ai_result.get('sources', []),
-            'web_error': ai_result.get('web_error')
-        })
-
-    except Exception as e:
-        print("Ollama / LangChain error:", str(e))
-        return jsonify({'error': f'Local AI failed: {str(e)}'}), 500
+# Tasks API routes moved to task_routes.py.
 
 
-# TASKS API
+# Exams API routes moved to exam.py.
 
-@app.route('/api/tasks', methods=['GET', 'POST'])
-def api_tasks():
-    if 'user' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
-
-    if request.method == 'POST':
-        data     = request.json or {}
-        name     = sanitize(data.get('name', ''))
-        priority = sanitize(data.get('priority', 'medium'))
-        date     = sanitize(data.get('date', ''))
-
-        if not name:
-            return jsonify({'error': 'Task name is required.'}), 400
-        if len(name) > 200:
-            return jsonify({'error': 'Task name must be under 200 characters.'}), 400
-        if priority not in ('high', 'medium', 'low'):
-            return jsonify({'error': 'Invalid priority value.'}), 400
-        if date and not validate_date(date):
-            return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD.'}), 400
-        
-        
-        # Get logged-in user's phone number if it exists.
-        # IMPORTANT: task_item must be created even if the user has no phone number
-        # or the user document cannot be found. Otherwise Add Task can fail with
-        # "local variable 'task_item' referenced before assignment".
-        phone_number = ''
-        if users_collection is not None:
-            user_data = users_collection.find_one({'email': session['user']})
-            if user_data:
-                phone_number = user_data.get('phone', '') or ''
-
-        task_item = {
-            'user': session['user'],
-            'name': name,
-            'priority': priority,
-            'date': date or None,
-            'time': sanitize(data.get('time', '23:59')) or '23:59',
-            'phone_number': phone_number,
-            'description': sanitize(data.get('description', '')),
-            'completed': False,
-            'created_at': datetime.now(NZ_TZ),
-            'updated_at': datetime.now(NZ_TZ),
-            'reminder_12h_sent': False,
-            'reminder_6h_sent': False
-        }
-        
-        if tasks_collection is not None:
-            result = tasks_collection.insert_one(task_item)
-            task_item['_id'] = str(result.inserted_id)
-        else:
-            task_item['_id'] = 'temp_id'
-        return jsonify(task_item), 201
-
-    else:
-        if tasks_collection is not None:
-            tasks = list(tasks_collection.find({'user': session['user']}))
-            for task in tasks:
-                task['_id'] = str(task['_id'])
-        else:
-            tasks = []
-        return jsonify(tasks)
-
-
-@app.route('/api/tasks/<task_id>', methods=['PUT', 'PATCH', 'DELETE'])
-def api_single_task(task_id):
-    if 'user' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
-
-    if request.method == 'PUT':
-        data = request.json or {}
-
-        update_data = {
-            'name': sanitize(data.get('name', '')),
-            'priority': sanitize(data.get('priority', 'medium')),
-            'date': sanitize(data.get('date', '')) or None,
-            'time': sanitize(data.get('time', '23:59')) or '23:59',
-            'description': sanitize(data.get('description', '')),
-            'updated_at': datetime.now(NZ_TZ),
-            'reminder_12h_sent': False,
-            'reminder_6h_sent': False
-        }
-
-        if 'completed' in data:
-            update_data['completed'] = bool(data.get('completed'))
-
-        if tasks_collection is not None:
-            result = tasks_collection.update_one(
-                {'_id': ObjectId(task_id), 'user': session['user']},
-                {'$set': update_data}
-            )
-            if result.matched_count > 0:
-                return jsonify({'success': True, 'message': 'Task updated successfully'})
-            else:
-                return jsonify({'error': 'Task not found'}), 404
-        else:
-            return jsonify({'success': True, 'message': 'Task updated (dev mode)'})
-
-    elif request.method == 'PATCH':
-            data = request.json or {}
-            patch_data = {'updated_at': datetime.now(NZ_TZ)}
-            unset_data = {}
-
-            if 'completed' in data:
-                is_completed = bool(data.get('completed'))
-                patch_data['completed'] = is_completed
-
-                if is_completed:
-                    patch_data['completed_at'] = datetime.now(NZ_TZ)
-                else:
-                    unset_data['completed_at'] = ''
-
-            update_query = {'$set': patch_data}
-            if unset_data:
-                update_query['$unset'] = unset_data
-
-            if tasks_collection is not None:
-                result = tasks_collection.update_one(
-                    {'_id': ObjectId(task_id), 'user': session['user']},
-                    update_query
-                )
-                if result.matched_count > 0:
-                    return jsonify({'success': True, 'message': 'Task updated'})
-                else:
-                    return jsonify({'error': 'Task not found'}), 404
-            else:
-                return jsonify({'success': True, 'message': 'Task updated (dev mode)'})
-
-    elif request.method == 'DELETE':
-        if tasks_collection is not None:
-            result = tasks_collection.delete_one({'_id': ObjectId(task_id), 'user': session['user']})
-            if result.deleted_count > 0:
-                return jsonify({'success': True, 'message': 'Task deleted successfully'})
-            else:
-                return jsonify({'error': 'Task not found'})
-        else:
-            return jsonify({'success': True, 'message': 'Task deleted (dev mode)'})
-
-
-# EXAMS API
-
-@app.route('/api/exams', methods=['GET', 'POST'])
-def api_exams():
-    if 'user' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
-
-    if request.method == 'POST':
-        data    = request.json or {}
-        subject = sanitize(data.get('subject', ''))
-        date    = sanitize(data.get('date', ''))
-
-        if not subject:
-            return jsonify({'error': 'Subject name is required.'}), 400
-        if len(subject) > 200:
-            return jsonify({'error': 'Subject name must be under 200 characters.'}), 400
-        if date and not validate_date(date):
-            return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD.'}), 400
-
-        exam_item = {
-            'user':       session['user'],
-            'subject':    subject,
-            'date':       date or None,
-            'time':       sanitize(data.get('time', '')),
-            'duration':   data.get('duration'),
-            'notes':      sanitize(data.get('notes', '')),
-            'reflection': sanitize(data.get('reflection', '')),
-            'completed':  bool(data.get('completed', False)),
-            'created_at': datetime.now()
-        }
-        if exams_collection is not None:
-            result = exams_collection.insert_one(exam_item)
-            exam_item['_id'] = str(result.inserted_id)
-        else:
-            exam_item['_id'] = 'temp_id'
-        return jsonify(exam_item), 201
-
-    else:
-        if exams_collection is not None:
-            exams = list(exams_collection.find({'user': session['user']}))
-            for exam in exams:
-                exam['_id'] = str(exam['_id'])
-        else:
-            exams = []
-        return jsonify(exams)
-
-
-@app.route('/api/exams/<exam_id>', methods=['PUT', 'PATCH', 'DELETE'])
-def api_single_exam(exam_id):
-    if 'user' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
-
-    if request.method == 'PATCH':
-        # Lightweight update — only update the fields that are sent
-        data = request.json or {}
-        patch_data = {'updated_at': datetime.now()}
-        if 'completed' in data:
-            patch_data['completed'] = bool(data['completed'])
-        if 'reflection' in data:
-            patch_data['reflection'] = sanitize(data.get('reflection', ''))
-        if exams_collection is not None:
-            result = exams_collection.update_one(
-                {'_id': ObjectId(exam_id), 'user': session['user']},
-                {'$set': patch_data}
-            )
-            if result.matched_count > 0:
-                return jsonify({'success': True})
-            else:
-                return jsonify({'error': 'Exam not found'}), 404
-        return jsonify({'success': True})
-
-    if request.method == 'PUT':
-        data = request.json or {}
-        update_data = {
-            'subject':    sanitize(data.get('subject', '')),
-            'date':       sanitize(data.get('date', '')),
-            'time':       sanitize(data.get('time', '')),
-            'duration':   data.get('duration'),
-            'notes':      sanitize(data.get('notes', '')),
-            'reflection': sanitize(data.get('reflection', '')),
-            'completed':  bool(data.get('completed', False)),
-            'updated_at': datetime.now()
-        }
-        if exams_collection is not None:
-            result = exams_collection.update_one(
-                {'_id': ObjectId(exam_id), 'user': session['user']},
-                {'$set': update_data}
-            )
-            if result.matched_count > 0:
-                return jsonify({'success': True, 'message': 'Exam updated successfully'})
-            else:
-                return jsonify({'error': 'Exam not found'})
-        else:
-            return jsonify({'success': True, 'message': 'Exam updated (dev mode)'})
-
-    elif request.method == 'DELETE':
-        if exams_collection is not None:
-            result = exams_collection.delete_one({'_id': ObjectId(exam_id), 'user': session['user']})
-            if result.deleted_count > 0:
-                return jsonify({'success': True, 'message': 'Exam deleted successfully'})
-            else:
-                return jsonify({'error': 'Exam not found'})
-        else:
-            return jsonify({'success': True, 'message': 'Exam deleted (dev mode)'})
-
-
-# CLASSES API
-
-@app.route('/api/classes', methods=['GET', 'POST'])
-def api_classes():
-    if 'user' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
-
-    if request.method == 'POST':
-        data = request.json or {}
-        name = sanitize(data.get('name', ''))
-        date = sanitize(data.get('date', ''))
-
-        if not name:
-            return jsonify({'error': 'Class name is required.'}), 400
-        if len(name) > 200:
-            return jsonify({'error': 'Class name must be under 200 characters.'}), 400
-        if date and not validate_date(date):
-            return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD.'}), 400
-
-        class_item = {
-            'user':        session['user'],
-            'name':        name,
-            'instructor':  sanitize(data.get('instructor', '')),
-            'day':         sanitize(data.get('day', '')),
-            'date':        date or None,
-            'time':        sanitize(data.get('time', '')),
-            'duration':    data.get('duration'),
-            'room':        sanitize(data.get('room', '')),
-            'repeat':      sanitize(data.get('repeat', 'never')) or 'never',
-            'repeat_until': sanitize(data.get('repeat_until', '')) or None,
-            'completed':   False,
-            'created_at':  datetime.now()
-        }
-        if classes_collection is not None:
-            result = classes_collection.insert_one(class_item)
-            class_item['_id'] = str(result.inserted_id)
-        else:
-            class_item['_id'] = 'temp_id'
-        return jsonify(class_item), 201
-
-    else:
-        if classes_collection is not None:
-            classes = list(classes_collection.find({'user': session['user']}))
-            for class_item in classes:
-                class_item['_id'] = str(class_item['_id'])
-        else:
-            classes = []
-        return jsonify(classes)
-
-
-@app.route('/api/classes/<class_id>', methods=['PUT', 'PATCH', 'DELETE'])
-def api_single_class(class_id):
-    if 'user' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
-
-    if request.method == 'PATCH':
-        data = request.json or {}
-        patch_data = {'updated_at': datetime.now()}
-        if 'completed' in data:
-            patch_data['completed'] = bool(data['completed'])
-        if classes_collection is not None:
-            result = classes_collection.update_one(
-                {'_id': ObjectId(class_id), 'user': session['user']},
-                {'$set': patch_data}
-            )
-            if result.matched_count > 0:
-                return jsonify({'success': True})
-            else:
-                return jsonify({'error': 'Class not found'}), 404
-        return jsonify({'success': True})
-
-    if request.method == 'PUT':
-        data = request.json or {}
-        update_data = {
-            'name':        sanitize(data.get('name', '')),
-            'instructor':  sanitize(data.get('instructor', '')),
-            'day':         sanitize(data.get('day', '')),
-            'date':        sanitize(data.get('date', '')),
-            'time':        sanitize(data.get('time', '')),
-            'duration':    data.get('duration'),
-            'room':        sanitize(data.get('room', '')),
-            'repeat':      sanitize(data.get('repeat', 'never')) or 'never',
-            'repeat_until': sanitize(data.get('repeat_until', '')) or None,
-            'completed':   bool(data.get('completed', False)),
-            'updated_at':  datetime.now()
-        }
-        if classes_collection is not None:
-            result = classes_collection.update_one(
-                {'_id': ObjectId(class_id), 'user': session['user']},
-                {'$set': update_data}
-            )
-            if result.matched_count > 0:
-                return jsonify({'success': True, 'message': 'Class updated successfully'})
-            else:
-                return jsonify({'error': 'Class not found'})
-        else:
-            return jsonify({'success': True, 'message': 'Class updated (dev mode)'})
-
-    elif request.method == 'DELETE':
-        if classes_collection is not None:
-            result = classes_collection.delete_one({'_id': ObjectId(class_id), 'user': session['user']})
-            if result.deleted_count > 0:
-                return jsonify({'success': True, 'message': 'Class deleted successfully'})
-            else:
-                return jsonify({'error': 'Class not found'})
-        else:
-            return jsonify({'success': True, 'message': 'Class deleted (dev mode)'})
-
+# Classes API routes moved to classes.py.
 
 
 # VACATIONS API
 
 
-@app.route('/api/vacations', methods=['GET', 'POST'])
-def api_vacations():
-    if 'user' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
-
-    if request.method == 'POST':
-        data       = request.json or {}
-        title      = sanitize(data.get('title', ''))
-        start_date = sanitize(data.get('start_date', ''))
-        end_date   = sanitize(data.get('end_date', ''))
-
-        if not title:
-            return jsonify({'error': 'Vacation title is required.'}), 400
-        if start_date and not validate_date(start_date):
-            return jsonify({'error': 'Invalid start date format. Use YYYY-MM-DD.'}), 400
-        if end_date and not validate_date(end_date):
-            return jsonify({'error': 'Invalid end date format. Use YYYY-MM-DD.'}), 400
-
-        vacation_item = {
-            'user':        session['user'],
-            'title':       title,
-            'start_date':  start_date or None,
-            'end_date':    end_date or None,
-            'description': sanitize(data.get('description', '')),
-            'reflection':  sanitize(data.get('reflection', '')),
-            'status':      sanitize(data.get('status', 'planned')) or 'planned',
-            'completed':   (sanitize(data.get('status', 'planned')) == 'completed') or bool(data.get('completed', False)),
-            'created_at':  datetime.now(NZ_TZ)
-        }
-        if vacations_collection is not None:
-            result = vacations_collection.insert_one(vacation_item)
-            vacation_item['_id'] = str(result.inserted_id)
-        else:
-            vacation_item['_id'] = 'temp_id'
-        return jsonify(vacation_item), 201
-
-    else:
-        if vacations_collection is not None:
-            vacations = list(vacations_collection.find({'user': session['user']}))
-            for vacation in vacations:
-                vacation['_id'] = str(vacation['_id'])
-        else:
-            vacations = []
-        return jsonify(vacations)
-
-
-@app.route('/api/vacations/<vacation_id>', methods=['PUT', 'PATCH', 'DELETE'])
-def api_single_vacation(vacation_id):
-    if 'user' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
-
-    if request.method == 'PATCH':
-        # Lightweight update — only update the fields that are sent
-        data = request.json or {}
-        patch_data = {'updated_at': datetime.now()}
-        if 'completed' in data:
-            patch_data['completed'] = bool(data['completed'])
-            patch_data['status'] = 'completed' if bool(data['completed']) else 'planned'
-        if 'status' in data:
-            patch_data['status'] = sanitize(data.get('status', 'planned')) or 'planned'
-            patch_data['completed'] = patch_data['status'] == 'completed'
-        if 'reflection' in data:
-            patch_data['reflection'] = sanitize(data.get('reflection', ''))
-        if vacations_collection is not None:
-            result = vacations_collection.update_one(
-                {'_id': ObjectId(vacation_id), 'user': session['user']},
-                {'$set': patch_data}
-            )
-            if result.matched_count > 0:
-                return jsonify({'success': True})
-            else:
-                return jsonify({'error': 'Vacation not found'}), 404
-        return jsonify({'success': True})
-
-    if request.method == 'PUT':
-        data = request.json or {}
-        update_data = {
-            'title':       sanitize(data.get('title', '')),
-            'start_date':  sanitize(data.get('start_date', '')),
-            'end_date':    sanitize(data.get('end_date', '')),
-            'description': sanitize(data.get('description', '')),
-            'reflection':  sanitize(data.get('reflection', '')),
-            'status':      sanitize(data.get('status', 'planned')) or 'planned',
-            'completed':   (sanitize(data.get('status', 'planned')) == 'completed') or bool(data.get('completed', False)),
-            'updated_at':  datetime.now()
-        }
-        if vacations_collection is not None:
-            result = vacations_collection.update_one(
-                {'_id': ObjectId(vacation_id), 'user': session['user']},
-                {'$set': update_data}
-            )
-            if result.matched_count > 0:
-                return jsonify({'success': True, 'message': 'Vacation updated successfully'})
-            else:
-                return jsonify({'error': 'Vacation not found'})
-        else:
-            return jsonify({'success': True, 'message': 'Vacation updated (dev mode)'})
-
-    elif request.method == 'DELETE':
-        if vacations_collection is not None:
-            result = vacations_collection.delete_one({'_id': ObjectId(vacation_id), 'user': session['user']})
-            if result.deleted_count > 0:
-                return jsonify({'success': True, 'message': 'Vacation deleted successfully'})
-            else:
-                return jsonify({'error': 'Vacation not found'})
-        else:
-            return jsonify({'success': True, 'message': 'Vacation deleted (dev mode)'})
-
+# Vacations API routes moved to vacation.py.
 
 # ACCOUNT / PASSWORD
 

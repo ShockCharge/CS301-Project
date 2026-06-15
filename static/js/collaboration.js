@@ -700,3 +700,15 @@ document.addEventListener('DOMContentLoaded', () => {
     loadFriends();
     loadGroups();
 });
+
+/* ──────────────────────────────────────────────
+   Moved from inline <script> in collaboration.html
+────────────────────────────────────────────── */
+    function updateTime() {
+        const now = new Date();
+        document.getElementById('header-time').textContent = now.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+        document.getElementById('header-date').textContent = now.toLocaleDateString('en-US',{weekday:'long',day:'numeric',month:'long'});
+    }
+    updateTime(); setInterval(updateTime, 1000);
+
+    // Sidebar toggle

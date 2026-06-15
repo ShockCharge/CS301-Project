@@ -1327,3 +1327,69 @@
         padding: 0.12rem 0.28rem;
     }
 }
+
+/* ════════════════════════════════════════════
+   LIGHT MODE OVERRIDES for scheduled items
+   ════════════════════════════════════════════ */
+body:not(.dark-mode) .inline-status {
+    border-color: #d97706;
+    background: #fef3c7;
+    color: #92400e;
+}
+
+body:not(.dark-mode) .schedule-meta span,
+body:not(.dark-mode) .repeat-badge {
+    background: #e8edf8;
+    border-color: #c7d2e8;
+    color: #1e3a5f;
+}
+
+body:not(.dark-mode) .schedule-meta i {
+    color: #2563eb;
+}
+
+body:not(.dark-mode) .btn-icon.btn-edit {
+    border-color: #93c5fd;
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+body:not(.dark-mode) .btn-icon.btn-edit:hover {
+    background: #2563eb;
+    border-color: #2563eb;
+    color: #ffffff;
+}
+
+body:not(.dark-mode) .btn-icon.btn-delete {
+    border-color: #fca5a5;
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+body:not(.dark-mode) .btn-icon.btn-delete:hover {
+    background: #dc2626;
+    border-color: #dc2626;
+    color: #ffffff;
+}
+
+body:not(.dark-mode) .btn-open-source {
+    border-color: #93c5fd;
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+body:not(.dark-mode) .btn-open-source:hover {
+    background: #bfdbfe;
+    border-color: #60a5fa;
+}
+
+body:not(.dark-mode) .schedule-description {
+    border-color: #c7d2e8;
+    background: #f0f5ff;
+    color: #1e3a5f;
+}
+
+body:not(.dark-mode) .schedule-item {
+    background-color: #ffffff;
+    border-color: #c7d8f0;
+}

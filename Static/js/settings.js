@@ -83,3 +83,78 @@ function initSettings() {
         });
     }
 }
+
+/* ──────────────────────────────────────────────
+   Moved from inline <script> in settings.html
+────────────────────────────────────────────── */
+    // Live clock
+    function updateTime() {
+        const now = new Date();
+        document.getElementById('header-time').textContent = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        document.getElementById('header-date').textContent = now.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long' });
+    }
+    updateTime(); setInterval(updateTime, 1000);
+
+    // Activities submenu
+    /* document.getElementById('activities-toggle').addEventListener('click', function(e) {
+        e.preventDefault();
+        document.getElementById('activities-submenu').classList.toggle('active');
+        document.getElementById('activities-arrow').classList.toggle('rotated');
+    }); */
+
+    // Change password modal
+    document.getElementById('changePasswordBtn').addEventListener('click', () => {
+        document.getElementById('changePasswordModal').classList.add('active');
+    });
+    document.getElementById('closePwModal').addEventListener('click', () => {
+        document.getElementById('changePasswordModal').classList.remove('active');
+    });
+    document.getElementById('changePasswordModal').addEventListener('click', function(e) {
+        if (e.target === this) this.classList.remove('active');
+    });
+
+    document.getElementById('submitPasswordChange').addEventListener('click', async function() {
+        const current = document.getElementById('currentPassword').value;
+        const newPw   = document.getElementById('newPassword').value;
+        const confirm = document.getElementById('confirmPassword').value;
+        const errEl   = document.getElementById('pwError');
+
+        if (!current || !newPw || !confirm) { errEl.textContent = 'All fields are required.'; errEl.style.display = 'block'; return; }
+        if (newPw !== confirm)               { errEl.textContent = 'New passwords do not match.'; errEl.style.display = 'block'; return; }
+        if (newPw.length < 8)                { errEl.textContent = 'Password must be at least 8 characters.'; errEl.style.display = 'block'; return; }
+        if (!/[A-Z]/.test(newPw))            { errEl.textContent = 'Password needs at least one uppercase letter.'; errEl.style.display = 'block'; return; }
+        if (!/[0-9]/.test(newPw))            { errEl.textContent = 'Password needs at least one number.'; errEl.style.display = 'block'; return; }
+
+        errEl.style.display = 'none';
+        try {
+            const res    = await fetch('/api/change_password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ current_password: current, new_password: newPw })
+            });
+            const result = await res.json();
+            if (result.success) {
+                showToast('Password updated successfully!', 'success');
+                document.getElementById('changePasswordModal').classList.remove('active');
+                document.getElementById('currentPassword').value = '';
+                document.getElementById('newPassword').value     = '';
+                document.getElementById('confirmPassword').value = '';
+            } else {
+                errEl.textContent  = result.error || 'Failed to update password.';
+                errEl.style.display = 'block';
+            }
+        } catch { errEl.textContent = 'Network error.'; errEl.style.display = 'block'; }
+    });
+
+    function showToast(message, type) {
+        const c     = document.getElementById('toastContainer') || document.body;
+        const toast = document.createElement('div');
+        toast.className   = `toast-msg toast-${type}`;
+        toast.textContent = message;
+        c.appendChild(toast);
+        setTimeout(() => {
+            toast.style.opacity    = '0';
+            toast.style.transition = 'opacity 0.3s';
+            setTimeout(() => { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 300);
+        }, 3000);
+    }
