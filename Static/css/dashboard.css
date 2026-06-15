@@ -1063,3 +1063,402 @@ body.dark-mode .hero-copy {
         padding: 0.85rem;
     }
 }
+
+
+/* ════════════════════════════════════════════════════════════════
+   DASHBOARD TRIPLE GRID  –  Tasks & Exams | Progress | Calendar
+════════════════════════════════════════════════════════════════ */
+
+/* Hero calendar card (right side of hero row) */
+.hero-calendar-card {
+    background: var(--surface);
+    border: 1.5px solid var(--border-card);
+    box-shadow: var(--shadow-card);
+    border-radius: 24px;
+    padding: 1.1rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    position: relative;
+    transition: background 0.25s, border-color 0.25s;
+}
+
+.hero-cal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.2rem;
+}
+
+/* nav buttons inside hero calendar use the same .mini-cal-nav-btn styles */
+.hero-calendar-card .mini-cal-dow-header span {
+    color: var(--brand);
+}
+
+/* Day detail popover inside hero card needs to sit above hero */
+.hero-calendar-card .mini-cal-day-detail {
+    bottom: 0;
+    left: 0;
+    right: 0;
+}
+
+/* Three-column row */
+.dashboard-triple-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr) minmax(0, 1fr);
+    gap: 1.25rem;
+    align-items: stretch;
+    margin-bottom: 1.5rem;
+}
+
+/* ── Progress Panel ── */
+.progress-panel {
+    display: flex;
+    flex-direction: column;
+}
+
+.progress-panel-body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    flex: 1;
+    padding-top: 0.5rem;
+}
+
+.progress-panel-body .progress-circle {
+    background: conic-gradient(
+        var(--brand) 0%,
+        var(--brand) var(--progress, 0%),
+        var(--border-card) var(--progress, 0%),
+        var(--border-card) 100%
+    );
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.progress-panel-body .progress-inner {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    background: var(--surface);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    font-weight: 900;
+    color: var(--brand);
+    transition: background 0.25s;
+}
+
+.progress-panel-label {
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin: 0.85rem 0 0.2rem;
+}
+
+.progress-panel-note {
+    margin: 0 0 1rem;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    line-height: 1.45;
+}
+
+/* Progress breakdown bars */
+.progress-breakdown {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    margin-top: 0.5rem;
+}
+
+.progress-bar-row {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    font-size: 0.8rem;
+}
+
+.pb-label {
+    min-width: 80px;
+    text-align: left;
+    color: var(--text-secondary);
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    white-space: nowrap;
+}
+
+.pb-track {
+    flex: 1;
+    height: 7px;
+    background: var(--border-card);
+    border-radius: 99px;
+    overflow: hidden;
+}
+
+.pb-fill {
+    height: 100%;
+    border-radius: 99px;
+    transition: width 0.6s ease;
+}
+
+.pb-tasks     { background: var(--brand); }
+.pb-exams     { background: #f59e0b; }
+.pb-schedules { background: #10b981; }
+
+.pb-pct {
+    min-width: 32px;
+    text-align: right;
+    font-weight: 700;
+    color: var(--text-muted);
+    font-size: 0.78rem;
+}
+
+/* ── Mini Calendar Panel ── */
+.calendar-panel {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+.mini-cal-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.65rem;
+}
+
+.mini-cal-nav-btn {
+    background: none;
+    border: 1.5px solid var(--border-card);
+    border-radius: 8px;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: background 0.15s, color 0.15s;
+    font-size: 0.8rem;
+}
+.mini-cal-nav-btn:hover {
+    background: var(--brand-tint);
+    color: var(--brand);
+}
+
+.mini-cal-month-label {
+    font-size: 0.9rem;
+    font-weight: 800;
+    color: var(--text-primary);
+}
+
+/* Day-of-week header */
+.mini-cal-dow-header {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    margin-bottom: 3px;
+}
+.mini-cal-dow-header span {
+    text-align: center;
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: var(--brand);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    padding: 4px 0;
+}
+
+/* Month grid */
+.mini-cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+    flex: 1;
+}
+
+.mini-cal-day {
+    min-height: 36px;
+    border-radius: 7px;
+    padding: 3px 4px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: background 0.15s;
+    position: relative;
+}
+.mini-cal-day:hover {
+    background: var(--brand-tint);
+}
+.mini-cal-day.other-month {
+    opacity: 0.3;
+    pointer-events: none;
+}
+.mini-cal-day.today .mini-cal-day-num {
+    background: var(--brand);
+    color: #fff;
+    border-radius: 50%;
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.mini-cal-day.has-events {
+    background: var(--brand-tint);
+}
+
+.mini-cal-day-num {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1;
+    margin-bottom: 2px;
+}
+
+/* Event dots row */
+.mini-cal-dots {
+    display: flex;
+    gap: 2px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.mini-cal-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: inline-block;
+}
+.dot-task     { background: var(--brand); }
+.dot-exam     { background: #f59e0b; }
+.dot-schedule { background: #10b981; }
+.dot-class    { background: #8b5cf6; }
+.dot-vacation { background: #ec4899; }
+
+/* Legend */
+.mini-cal-legend {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    margin-top: 0.65rem;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    flex-wrap: wrap;
+}
+.mini-cal-legend .mini-cal-dot {
+    width: 8px;
+    height: 8px;
+}
+
+/* Day detail popover */
+.mini-cal-day-detail {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--surface);
+    border: 1.5px solid var(--border-card);
+    border-radius: 14px;
+    padding: 0.85rem 1rem;
+    box-shadow: var(--shadow-md);
+    z-index: 20;
+    max-height: 220px;
+    overflow-y: auto;
+    transition: background 0.25s, border-color 0.25s;
+}
+
+.mini-cal-detail-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.55rem;
+}
+
+.mini-cal-detail-header span {
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: var(--text-primary);
+}
+
+.mini-cal-detail-close {
+    background: none;
+    border: none;
+    font-size: 1.1rem;
+    cursor: pointer;
+    color: var(--text-muted);
+    line-height: 1;
+    padding: 0;
+}
+.mini-cal-detail-close:hover { color: var(--text-primary); }
+
+.mini-cal-detail-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.mini-cal-detail-list li {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    padding: 0.3rem 0.5rem;
+    border-radius: 7px;
+    background: var(--brand-tint);
+}
+
+.mini-cal-detail-list li .mini-cal-dot {
+    flex-shrink: 0;
+    width: 8px;
+    height: 8px;
+}
+
+.mini-cal-detail-empty {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    text-align: center;
+    padding: 0.5rem 0;
+}
+
+/* ── Responsive adjustments ── */
+@media (max-width: 1100px) {
+    .dashboard-triple-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+    .calendar-panel {
+        grid-column: 1 / -1;
+    }
+    .dashboard-hero {
+        grid-template-columns: 1fr;
+    }
+    .hero-calendar-card {
+        border-radius: 20px;
+    }
+}
+
+@media (max-width: 768px) {
+    .dashboard-triple-grid {
+        grid-template-columns: 1fr;
+    }
+    .calendar-panel {
+        grid-column: auto;
+    }
+    .hero-calendar-card {
+        border-radius: 16px;
+    }
+}
