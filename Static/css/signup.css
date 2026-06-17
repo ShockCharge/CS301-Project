@@ -1,7 +1,10 @@
-/* ──────────────────────────────────────────────
-   Signup page styles — moved from inline <style> in signup.html
-────────────────────────────────────────────── */
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        *, 
+        *::before, 
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
 
         body {
             font-family: "Lato", sans-serif;
@@ -35,7 +38,7 @@
             pointer-events: none;
         }
 
-        /* ── Shell ── */
+        /* Shell */
         .auth-shell {
             width: 100%;
             max-width: 520px;
@@ -43,7 +46,7 @@
             z-index: 1;
         }
 
-        /* ── Brand header ── */
+        /* Brand header */
         .auth-brand {
             text-align: center;
             margin-bottom: 1.75rem;
@@ -63,7 +66,7 @@
             margin: 0;
         }
 
-        /* ── Card ── */
+        /* Card */
         .auth-card {
             background: #ffffff;
             border-radius: 24px;
@@ -78,7 +81,7 @@
             margin: 0 0 1.25rem;
         }
 
-        /* ── Error / Success alerts ── */
+        /* Error and Success */
         .auth-alert {
             display: flex;
             align-items: center;
@@ -96,7 +99,7 @@
             color: #991b1b;
         }
 
-        /* ── Form grid ── */
+        /* Form grid */
         .field-row-2 {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -115,7 +118,7 @@
             margin-bottom: 0.35rem;
         }
 
-        /* ── Input wrap ── */
+        /* Input wrap */
         .sp-input-wrap {
             display: flex;
             align-items: center;
@@ -157,7 +160,9 @@
             min-width: 0;
         }
 
-        .sp-input-wrap input::placeholder { color: #94a3b8; }
+        .sp-input-wrap input::placeholder {
+            color: #94a3b8;
+        }
 
         .pw-toggle-btn {
             background: none;
@@ -171,9 +176,11 @@
             align-items: center;
             transition: color 0.2s;
         }
-        .pw-toggle-btn:hover { color: #2563eb; }
+        .pw-toggle-btn:hover {
+            color: #2563eb;
+        }
 
-        /* ── Submit button ── */
+        /* Submit button */
         .sp-submit {
             width: 100%;
             padding: 0.82rem;
@@ -194,10 +201,15 @@
             transition: opacity 0.2s, transform 0.15s;
         }
 
-        .sp-submit:hover { opacity: 0.9; transform: translateY(-1px); }
-        .sp-submit:active { transform: translateY(0); }
+        .sp-submit:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+        .sp-submit:active {
+            transform: translateY(0);
+        }
 
-        /* ── Login link ── */
+        /* Login link */
         .auth-switch {
             text-align: center;
             margin-top: 1.25rem;
@@ -211,9 +223,11 @@
             text-decoration: none;
         }
 
-        .auth-switch a:hover { text-decoration: underline; }
+        .auth-switch a:hover {
+            text-decoration: underline;
+        }
 
-        /* ── Divider ── */
+        /* Divider */
         .auth-divider {
             text-align: center;
             font-size: 0.78rem;
@@ -233,12 +247,23 @@
             background: #e2e8f0;
         }
 
-        .auth-divider::before { left: 0; }
-        .auth-divider::after  { right: 0; }
+        .auth-divider::before {
+            left: 0;
+        }
+        .auth-divider::after {
+            right: 0;
+        }
 
-        /* ── Responsive ── */
+        /* Responsive */
         @media (max-width: 520px) {
-            body { padding: 1.5rem 0.75rem 2.5rem; }
-            .auth-card { padding: 1.5rem 1.25rem 1.5rem; border-radius: 20px; }
-            .field-row-2 { grid-template-columns: 1fr; }
+            body {
+                padding: 1.5rem 0.75rem 2.5rem;
+            }
+            .auth-card {
+                padding: 1.5rem 1.25rem 1.5rem;
+                border-radius: 20px;
+            }
+            .field-row-2 {
+                grid-template-columns: 1fr;
+            }
         }

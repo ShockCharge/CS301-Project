@@ -1,7 +1,10 @@
-/* ──────────────────────────────────────────────
-   Verify 2FA page styles — moved from inline <style> in verify2fa_mobile.html
-────────────────────────────────────────────── */
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        *, 
+        *::before, 
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
 
         body {
             font-family: "Lato", sans-serif;
@@ -13,7 +16,7 @@
             padding: 2rem 1rem;
         }
 
-        /* ── Decorative blobs ── */
+        /* Decorative blobs */
         body::before, body::after {
             content: "";
             position: fixed;
@@ -38,7 +41,7 @@
             z-index: 1;
         }
 
-        /* ── Brand ── */
+        /* Brand */
         .verify-brand {
             text-align: center;
             margin-bottom: 2rem;
@@ -57,7 +60,7 @@
             margin: 0;
         }
 
-        /* ── Card ── */
+        /* Card */
         .verify-card {
             background: #fff;
             border-radius: 24px;
@@ -92,7 +95,7 @@
             margin-bottom: 1.5rem;
         }
 
-        /* ── Alerts ── */
+        /* Alerts */
         .alert-error {
             display: flex;
             align-items: center;
@@ -121,7 +124,7 @@
             margin-bottom: 1.25rem;
         }
 
-        /* ── OTP boxes ── */
+        /* OTP boxes */
         .otp-label {
             font-size: 0.82rem;
             font-weight: 700;
@@ -166,7 +169,7 @@
             color: #15803d;
         }
 
-        /* ── Verify button ── */
+        /* Verify button */
         .verify-btn {
             width: 100%;
             padding: 0.85rem;
@@ -187,10 +190,17 @@
             margin-bottom: 1.25rem;
         }
 
-        .verify-btn:hover:not(:disabled) { opacity: 0.92; transform: translateY(-1px); }
-        .verify-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+        .verify-btn:hover:not(:disabled) {
+            opacity: 0.92;
+            transform: translateY(-1px);
+        }
+        .verify-btn:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+            transform: none;
+        }
 
-        /* ── Timer bar ── */
+        /* Timer bar */
         .timer-bar-wrap {
             height: 4px;
             background: #e2e8f0;
@@ -206,7 +216,7 @@
             width: 100%;
         }
 
-        /* ── Footer actions ── */
+        /* Footer actions */
         .verify-footer {
             display: flex;
             align-items: center;
@@ -224,7 +234,9 @@
             color: #0f172a;
         }
 
-        .resend-form { display: inline; }
+        .resend-form {
+            display: inline;
+        }
 
         .resend-btn {
             background: none;
@@ -238,7 +250,9 @@
             text-decoration: underline;
             transition: opacity 0.2s;
         }
-        .resend-btn:hover { opacity: 0.78; }
+        .resend-btn:hover {
+            opacity: 0.78;
+        }
 
         .back-link {
             display: block;
@@ -250,16 +264,34 @@
             text-decoration: none;
             transition: color 0.2s;
         }
-        .back-link:hover { color: #fff; }
+        .back-link:hover {
+            color: #fff;
+        }
 
-        /* ── Responsive ── */
+        /* Responsive */
         @media (max-width: 480px) {
-            .verify-card { padding: 1.5rem 1.25rem; border-radius: 20px; }
-            .otp-box { width: 44px; height: 52px; font-size: 1.35rem; border-radius: 10px; }
-            .otp-row { gap: 0.4rem; }
+            .verify-card {
+                padding: 1.5rem 1.25rem;
+                border-radius: 20px;
+            }
+            .otp-box {
+                width: 44px;
+                height: 52px;
+                font-size: 1.35rem;
+                border-radius: 10px;
+            }
+            .otp-row {
+                gap: 0.4rem;
+            }
         }
 
         @media (max-width: 360px) {
-            .otp-box { width: 38px; height: 46px; font-size: 1.2rem; }
-            .otp-row { gap: 0.3rem; }
+            .otp-box {
+                width: 38px;
+                height: 46px;
+                font-size: 1.2rem;
+            }
+            .otp-row {
+                gap: 0.3rem;
+            }
         }
