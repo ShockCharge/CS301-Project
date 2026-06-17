@@ -1,8 +1,3 @@
-// Exams page JavaScript
-// This file contains only exam-page logic moved out of script.js.
-// Shared helpers such as showSuccessToast(), showErrorToast(), formatDateNZ(),
-// formatTimeNZ(), escapeHtml(), and the shared delete modal still come from script.js.
-
 // EXAMS
 function initExams() {
     const addExamBtn   = document.getElementById('add-exam-page-btn');
@@ -324,9 +319,6 @@ if (editExamForm) {
     });
 }
 
-/* ──────────────────────────────────────────────
-   Moved from inline <script> in exams.html
-────────────────────────────────────────────── */
     function updateTime() {
         const now = new Date();
         document.getElementById('header-time').textContent = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });

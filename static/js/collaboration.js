@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
 
-    // ==================== DOM ELEMENTS ====================
+    // DOM ELEMENTS
     const searchInput = document.getElementById('userSearch');
     const searchButton = document.getElementById('searchUsersBtn');
     const peopleList = document.getElementById('peopleList');
@@ -57,7 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let acceptedFriends = [];
     let selectedGroupMembers = [];
 
-    // ==================== HELPER FUNCTIONS ====================
+    // HELPER FUNCTIONS
     const formatDateTime = (isoValue) => {
         if (!isoValue) return '';
         const date = new Date(isoValue);
@@ -134,7 +134,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('#groupsList .group-card').forEach(card => card.classList.remove('active'));
     };
 
-    // ==================== CREATE GROUP ====================
+    // CREATE GROUP
     if (createGroupForm) {
         createGroupForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -169,7 +169,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // ==================== GROUPS ====================
+    // GROUPS
     const loadGroups = async () => {
         if (!groupsStatus) return;
         groupsStatus.textContent = 'Loading groups...';
@@ -341,7 +341,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // ==================== PRIVATE CHAT FUNCTIONS ====================
+    // PRIVATE CHAT FUNCTIONS
     const renderUsers = (users) => {
         peopleList.innerHTML = '';
         if (!users || users.length === 0) {
@@ -600,7 +600,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // ==================== GROUP MESSAGE SENDING ====================
+    // GROUP MESSAGE SENDING
     if (groupMessageForm) {
         groupMessageForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -628,7 +628,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // ==================== EVENT LISTENERS ====================
+    // EVENT LISTENERS
     openCreateGroupBtn?.addEventListener('click', () => {
         if (!createGroupBox) return;
         createGroupBox.style.display = createGroupBox.style.display === 'none' ? 'block' : 'none';
@@ -694,21 +694,16 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     messageForm?.addEventListener('submit', (e) => { e.preventDefault(); sendMessage(); });
 
-    // ==================== INITIAL LOAD ====================
+    // INITIAL LOAD
     loadUsers();
     loadIncomingRequests();
     loadFriends();
     loadGroups();
 });
 
-/* ──────────────────────────────────────────────
-   Moved from inline <script> in collaboration.html
-────────────────────────────────────────────── */
     function updateTime() {
         const now = new Date();
         document.getElementById('header-time').textContent = now.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
         document.getElementById('header-date').textContent = now.toLocaleDateString('en-US',{weekday:'long',day:'numeric',month:'long'});
     }
     updateTime(); setInterval(updateTime, 1000);
-
-    // Sidebar toggle

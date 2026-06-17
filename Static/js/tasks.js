@@ -1,9 +1,3 @@
-// Tasks page JavaScript
-// This file contains only task-page logic moved out of script.js.
-// Shared helpers such as showToast(), showSuccessToast(), showErrorToast(),
-// formatDateNZ(), getTodayKeyNZ(), escapeHtml(), and the shared delete modal
-// still come from script.js.
-
 function initTasks() {
     const addTaskBtn   = document.getElementById('add-task-page-btn');
     const addTaskModal = document.getElementById('addTaskModal');
@@ -233,9 +227,6 @@ if (editTaskForm) {
     });
 }
 
-/* ──────────────────────────────────────────────
-   Moved from inline <script> in tasks.html
-────────────────────────────────────────────── */
     // Live clock
     function updateTime() {
         const now = new Date();

@@ -304,9 +304,7 @@ async function generateStudyPlan() {
     }
 }
 
-/* ══════════════════════════════════════════════════════════
-   MINI CALENDAR  —  dashboard calendar panel
-══════════════════════════════════════════════════════════ */
+/* MINI CALENDAR */
 
 let dashCalDate = new Date();
 let dashCalItems = [];   // normalised calendar items for the dashboard
@@ -315,12 +313,12 @@ let dashCalItems = [];   // normalised calendar items for the dashboard
 const MONTH_NAMES = ['January','February','March','April','May','June',
                      'July','August','September','October','November','December'];
 
-// ── Date key helper (YYYY-MM-DD) ──
+// Date key helper (YYYY-MM-DD)
 function dashDateKey(date) {
     return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
 }
 
-// ── Fetch all calendar data and render ──
+// Fetch all calendar data and render
 function loadDashCalendar() {
     Promise.all([
         fetch('/api/schedules').then(r => r.json()).catch(() => []),
@@ -335,7 +333,7 @@ function loadDashCalendar() {
     }).catch(err => console.error('Dashboard calendar load error:', err));
 }
 
-// ── Normalise all items into a flat array ──
+// Normalise all items into a flat array
 function buildDashCalItems(schedules, tasks, exams, classes, vacations) {
     const items = [];
     (Array.isArray(schedules) ? schedules : []).forEach(s => {
@@ -356,7 +354,7 @@ function buildDashCalItems(schedules, tasks, exams, classes, vacations) {
     return items.filter(i => i._date);
 }
 
-// ── Check if an item occurs on a given date key ──
+// Check if an item occurs on a given date key
 function dashItemOnDate(item, dateKey) {
     if (!item || !item._date || !dateKey) return false;
     if (item._type === 'vacation') {
@@ -369,7 +367,7 @@ function dashItemOnDate(item, dateKey) {
     return item._date === dateKey;
 }
 
-// ── Simple recurrence check (mirrors schedule.js logic) ──
+// Simple recurrence check (mirrors schedule.js logic)
 function dashScheduleOccurs(item, dateKey) {
     const repeat = item.repeat || 'never';
     if (repeat === 'never') return item._date === dateKey;
@@ -393,12 +391,12 @@ function dashScheduleOccurs(item, dateKey) {
     return false;
 }
 
-// ── Get items for a specific date key ──
+// Get items for a specific date key
 function dashItemsForDate(dateKey) {
     return dashCalItems.filter(i => dashItemOnDate(i, dateKey));
 }
 
-// ── Render the mini calendar grid ──
+// Render the mini calendar grid
 function renderDashCalendar() {
     const grid = document.getElementById('dash-cal-grid');
     const label = document.getElementById('dash-cal-month-label');
@@ -455,7 +453,7 @@ function renderDashCalendar() {
             cell.appendChild(dotsRow);
         }
 
-        // Click handler → show detail
+        // Click handler > show detail
         cell.addEventListener('click', () => showDashCalDetail(dateKey, items));
         grid.appendChild(cell);
     }
@@ -471,7 +469,7 @@ function renderDashCalendar() {
     }
 }
 
-// ── Show day detail popover ──
+// Show day detail popover
 function showDashCalDetail(dateKey, items) {
     const detail = document.getElementById('dash-cal-detail');
     const dateLabel = document.getElementById('dash-cal-detail-date');
@@ -502,7 +500,7 @@ function showDashCalDetail(dateKey, items) {
     detail.style.display = 'block';
 }
 
-// ── Progress breakdown bars ──
+// Progress breakdown bars
 function loadProgressBreakdown(tasks, exams, schedules) {
     const taskArr  = Array.isArray(tasks)     ? tasks     : [];
     const examArr  = Array.isArray(exams)     ? exams     : [];
@@ -524,7 +522,7 @@ function loadProgressBreakdown(tasks, exams, schedules) {
     setBar('pb-schedules-fill', 'pb-schedules-pct', schedPct);
 }
 
-// ── Wire up calendar nav buttons ──
+// Wire up calendar nav buttons
 function initDashCalendar() {
     document.getElementById('dash-cal-prev')?.addEventListener('click', () => {
         dashCalDate.setMonth(dashCalDate.getMonth() - 1);
@@ -558,9 +556,6 @@ window.dashboardUtils = {
     showNotification
 };
 
-/* ──────────────────────────────────────────────
-   Moved from inline <script> in dashboard.html
-────────────────────────────────────────────── */
         // Live clock
         function updateTime() {
             const now = new Date();
@@ -594,5 +589,3 @@ window.dashboardUtils = {
         document.getElementById('addTaskModal').addEventListener('click', function (e) {
             if (e.target === this) this.classList.remove('active');
         });
-
-        // Progress circle is styled through the --progress CSS variable in the hero card.

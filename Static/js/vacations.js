@@ -1,8 +1,3 @@
-// Vacations page JavaScript
-// This file contains only vacation-page logic moved out of script.js.
-// Shared helpers such as showSuccessToast(), showErrorToast(), formatDateNZ(),
-// escapeHtml(), and the shared delete modal still come from script.js.
-
 // VACATIONS
 function initVacations() {
     const addVacationBtn   = document.getElementById('add-vacation-page-btn');
@@ -306,9 +301,6 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 })();
 
-/* ──────────────────────────────────────────────
-   Moved from inline <script> in vacations.html
-────────────────────────────────────────────── */
     function updateTime() {
         const now = new Date();
         document.getElementById('header-time').textContent = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });

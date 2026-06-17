@@ -1,7 +1,4 @@
-/* ──────────────────────────────────────────────
-   Chatbot page logic — moved from inline <script> in chatbot.html
-────────────────────────────────────────────── */
-    /* ── Clock ── */
+    /* Clock */
     function updateTime() {
         const now = new Date();
         document.getElementById('header-time').textContent = now.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
@@ -9,11 +6,7 @@
     }
     updateTime(); setInterval(updateTime, 1000);
 
-    // Sidebar toggle
-
-    /* ── Sidebar (darkmode.js handles toggle + persistence) ── */
-
-    /* ── Chat helpers ── */
+    /* Chat helpers */
     function getTime() {
         return new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
     }
@@ -131,7 +124,7 @@
         input.focus();
     }
 
-    /* ── Enter key ── */
+    /* Enter key */
     document.getElementById('chatInput').addEventListener('keydown', function(e) {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
@@ -139,13 +132,13 @@
         }
     });
 
-    /* ── Auto-grow textarea ── */
+    /* Auto-grow textarea */
     document.getElementById('chatInput').addEventListener('input', function() {
         this.style.height = 'auto';
         this.style.height = Math.min(this.scrollHeight, 140) + 'px';
     });
 
-    /* ── Suggestion chips ── */
+    /* Suggestion chips */
     document.querySelectorAll('.chip').forEach(btn => {
         btn.addEventListener('click', function() {
             document.getElementById('chatInput').value = this.dataset.msg;
@@ -153,7 +146,7 @@
         });
     });
 
-    /* ── Clear chat ── */
+    /* Clear chat */
     document.getElementById('clearChatBtn').addEventListener('click', function() {
         const box = document.getElementById('chatMessages');
         box.innerHTML = `

@@ -1,7 +1,4 @@
-/* ──────────────────────────────────────────────
-   Signup page logic — moved from inline <script> in signup.html
-────────────────────────────────────────────── */
-    /* ── Password visibility toggles ── */
+    /* Password visibility toggles */
     function setupToggle(btnId, inputId) {
         document.getElementById(btnId).addEventListener('click', function () {
             const inp = document.getElementById(inputId);
@@ -19,7 +16,7 @@
     setupToggle('toggle-password', 'password');
     setupToggle('toggle-confirm',  'confirm-password');
 
-    /* ── Client-side password match check ── */
+    /* Client-side password match check */
     document.getElementById('signup-form').addEventListener('submit', function (e) {
         const pw  = document.getElementById('password').value;
         const cpw = document.getElementById('confirm-password').value;

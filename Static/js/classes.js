@@ -1,8 +1,3 @@
-// CLASSES PAGE JAVASCRIPT
-// This file contains only the Classes page logic.
-// Shared helpers such as escapeHtml, formatDateNZ, formatTimeNZ, showSuccessToast,
-// showErrorToast, and showDeleteModal remain in static/js/script.js.
-
 // CLASSES
 function initClasses() {
     const addClassBtn   = document.getElementById('add-class-page-btn');
@@ -254,9 +249,6 @@ if (editClassForm) {
     });
 }
 
-/* ──────────────────────────────────────────────
-   Moved from inline <script> in classes.html
-────────────────────────────────────────────── */
     function updateTime() {
         const now = new Date();
         document.getElementById('header-time').textContent = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });

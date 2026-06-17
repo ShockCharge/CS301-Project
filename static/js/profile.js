@@ -1,7 +1,4 @@
-/* ──────────────────────────────────────────────
-   Profile page logic — moved from inline <script> in profile.html
-────────────────────────────────────────────── */
-    /* ── Clock ── */
+    /* Clock */
     function updateTime() {
         const now = new Date();
         document.getElementById('header-time').textContent = now.toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' });
@@ -11,7 +8,7 @@
 
     // Sidebar toggle
 
-    /* ── Toast ── */
+    /* Toast */
     function showToast(msg, type) {
         const c = document.getElementById('toastContainer') || document.body;
         const t = document.createElement('div');
@@ -21,7 +18,7 @@
         setTimeout(() => { t.style.opacity='0'; t.style.transition='opacity 0.3s'; setTimeout(()=>{ if(t.parentNode) t.parentNode.removeChild(t); },300); }, 3000);
     }
 
-    /* ── Profile picture ── */
+    /* Profile picture */
     const serverProfilePictureData = document.getElementById('serverProfilePictureData');
     const serverProfilePicture = serverProfilePictureData
         ? JSON.parse(serverProfilePictureData.textContent || '""')
@@ -63,7 +60,7 @@
         reader.readAsDataURL(file);
     });
 
-    /* ── Personal info ── */
+    /* Personal info */
     document.getElementById('personal-info-form').addEventListener('submit', async function(e) {
         e.preventDefault();
         const data = Object.fromEntries(new FormData(e.target));
@@ -75,7 +72,7 @@
         } catch { showToast('Network error.', 'error'); }
     });
 
-    /* ── Study info ── */
+    /* Study info */
     document.getElementById('study-info-form').addEventListener('submit', async function(e) {
         e.preventDefault();
         const data = Object.fromEntries(new FormData(e.target));
@@ -87,7 +84,7 @@
         } catch { showToast('Network error.', 'error'); }
     });
 
-    /* ── Change password ── */
+    /* Change password */
     document.getElementById('change-password-form').addEventListener('submit', async function(e) {
         e.preventDefault();
         const cur     = document.getElementById('current-password').value;
@@ -109,7 +106,7 @@
         } catch { errEl.textContent='Network error.'; errEl.style.display='block'; }
     });
 
-    /* ── Delete account ── */
+    /* Delete account */
     function confirmDeleteAccount() {
         if (!confirm('Are you absolutely sure? This will permanently delete your account and all data.')) return;
         if (!confirm('Last warning — this cannot be undone. Continue?')) return;

@@ -75,8 +75,6 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 // SETTINGS
-// Settings-page logic has been moved to static/js/settings.js.
-// The settings template loads settings.js after this shared script.
 
 // TOAST NOTIFICATION
 function showToast(message, type = 'success') {
@@ -247,26 +245,6 @@ function fetchAISuggestions() {
 
 //  SCHEDULE — calendar views
 
-// SCHEDULE
-// Schedule-page logic has been moved to static/js/schedule.js.
-// The schedule template loads schedule.js after this shared script.
-
-// TASKS
-// Task-page logic has been moved to static/js/tasks.js.
-// The tasks template loads tasks.js after this shared script.
-
-// EXAMS
-// Exam-page logic has been moved to static/js/exams.js.
-// The exams template loads exams.js after this shared script.
-
-// CLASSES
-// Class-page logic has been moved to static/js/classes.js.
-// The classes template loads classes.js after this shared script.
-
-// VACATIONS
-// Vacation-page logic has been moved to static/js/vacations.js.
-// The vacations template loads vacations.js after this shared script.
-
 // CLOSE MODAL ON OUTSIDE CLICK (legacy modals)
 window.onclick = function (event) {
     document.querySelectorAll('.modal').forEach(modal => {
@@ -301,11 +279,3 @@ document.addEventListener('DOMContentLoaded', function () {
         if (e.target === this) closeDeleteModal();
     });
 });
-
-// DELETE FUNCTIONS
-
-
-// EDIT FUNCTIONS (load data into edit modals)
-
-
-// EDIT FORM SUBMIT HANDLERS

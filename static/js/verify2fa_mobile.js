@@ -1,6 +1,3 @@
-/* ──────────────────────────────────────────────
-   Verify 2FA page logic — moved from inline <script> in verify2fa_mobile.html
-────────────────────────────────────────────── */
         const boxes     = document.querySelectorAll('.otp-box');
         const hidden    = document.getElementById('otp-hidden');
         const verifyBtn = document.getElementById('verify-btn');

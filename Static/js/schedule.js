@@ -1,7 +1,3 @@
-// Schedule page JavaScript
-// This file contains only the calendar and schedule-page logic moved out of script.js.
-// Shared helpers such as showToast(), formatDateNZ(), formatTimeNZ(), getTodayKeyNZ(), and escapeHtml() still come from script.js.
-
 let currentDate = new Date();
 let currentView = 'week';
 let scheduleStatusFilter = 'current';
@@ -813,10 +809,6 @@ if (editScheduleForm) {
     });
 }
 
-
-/* ──────────────────────────────────────────────
-   Moved from inline <script> in schedule.html
-────────────────────────────────────────────── */
     // Live clock
     function updateTime() {
         const now = new Date();

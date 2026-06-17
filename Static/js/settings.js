@@ -1,7 +1,3 @@
-// Settings page JavaScript
-// This file contains only the settings-page logic moved out of script.js.
-// Shared helpers such as showToast() still come from script.js.
-
 function initSettings() {
     fetch('/api/settings')
         .then(r => r.ok ? r.json() : {})
@@ -84,9 +80,6 @@ function initSettings() {
     }
 }
 
-/* ──────────────────────────────────────────────
-   Moved from inline <script> in settings.html
-────────────────────────────────────────────── */
     // Live clock
     function updateTime() {
         const now = new Date();
