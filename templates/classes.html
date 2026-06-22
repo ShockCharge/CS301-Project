@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <script src="{{ url_for('static', filename='js/darkmode.js') }}"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -55,7 +56,7 @@
                 </ul>
             </nav>
             <div class="sidebar-footer">
-                <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+                <a href="{{ url_for('logout') }}" class="logout-btn"><i class="bi bi-box-arrow-right"></i><span class="logout-text">Logout</span></a>
             </div>
         </aside>
 
@@ -70,6 +71,7 @@
                 <div class="tab-bar">
                     <button class="tab-btn active" data-tab="current" onclick="switchTab('current')">Current</button>
                     <button class="tab-btn" data-tab="past" onclick="switchTab('past')">Past</button>
+                    <button class="tab-btn" data-tab="completed" onclick="switchTab('completed')">Completed</button>
                 </div>
                 <div class="items-list" id="classes-grid">
                     <p class="empty-state">No classes yet. Click "Add Class" to create one.</p>
@@ -88,7 +90,24 @@
         <form id="addClassForm">
             <div class="form-group"><label>Class Name</label><input type="text" id="className" class="form-input" required></div>
             <div class="form-group"><label>Instructor</label><input type="text" id="classInstructor" class="form-input"></div>
-            <div class="form-group"><label>Date</label><input type="date" id="taskDate" class="form-input"></div>
+            <div class="form-group"><label>Date</label><input type="date" id="classDate" class="form-input"></div>
+            <div class="form-group">
+                <label>Repeat</label>
+                <select id="classRepeat" class="form-input">
+                    <option value="never">Never</option>
+                    <option value="daily">Daily</option>
+                    <option value="weekdays">Monday to Friday</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
+                    <option value="yearly">Yearly</option>
+                </select>
+                <small class="form-help">Use this if the class happens again automatically.</small>
+            </div>
+            <div class="form-group" id="classRepeatUntilGroup" style="display:none;">
+                <label>Repeat Until</label>
+                <input type="date" id="classRepeatUntil" class="form-input">
+                <small class="form-help">Optional. Leave blank if there is no end date yet.</small>
+            </div>
             <div class="form-group">
                 <label>Day</label>
                 <select id="classDay" class="form-input">
@@ -114,6 +133,22 @@
             <input type="hidden" id="editClassId">
             <div class="form-group"><label>Class Name</label><input type="text" id="editClassName" class="form-input" required></div>
             <div class="form-group"><label>Instructor</label><input type="text" id="editClassInstructor" class="form-input"></div>
+            <div class="form-group"><label>Date</label><input type="date" id="editClassDate" class="form-input"></div>
+            <div class="form-group">
+                <label>Repeat</label>
+                <select id="editClassRepeat" class="form-input">
+                    <option value="never">Never</option>
+                    <option value="daily">Daily</option>
+                    <option value="weekdays">Monday to Friday</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
+                    <option value="yearly">Yearly</option>
+                </select>
+            </div>
+            <div class="form-group" id="editClassRepeatUntilGroup" style="display:none;">
+                <label>Repeat Until</label>
+                <input type="date" id="editClassRepeatUntil" class="form-input">
+            </div>
             <div class="form-group">
                 <label>Day</label>
                 <select id="editClassDay" class="form-input">
@@ -126,6 +161,7 @@
             <div class="form-group"><label>Time</label><input type="time" id="editClassTime" class="form-input" required></div>
             <div class="form-group"><label>Room</label><input type="text" id="editClassRoom" class="form-input"></div>
             <button type="submit" class="btn-primary">Update Class</button>
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         </form>
     </div>
 </div>
@@ -146,31 +182,7 @@
 </div>
 
 <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+<script src="{{ url_for('static', filename='js/classes.js') }}"></script>
 <script src="{{ url_for('static', filename='js/darkmode.js') }}"></script>
-<script>
-    function updateTime() {
-        const now = new Date();
-        document.getElementById('header-time').textContent = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-        document.getElementById('header-date').textContent = now.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long' });
-    }
-    updateTime(); setInterval(updateTime, 1000);
-
-    const sidebar = document.getElementById('sidebar');
-    const overlay = document.getElementById('sidebar-overlay');
-    document.getElementById('sidebar-toggle').addEventListener('click', function () {
-        sidebar.classList.toggle('collapsed'); overlay.classList.toggle('active');
-    });
-    overlay.addEventListener('click', function () {
-        sidebar.classList.add('collapsed'); overlay.classList.remove('active');
-    });
-
-    let currentTab = 'current';
-    function switchTab(tab) {
-        currentTab = tab;
-        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-        document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
-        filterClasses();
-    }
-</script>
 </body>
 </html>

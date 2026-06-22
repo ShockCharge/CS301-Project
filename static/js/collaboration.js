@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
 
-    // ==================== DOM ELEMENTS ====================
+    // DOM ELEMENTS
     const searchInput = document.getElementById('userSearch');
     const searchButton = document.getElementById('searchUsersBtn');
     const peopleList = document.getElementById('peopleList');
@@ -24,6 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const refreshMessagesBtn = document.getElementById('refreshMessagesBtn');
     const directChatPopup = document.getElementById('directChatPopup');
     const closeDirectChatBtn = document.getElementById('closeDirectChatBtn');
+    const directChatAvatar = document.getElementById('directChatAvatar');
 
     // Group Elements
     const groupsList = document.getElementById('groupsList');
@@ -56,7 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let acceptedFriends = [];
     let selectedGroupMembers = [];
 
-    // ==================== HELPER FUNCTIONS ====================
+    // HELPER FUNCTIONS
     const formatDateTime = (isoValue) => {
         if (!isoValue) return '';
         const date = new Date(isoValue);
@@ -75,7 +76,32 @@ document.addEventListener('DOMContentLoaded', () => {
         return div.innerHTML;
     };
 
+    const isSafeImageDataUrl = (value) => typeof value === 'string' && value.startsWith('data:image/');
+
+    const renderAvatar = (profile, className = 'friend-avatar') => {
+        const name = profile?.name || profile?.requester_name || profile?.sender_name || 'User';
+        const picture = profile?.profile_picture || profile?.requester_profile_picture || profile?.sender_profile_picture || '';
+        if (isSafeImageDataUrl(picture)) {
+            return `<span class="${className} image-avatar"><img src="${picture}" alt="${escapeHtml(name)} profile picture"></span>`;
+        }
+        return `<span class="${className}">${escapeHtml(name.charAt(0).toUpperCase() || 'U')}</span>`;
+    };
+
+    const moveFocusOutOfPopup = (popup) => {
+        if (!popup || !popup.contains(document.activeElement)) return;
+        const activeFriend = document.querySelector('#friendsList .friend-card.active');
+        const activeGroup = document.querySelector('#groupsList .group-card.active');
+        const fallbackFocus = activeFriend || activeGroup || document.querySelector('.main-content') || document.body;
+        if (typeof document.activeElement.blur === 'function') {
+            document.activeElement.blur();
+        }
+        if (fallbackFocus && fallbackFocus !== document.body && typeof fallbackFocus.focus === 'function') {
+            fallbackFocus.focus({ preventScroll: true });
+        }
+    };
+
     const openDirectChatPopup = () => {
+        moveFocusOutOfPopup(groupChatShell);
         directChatPopup?.classList.add('open');
         directChatPopup?.setAttribute('aria-hidden', 'false');
         groupChatShell?.classList.remove('open');
@@ -85,6 +111,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const openGroupChatPopup = () => {
+        moveFocusOutOfPopup(directChatPopup);
         groupChatShell?.classList.add('open');
         groupChatShell?.setAttribute('aria-hidden', 'false');
         directChatPopup?.classList.remove('open');
@@ -94,18 +121,20 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const closeDirectChatPopup = () => {
+        moveFocusOutOfPopup(directChatPopup);
         directChatPopup?.classList.remove('open');
         directChatPopup?.setAttribute('aria-hidden', 'true');
         document.querySelectorAll('#friendsList .friend-card').forEach(card => card.classList.remove('active'));
     };
 
     const closeGroupChatPopup = () => {
+        moveFocusOutOfPopup(groupChatShell);
         groupChatShell?.classList.remove('open');
         groupChatShell?.setAttribute('aria-hidden', 'true');
         document.querySelectorAll('#groupsList .group-card').forEach(card => card.classList.remove('active'));
     };
 
-    // ==================== CREATE GROUP ====================
+    // CREATE GROUP
     if (createGroupForm) {
         createGroupForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -140,7 +169,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // ==================== GROUPS ====================
+    // GROUPS
     const loadGroups = async () => {
         if (!groupsStatus) return;
         groupsStatus.textContent = 'Loading groups...';
@@ -297,6 +326,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <small><strong>${escapeHtml(msg.sender_name || 'Member')}</strong></small>
                     <p>${escapeHtml(msg.body)}</p>
                     <small>${formatDateTime(msg.created_at)}</small>
+                    ${msg.is_mine ? `<button class="message-delete-btn" type="button" data-message-id="${escapeHtml(msg.id)}" data-message-type="group" title="Delete message" aria-label="Delete message"><i class="bi bi-trash3"></i></button>` : ''}
                 `;
                 groupMessagesList.appendChild(div);
             });
@@ -311,7 +341,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // ==================== PRIVATE CHAT FUNCTIONS ====================
+    // PRIVATE CHAT FUNCTIONS
     const renderUsers = (users) => {
         peopleList.innerHTML = '';
         if (!users || users.length === 0) {
@@ -324,6 +354,7 @@ document.addEventListener('DOMContentLoaded', () => {
             card.className = 'person-card';
             const profileText = [user.major, user.institution].filter(Boolean).join(' · ');
             card.innerHTML = `
+                ${renderAvatar(user, 'person-avatar')}
                 <div class="person-info">
                     <p class="person-name">${escapeHtml(user.name || 'Study Planner User')}</p>
                     <p class="person-email">${escapeHtml(user.email || '')}</p>
@@ -392,6 +423,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const card = document.createElement('article');
             card.className = 'request-card';
             card.innerHTML = `
+                ${renderAvatar(request, 'person-avatar')}
                 <div class="request-info">
                     <p class="person-name">${escapeHtml(request.requester_name || 'User')}</p>
                     <p class="person-email">${escapeHtml(request.requester_email)}</p>
@@ -448,7 +480,7 @@ document.addEventListener('DOMContentLoaded', () => {
             card.dataset.email = friend.email;
             card.dataset.name = friend.name;
             card.innerHTML = `
-                <span class="friend-avatar">${escapeHtml(friend.name?.charAt(0) || 'F')}</span>
+                ${renderAvatar(friend, 'friend-avatar')}
                 <span class="friend-details">
                     <strong>${escapeHtml(friend.name)}</strong>
                     <small>${escapeHtml(friend.email)}</small>
@@ -486,6 +518,9 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelector(`#friendsList .friend-card[data-email="${CSS.escape(friend.email || '')}"]`)?.classList.add('active');
         chatTitle.textContent = friend.name || 'Friend';
         chatSubtitle.textContent = friend.email || '';
+        if (directChatAvatar) {
+            directChatAvatar.innerHTML = renderAvatar(friend, 'collab-float-avatar-inner');
+        }
         messageInput.disabled = false;
         sendMessageBtn.disabled = false;
         if (refreshMessagesBtn) refreshMessagesBtn.disabled = false;
@@ -502,7 +537,7 @@ document.addEventListener('DOMContentLoaded', () => {
         messages.forEach(msg => {
             const div = document.createElement('div');
             div.className = `message-bubble ${msg.is_mine ? 'sent' : 'received'}`;
-            div.innerHTML = `<p>${escapeHtml(msg.body)}</p><small>${formatDateTime(msg.created_at)}</small>`;
+            div.innerHTML = `<p>${escapeHtml(msg.body)}</p><small>${formatDateTime(msg.created_at)}</small>${msg.is_mine ? `<button class="message-delete-btn" type="button" data-message-id="${escapeHtml(msg.id)}" data-message-type="direct" title="Delete message" aria-label="Delete message"><i class="bi bi-trash3"></i></button>` : ''}`;
             messagesList.appendChild(div);
         });
         messagesList.scrollTop = messagesList.scrollHeight;
@@ -540,7 +575,32 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // ==================== GROUP MESSAGE SENDING ====================
+    const deleteMessage = async (button) => {
+        const messageId = button.dataset.messageId;
+        const messageType = button.dataset.messageType;
+        if (!messageId) return;
+        if (!confirm('Delete this message?')) return;
+
+        const url = messageType === 'group' && selectedGroup
+            ? `/api/collaboration/groups/${selectedGroup.id}/messages/${messageId}`
+            : `/api/collaboration/messages/${messageId}`;
+
+        try {
+            const res = await fetch(url, { method: 'DELETE' });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                alert(data.error || 'Failed to delete message.');
+                return;
+            }
+            if (messageType === 'group') await loadGroupMessages();
+            else await loadMessages();
+        } catch (e) {
+            console.error(e);
+            alert('Connection error while deleting message.');
+        }
+    };
+
+    // GROUP MESSAGE SENDING
     if (groupMessageForm) {
         groupMessageForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -568,7 +628,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // ==================== EVENT LISTENERS ====================
+    // EVENT LISTENERS
     openCreateGroupBtn?.addEventListener('click', () => {
         if (!createGroupBox) return;
         createGroupBox.style.display = createGroupBox.style.display === 'none' ? 'block' : 'none';
@@ -599,7 +659,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     friendsList?.addEventListener('click', (e) => {
         const card = e.target.closest('.friend-card');
-        if (card) setSelectedFriend({ email: card.dataset.email, name: card.dataset.name });
+        if (card) {
+            const friend = acceptedFriends.find(item => item.email === card.dataset.email) || { email: card.dataset.email, name: card.dataset.name };
+            setSelectedFriend(friend);
+        }
     });
 
     groupsList?.addEventListener('click', (e) => {
@@ -621,11 +684,26 @@ document.addEventListener('DOMContentLoaded', () => {
     closeDirectChatBtn?.addEventListener('click', closeDirectChatPopup);
     closeGroupChatBtn?.addEventListener('click', closeGroupChatPopup);
     addGroupMemberBtn?.addEventListener('click', addGroupMember);
+    messagesList?.addEventListener('click', (e) => {
+        const button = e.target.closest('.message-delete-btn');
+        if (button) deleteMessage(button);
+    });
+    groupMessagesList?.addEventListener('click', (e) => {
+        const button = e.target.closest('.message-delete-btn');
+        if (button) deleteMessage(button);
+    });
     messageForm?.addEventListener('submit', (e) => { e.preventDefault(); sendMessage(); });
 
-    // ==================== INITIAL LOAD ====================
+    // INITIAL LOAD
     loadUsers();
     loadIncomingRequests();
     loadFriends();
     loadGroups();
 });
+
+    function updateTime() {
+        const now = new Date();
+        document.getElementById('header-time').textContent = now.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+        document.getElementById('header-date').textContent = now.toLocaleDateString('en-US',{weekday:'long',day:'numeric',month:'long'});
+    }
+    updateTime(); setInterval(updateTime, 1000);

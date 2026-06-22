@@ -1,8 +1,3 @@
-/* ================================================================
-   V2settings.css  —  Settings page styles
-   Uses CSS variables from V2style.css → dark mode automatic
-   ================================================================ */
-
 .settings-page-title {
     color: var(--text-primary);
     font-size: 1.75rem;
@@ -11,9 +6,7 @@
     transition: color 0.25s;
 }
 
-/* ════════════════════════════════════════════
-   SETTINGS CARDS
-════════════════════════════════════════════ */
+/* SETTINGS CARDS */
 .settings-card {
     background: var(--surface);
     border: 1.5px solid var(--border-card);
@@ -51,9 +44,7 @@ body.dark-mode .settings-card-header {
     gap: 1rem;
 }
 
-/* ════════════════════════════════════════════
-   FIELD  (label + input)
-════════════════════════════════════════════ */
+/* FIELD */
 .settings-field {
     display: flex;
     flex-direction: column;
@@ -67,9 +58,7 @@ body.dark-mode .settings-card-header {
     transition: color 0.25s;
 }
 
-/* ════════════════════════════════════════════
-   TOGGLE ROW  (label + toggle switch)
-════════════════════════════════════════════ */
+/* TOGGLE ROW */
 .setting-row {
     display: flex;
     align-items: center;
@@ -79,7 +68,9 @@ body.dark-mode .settings-card-header {
     border-bottom: 1px solid var(--border-card);
     transition: border-color 0.25s;
 }
-.setting-row:last-child { border-bottom: none; }
+.setting-row:last-child {
+    border-bottom: none;
+}
 
 .setting-row-info strong {
     display: block;
@@ -96,9 +87,7 @@ body.dark-mode .settings-card-header {
     transition: color 0.25s;
 }
 
-/* ════════════════════════════════════════════
-   TOGGLE SWITCH  (overriding V2style.css to match theme)
-════════════════════════════════════════════ */
+/* TOGGLE SWITCH */
 .toggle-switch {
     position: relative;
     display: inline-block;
@@ -107,7 +96,11 @@ body.dark-mode .settings-card-header {
     flex-shrink: 0;
     cursor: pointer;
 }
-.toggle-switch input { opacity: 0; width: 0; height: 0; }
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
 
 .toggle-slider {
     position: absolute;
@@ -127,12 +120,14 @@ body.dark-mode .settings-card-header {
     transition: transform 0.3s;
     box-shadow: 0 1px 4px rgba(0,0,0,0.25);
 }
-.toggle-switch input:checked + .toggle-slider { background: var(--toggle-track-on); }
-.toggle-switch input:checked + .toggle-slider::before { transform: translateX(24px); }
+.toggle-switch input:checked + .toggle-slider {
+    background: var(--toggle-track-on);
+}
+.toggle-switch input:checked + .toggle-slider::before {
+    transform: translateX(24px);
+}
 
-/* ════════════════════════════════════════════
-   BUTTON ROW  (export / clear)
-════════════════════════════════════════════ */
+/* BUTTON ROW */
 .settings-btn-row {
     display: flex;
     flex-wrap: wrap;
@@ -154,7 +149,9 @@ body.dark-mode .settings-card-header {
     gap: 0.4rem;
     transition: background 0.2s;
 }
-.btn-settings-secondary:hover { background: var(--btn-secondary-hover); }
+.btn-settings-secondary:hover {
+    background: var(--btn-secondary-hover);
+}
 
 .btn-settings-danger {
     padding: 0.55rem 1.25rem;
@@ -171,11 +168,11 @@ body.dark-mode .settings-card-header {
     gap: 0.4rem;
     transition: background 0.2s;
 }
-.btn-settings-danger:hover { background: var(--btn-danger-hover); }
+.btn-settings-danger:hover {
+    background: var(--btn-danger-hover);
+}
 
-/* ════════════════════════════════════════════
-   SAVE BUTTON ROW
-════════════════════════════════════════════ */
+/* SAVE BUTTON ROW */
 .settings-save-row {
     display: flex;
     justify-content: flex-end;
@@ -198,15 +195,25 @@ body.dark-mode .settings-card-header {
     transition: background 0.2s;
     box-shadow: var(--shadow-sm);
 }
-.btn-settings-save:hover { background: var(--btn-success-hover); }
+.btn-settings-save:hover {
+    background: var(--btn-success-hover);
+}
 
-/* ════════════════════════════════════════════
-   RESPONSIVE
-════════════════════════════════════════════ */
+/* RESPONSIVE */
 @media (max-width: 640px) {
-    .settings-btn-row { flex-direction: column; }
+    .settings-btn-row {
+        flex-direction: column;
+    }
     .btn-settings-secondary,
-    .btn-settings-danger  { width: 100%; justify-content: center; }
-    .settings-save-row    { justify-content: stretch; }
-    .btn-settings-save    { width: 100%; justify-content: center; }
+    .btn-settings-danger {
+        width: 100%;
+        justify-content: center;
+    }
+    .settings-save-row {
+        justify-content: stretch;
+    }
+    .btn-settings-save {
+        width: 100%;
+        justify-content: center;
+    }
 }

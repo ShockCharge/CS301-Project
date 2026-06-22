@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <script src="{{ url_for('static', filename='js/darkmode.js') }}"></script>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Study Planner | Vacations</title>
@@ -54,7 +55,7 @@
                 </ul>
             </nav>
             <div class="sidebar-footer">
-                <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+                <a href="{{ url_for('logout') }}" class="logout-btn"><i class="bi bi-box-arrow-right"></i><span class="logout-text">Logout</span></a>
             </div>
         </aside>
 
@@ -69,6 +70,7 @@
                 <div class="tab-bar">
                     <button class="tab-btn active" data-tab="planned" onclick="switchTab('planned')">Planned</button>
                     <button class="tab-btn" data-tab="past" onclick="switchTab('past')">Past</button>
+                    <button class="tab-btn" data-tab="completed" onclick="switchTab('completed')">Completed</button>
                 </div>
                 <div class="items-list" id="vacations-grid">
                     <p class="empty-state">No vacations yet. Click "Add Vacation" to create one.</p>
@@ -85,10 +87,20 @@
         <span class="close" id="modal-close">&times;</span>
         <h2>Add Vacation</h2>
         <form id="addVacationForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="form-group"><label>Title</label><input type="text" id="vacationTitle" class="form-input" required></div>
             <div class="form-group"><label>Start Date</label><input type="date" id="vacationStart" class="form-input" required></div>
             <div class="form-group"><label>End Date</label><input type="date" id="vacationEnd" class="form-input" required></div>
+            <div class="form-group">
+                <label>Status</label>
+                <select id="vacationStatus" class="form-input">
+                    <option value="planned">Planned</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="completed">Completed</option>
+                </select>
+            </div>
             <div class="form-group"><label>Description</label><textarea id="vacationDescription" class="form-input" rows="3"></textarea></div>
+            <div class="form-group"><label>Vacation notes / how it went</label><textarea id="vacationReflection" class="form-input" rows="3" placeholder="Optional: what happened, memories, or anything to remember..."></textarea></div>
             <button type="submit" class="btn-primary">Add Vacation</button>
         </form>
     </div>
@@ -104,7 +116,16 @@
             <div class="form-group"><label>Title</label><input type="text" id="editVacationTitle" class="form-input" required></div>
             <div class="form-group"><label>Start Date</label><input type="date" id="editVacationStart" class="form-input" required></div>
             <div class="form-group"><label>End Date</label><input type="date" id="editVacationEnd" class="form-input" required></div>
+            <div class="form-group">
+                <label>Status</label>
+                <select id="editVacationStatus" class="form-input">
+                    <option value="planned">Planned</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="completed">Completed</option>
+                </select>
+            </div>
             <div class="form-group"><label>Description</label><textarea id="editVacationDescription" class="form-input" rows="3"></textarea></div>
+            <div class="form-group"><label>Vacation notes / how it went</label><textarea id="editVacationReflection" class="form-input" rows="3"></textarea></div>
             <button type="submit" class="btn-primary">Update Vacation</button>
         </form>
     </div>
@@ -126,31 +147,7 @@
 </div>
 
 <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+<script src="{{ url_for('static', filename='js/vacations.js') }}"></script>
 <script src="{{ url_for('static', filename='js/darkmode.js') }}"></script>
-<script>
-    function updateTime() {
-        const now = new Date();
-        document.getElementById('header-time').textContent = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-        document.getElementById('header-date').textContent = now.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long' });
-    }
-    updateTime(); setInterval(updateTime, 1000);
-
-    const sidebar = document.getElementById('sidebar');
-    const overlay = document.getElementById('sidebar-overlay');
-    document.getElementById('sidebar-toggle').addEventListener('click', function () {
-        sidebar.classList.toggle('collapsed'); overlay.classList.toggle('active');
-    });
-    overlay.addEventListener('click', function () {
-        sidebar.classList.add('collapsed'); overlay.classList.remove('active');
-    });
-
-    let currentTab = 'planned';
-    function switchTab(tab) {
-        currentTab = tab;
-        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-        document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
-        filterVacations();
-    }
-</script>
 </body>
 </html>

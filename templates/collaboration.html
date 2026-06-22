@@ -1,232 +1,264 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <script src="{{ url_for('static', filename='js/darkmode.js') }}"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>Study Planner | Collaboration</title>
-
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Bootstrap Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700;900&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="{{ url_for("static", filename="css/OLD_styles.css" ) }}">
-    <link rel="stylesheet" href="{{ url_for("static", filename="css/collaboration.css") }}">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/collaboration.css') }}">
 </head>
-
 <body>
+<div class="app-wrapper">
 
-<div class="app-container">
-
-    <!-- SIDEBAR -->
-    <aside class="sidebar">
-        <div class="sidebar-header">
-            <h1 class="sidebar-brand">Study Planner</h1>
+    <!-- Header -->
+    <nav class="header">
+        <span class="header-title">Study Planner</span>
+        <div class="header-content">
+            <div class="header-time" id="header-time"></div>
+            <div class="header-date" id="header-date"></div>
         </div>
+        <button class="menu" id="sidebar-toggle">
+            <span></span><span></span><span></span>
+        </button>
+    </nav>
 
-        <nav class="sidebar-nav">
-            <ul>
-                <li><a href="{{ url_for('dashboard') }}" class="nav-link"><i class="bi bi-grid"></i><span>Dashboard</span></a></li>
-                <li><a href="{{ url_for('schedule') }}" class="nav-link"><i class="bi bi-calendar3"></i><span>Schedule</span></a></li>
-                
-                <li>
-                    <a href="#" class="nav-link" id="activities-toggle">
-                        <i class="bi bi-list-task"></i><span>Activities</span>
-                        <i class="bi bi-chevron-down submenu-arrow"></i>
-                    </a>
-                    <ul class="submenu" id="activities-submenu">
-                        <li><a href="{{ url_for('tasks') }}" class="nav-link"><i class="bi bi-check-square"></i><span>Tasks</span></a></li>
-                        <li><a href="{{ url_for('exams') }}" class="nav-link"><i class="bi bi-book"></i><span>Exams</span></a></li>
-                        <li><a href="{{ url_for('classes') }}" class="nav-link"><i class="bi bi-mortarboard"></i><span>Classes</span></a></li>
-                        <li><a href="{{ url_for('vacations') }}" class="nav-link"><i class="bi bi-airplane"></i><span>Vacations</span></a></li>
-                    </ul>
-                </li>
+    <div class="app-body">
 
-                <li><a href="{{ url_for('chatbot') }}" class="nav-link"><i class="bi bi-chat-dots"></i><span>Chatbot</span></a></li>
-                <li><a href="{{ url_for('collaboration_bp.collaboration') }}" class="nav-link active"><i class="bi bi-people"></i><span>Collaboration</span><span class="collaboration-notification-badge" data-collaboration-badge hidden>0</span></a></li>
-                <li><a href="{{ url_for('settings') }}" class="nav-link"><i class="bi bi-gear"></i><span>Settings</span></a></li>
-                <li><a href="{{ url_for('profile') }}" class="nav-link"><i class="bi bi-person-circle"></i><span>Profile</span></a></li>
-            </ul>
-        </nav>
-
-        <div class="sidebar-footer">
-            <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
-        </div>
-    </aside>
-
-    <!-- MAIN CONTENT -->
-    <main class="main-content collaboration-page">
-
-        <!-- HERO -->
-        <header class="collaboration-hero">
-            <div>
-                <p class="eyebrow">Study together • Grow together</p>
-                <h2>Collaboration Hub</h2>
-                <p class="hero-copy">
-                    Connect with fellow students, send messages, and collaborate in study groups.
-                </p>
+        <!-- Sidebar -->
+        <aside class="sidebar collapsed" id="sidebar">
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="{{ url_for('dashboard') }}" class="nav-link"><i class="bi bi-grid"></i><span>Dashboard</span></a></li>
+                    <li><a href="{{ url_for('schedule') }}"  class="nav-link"><i class="bi bi-calendar3"></i><span>Schedule</span></a></li>
+                    <li>
+                        <a href="#" class="nav-link" id="activities-toggle">
+                            <i class="bi bi-list-task"></i><span>Activities</span>
+                            <i class="bi bi-chevron-down submenu-arrow" id="activities-arrow"></i>
+                        </a>
+                        <ul class="submenu" id="activities-submenu">
+                            <li><a href="{{ url_for('tasks') }}"     class="nav-link"><i class="bi bi-check-square"></i><span>Tasks</span></a></li>
+                            <li><a href="{{ url_for('exams') }}"     class="nav-link"><i class="bi bi-book"></i><span>Exams</span></a></li>
+                            <li><a href="{{ url_for('classes') }}"   class="nav-link"><i class="bi bi-mortarboard"></i><span>Classes</span></a></li>
+                            <li><a href="{{ url_for('vacations') }}" class="nav-link"><i class="bi bi-airplane"></i><span>Vacations</span></a></li>
+                        </ul>
+                    </li>
+                    <li><a href="{{ url_for('chatbot') }}"  class="nav-link"><i class="bi bi-chat-dots"></i><span>Chatbot</span></a></li>
+                    <li>
+                        <a href="{{ url_for('collaboration_bp.collaboration') }}" class="nav-link active">
+                            <i class="bi bi-people"></i><span>Collaboration</span>
+                            <span class="collab-sidebar-badge" data-collaboration-badge hidden>0</span>
+                        </a>
+                    </li>
+                    <li><a href="{{ url_for('settings') }}" class="nav-link"><i class="bi bi-gear"></i><span>Settings</span></a></li>
+                    <li><a href="{{ url_for('profile') }}"  class="nav-link"><i class="bi bi-person-circle"></i><span>Profile</span></a></li>
+                </ul>
+            </nav>
+            <div class="sidebar-footer">
+                <a href="{{ url_for('logout') }}" class="logout-btn"><i class="bi bi-box-arrow-right"></i><span class="logout-text">Logout</span></a>
             </div>
-            <div class="hero-badge">
-                <i class="bi bi-people-fill"></i>
-                <span>Connect &amp; Collaborate</span>
-            </div>
-        </header>
+        </aside>
 
-        <!-- PEOPLE SEARCH & AVAILABLE STUDENTS -->
-        <section class="collaboration-shell">
-            <div class="collaboration-panel">
-                <h3>Find Students</h3>
-                <p class="panel-copy">Search registered users</p>
+        <div class="sidebar-overlay" id="sidebar-overlay"></div>
 
-                <div class="search-row">
-                    <input id="userSearch" class="form-control" type="search" 
-                           placeholder="Search by name or email...">
-                    <button id="searchUsersBtn" class="btn btn-primary" type="button">Search</button>
-                </div>
+        <!-- Main Content -->
+        <main class="content collab-content">
+            <div class="content-inner">
 
-                <div id="peopleStatus" class="status-text">Loading users...</div>
-            </div>
-
-            <div class="collaboration-panel">
-                <h3>Available Students</h3>
-                <p class="panel-copy">Send connection requests</p>
-                <div id="peopleList" class="collaboration-list" aria-live="polite"></div>
-            </div>
-        </section>
-
-        <!-- INCOMING REQUESTS -->
-        <section class="collaboration-panel incoming-requests-panel">
-            <div class="section-header">
-                <div>
-                    <h3>Incoming Requests</h3>
-                    <p class="panel-copy">Review connection requests</p>
-                </div>
-                <button class="btn btn-outline-primary btn-sm" id="refreshIncomingBtn">Refresh</button>
-            </div>
-            <div id="incomingStatus" class="status-text">Loading...</div>
-            <div id="incomingRequestsList" class="requests-list"></div>
-        </section>
-
-        <!-- FRIENDS LIST -->
-        <section class="collaboration-panel friends-panel collaboration-list-panel">
-            <div class="section-header">
-                <div>
-                    <h3>My Friends</h3>
-                    <p class="panel-copy">Click a friend to open a floating message window</p>
-                </div>
-                <button class="btn btn-outline-primary btn-sm" id="refreshFriendsBtn">Refresh</button>
-            </div>
-            <div id="friendsStatus" class="status-text">Loading friends...</div>
-            <div id="friendsList" class="friends-list"></div>
-        </section>
-
-        <!-- STUDY GROUPS LIST -->
-        <section class="collaboration-panel groups-panel collaboration-list-panel">
-            <div class="section-header">
-                <div>
-                    <h3>My Study Groups</h3>
-                    <p class="panel-copy">Click a group to open a floating group chat</p>
-                </div>
-                <div class="group-actions">
-                    <button class="btn btn-primary btn-sm" id="openCreateGroupBtn" type="button">
-                        + Create
-                    </button>
-                    <button class="btn btn-outline-primary btn-sm" id="refreshGroupsBtn">Refresh</button>
-                </div>
-            </div>
-            <div id="groupsStatus" class="status-text">Loading groups...</div>
-
-            <div id="createGroupBox" class="create-group-box" style="display:none; margin: 1rem 0; padding: 1rem; border: 1px solid #e5e7eb; border-radius: 14px; background: #f8fafc;">
-                <form id="createGroupForm">
-                    <div class="mb-3">
-                        <label for="groupName" class="form-label">Group Name <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="groupName" required placeholder="e.g. CS301 Final Exam Prep">
+                <!-- Hero -->
+                <div class="collab-hero">
+                    <div class="collab-hero-left">
+                        <div class="collab-hero-icon"><i class="bi bi-people-fill"></i></div>
+                        <div>
+                            <h1 class="collab-hero-title">Collaboration Hub</h1>
+                            <p class="collab-hero-sub">Connect with students, send messages and collaborate in study groups.</p>
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label for="groupDescription" class="form-label">Description</label>
-                        <textarea class="form-control" id="groupDescription" rows="3" placeholder="What will this group focus on?"></textarea>
+                    <div class="collab-hero-badge">
+                        <i class="bi bi-patch-check-fill"></i> Study Together · Grow Together
                     </div>
-                    <div class="d-flex gap-2">
-                        <button type="submit" class="btn btn-primary btn-sm">Create Group</button>
-                        <button type="button" class="btn btn-outline-secondary btn-sm" id="cancelCreateGroupBtn">Cancel</button>
+                </div>
+
+                <!-- ── FRIENDS ── -->
+                <div class="collab-card">
+                    <div class="collab-card-header">
+                        <i class="bi bi-people-fill"></i>
+                        <span>My Friends</span>
+                        <button class="collab-btn-sm ms-auto" id="refreshFriendsBtn">Refresh</button>
                     </div>
-                </form>
+                    <div class="collab-card-body">
+                        <p class="collab-muted">Click a friend to open a floating message window.</p>
+                        <div id="friendsStatus" class="collab-status">Loading friends…</div>
+                        <div id="friendsList" class="collab-friend-grid"></div>
+                    </div>
+                </div>
+
+                <!-- ── STUDY GROUPS ── -->
+                <div class="collab-card">
+                    <div class="collab-card-header">
+                        <i class="bi bi-mortarboard-fill"></i>
+                        <span>My Study Groups</span>
+                        <div class="ms-auto collab-header-actions">
+                            <button class="collab-btn-primary" id="openCreateGroupBtn">+ Create Group</button>
+                            <button class="collab-btn-sm" id="refreshGroupsBtn">Refresh</button>
+                        </div>
+                    </div>
+                    <div class="collab-card-body">
+                        <p class="collab-muted">Click a group to open a floating group chat.</p>
+
+                        <!-- Create group form -->
+                        <div id="createGroupBox" class="collab-create-group-box" style="display:none;">
+                            <form id="createGroupForm">
+                                <div class="collab-form-field">
+                                    <label>Group Name <span class="collab-req"></span></label>
+                                    <input type="text" id="groupName"  class="collab-input"  required placeholder="e.g. CS301 Final Exam Prep">
+                                </div>
+                                <div class="collab-form-field">
+                                    <label>Description</label>
+                                    <textarea class="collab-input" id="groupDescription" rows="2" placeholder="What will this group focus on?"></textarea>
+                                </div>
+                                <div class="collab-form-actions">
+                                    <button type="submit" class="collab-btn-primary">Create Group</button>
+                                    <button type="button" class="collab-btn-neutral" id="cancelCreateGroupBtn">Cancel</button>
+                                </div>
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            </form>
+                        </div>
+
+                        <div id="groupsStatus" class="collab-status">Loading groups…</div>
+                        <div id="groupsList" class="collab-friend-grid"></div>
+                    </div>
+                </div>
+
+                <!-- ── FIND STUDENTS ── -->
+                <div class="collab-grid-2">
+                    <!-- Search panel -->
+                    <div class="collab-card">
+                        <div class="collab-card-header">
+                            <i class="bi bi-search"></i>
+                            <span>Find Students</span>
+                        </div>
+                        <div class="collab-card-body">
+                            <p class="collab-muted">Search registered users and send connection requests.</p>
+                            <div class="collab-search-row">
+                                <input id="userSearch" type="search" class="collab-input" placeholder="Search by name or email…">
+                                <button id="searchUsersBtn" class="collab-btn-primary">Search</button>
+                            </div>
+                            <div id="peopleStatus" class="collab-status">Loading users…</div>
+                            <div id="peopleList" class="collab-list"></div>
+                        </div>
+                    </div>
+
+                    <!-- Incoming requests -->
+                    <div class="collab-card">
+                        <div class="collab-card-header">
+                            <i class="bi bi-person-plus-fill"></i>
+                            <span>Incoming Requests</span>
+                            <button class="collab-btn-sm ms-auto" id="refreshIncomingBtn">Refresh</button>
+                        </div>
+                        <div class="collab-card-body">
+                            <div id="incomingStatus" class="collab-status">Loading…</div>
+                            <div id="incomingRequestsList" class="collab-list"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <footer>&copy; 2025 Study Planner</footer>
             </div>
-
-            <div id="groupsList" class="groups-list"></div>
-        </section>
-
-        <!-- FLOATING PRIVATE CHAT -->
-        <section class="chat-panel floating-chat-panel" id="directChatPopup" aria-live="polite" aria-hidden="true">
-            <div class="chat-header floating-chat-header">
-                <div>
-                    <h3 id="chatTitle">Select a Friend</h3>
-                    <p id="chatSubtitle" class="panel-copy">Messages will appear here</p>
-                </div>
-                <div class="floating-chat-actions">
-                    <button class="btn btn-outline-secondary btn-sm" id="refreshMessagesBtn" disabled>Refresh</button>
-                    <button class="btn btn-outline-danger btn-sm" id="closeDirectChatBtn" type="button" aria-label="Close direct chat">×</button>
-                </div>
-            </div>
-            <div id="messagesStatus" class="status-text">No friend selected</div>
-            <div id="messagesList" class="messages-list"></div>
-
-            <form id="messageForm" class="message-form">
-                <input id="messageInput" class="form-control" type="text" maxlength="1000"
-                       placeholder="Type a message..." disabled>
-                <button id="sendMessageBtn" class="btn btn-primary" type="submit" disabled>Send</button>
-            </form>
-        </section>
-
-        <!-- FLOATING GROUP CHAT -->
-        <section class="chat-panel floating-chat-panel" id="groupChatShell" aria-live="polite" aria-hidden="true">
-            <div class="chat-header floating-chat-header">
-                <div>
-                    <h3 id="groupChatTitle">Group Chat</h3>
-                    <p id="groupChatSubtitle" class="panel-copy">Select a group to join the discussion</p>
-                </div>
-                <div class="floating-chat-actions">
-                    <button class="btn btn-outline-secondary btn-sm" id="refreshGroupMessagesBtn" disabled>Refresh</button>
-                    <button class="btn btn-outline-danger btn-sm" id="closeGroupChatBtn" type="button" aria-label="Close group chat">×</button>
-                </div>
-            </div>
-
-            <div id="groupMembersBox" class="group-members-box" style="display:none; margin-bottom: 1rem; padding: 1rem; border: 1px solid #e5e7eb; border-radius: 14px; background: #f8fafc;">
-                <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
-                    <strong>Group Members</strong>
-                    <small id="groupMembersStatus" class="text-muted"></small>
-                </div>
-                <div id="groupMembersList" class="mb-3 text-muted">Select a group to view members.</div>
-                <div class="input-group input-group-sm">
-                    <select class="form-select" id="groupMemberSelect" disabled>
-                        <option value="">Select a friend to add...</option>
-                    </select>
-                    <button class="btn btn-primary" type="button" id="addGroupMemberBtn" disabled>Add Friend</button>
-                </div>
-                <small class="text-muted d-block mt-2">Only accepted friends can be added to a study group.</small>
-            </div>
-
-            <div id="groupMessagesStatus" class="status-text"></div>
-            <div id="groupMessagesList" class="messages-list"></div>
-
-            <form id="groupMessageForm" class="message-form">
-                <input id="groupMessageInput" class="form-control" type="text" maxlength="1000"
-                       placeholder="Message the group..." disabled>
-                <button id="sendGroupMessageBtn" class="btn btn-primary" type="submit" disabled>Send</button>
-            </form>
-        </section>
-
-    </main>
+        </main>
+    </div>
 </div>
 
+<!-- ═══ FLOATING DIRECT CHAT ═══ -->
+<div class="collab-float-chat" id="directChatPopup" aria-hidden="true">
+    <div class="collab-float-header">
+        <div class="collab-float-header-info">
+            <div class="collab-float-avatar" id="directChatAvatar">?</div>
+            <div>
+                <h3 id="chatTitle">Select a Friend</h3>
+                <p id="chatSubtitle">Messages will appear here</p>
+            </div>
+        </div>
+        <div class="collab-float-actions">
+            <button class="collab-float-action-btn" id="refreshMessagesBtn" disabled>
+                <i class="bi bi-arrow-clockwise"></i>
+            </button>
+            <button class="collab-float-close-btn" id="closeDirectChatBtn" aria-label="Close">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+    </div>
+    <div id="messagesStatus" class="collab-float-status">No friend selected</div>
+    <div id="messagesList" class="collab-float-messages"></div>
+    <form id="messageForm" class="collab-float-input-row">
+        <input id="messageInput" class="collab-float-input" type="text" maxlength="1000"
+               placeholder="Type a message…" disabled>
+        <button id="sendMessageBtn" class="collab-float-send" type="submit" disabled>
+            <i class="bi bi-send-fill"></i>
+        </button>
+    </form>
+</div>
 
-<!-- Bootstrap JS -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<!-- ═══ FLOATING GROUP CHAT ═══ -->
+<div class="collab-float-chat" id="groupChatShell" aria-hidden="true">
+    <div class="collab-float-header collab-float-header-group">
+        <div class="collab-float-header-info">
+            <div class="collab-float-avatar group-avatar"><i class="bi bi-people-fill"></i></div>
+            <div>
+                <h3 id="groupChatTitle">Group Chat</h3>
+                <p id="groupChatSubtitle">Select a group to join the discussion</p>
+            </div>
+        </div>
+        <div class="collab-float-actions">
+            <button class="collab-float-action-btn" id="refreshGroupMessagesBtn" disabled>
+                <i class="bi bi-arrow-clockwise"></i>
+            </button>
+            <button class="collab-float-close-btn" id="closeGroupChatBtn" aria-label="Close group chat">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+    </div>
 
-<!-- Custom JS -->
+    <!-- Members panel -->
+    <div id="groupMembersBox" class="collab-members-box" style="display:none;">
+        <div class="collab-members-header">
+            <strong>Group Members</strong>
+            <small id="groupMembersStatus"></small>
+        </div>
+        <div id="groupMembersList" class="collab-members-list">Select a group to view members.</div>
+        <div class="collab-add-member-row">
+            <select class="collab-input collab-select-sm" id="groupMemberSelect" disabled>
+                <option value="">Select a friend to add…</option>
+            </select>
+            <button class="collab-btn-primary collab-btn-sm-tight" type="button" id="addGroupMemberBtn" disabled>Add</button>
+        </div>
+        <small class="collab-muted">Only accepted friends can be added.</small>
+    </div>
+
+    <div id="groupMessagesStatus" class="collab-float-status"></div>
+    <div id="groupMessagesList" class="collab-float-messages"></div>
+    <form id="groupMessageForm" class="collab-float-input-row">
+        <input id="groupMessageInput" class="collab-float-input" type="text" maxlength="1000"
+               placeholder="Message the group…" disabled>
+        <button id="sendGroupMessageBtn" class="collab-float-send" type="submit" disabled>
+            <i class="bi bi-send-fill"></i>
+        </button>
+    </form>
+</div>
+
+<!-- Toast -->
+<div id="toastContainer" style="position:fixed;bottom:1.5rem;left:1.5rem;z-index:9999;"></div>
+
 <script src="{{ url_for('static', filename='js/collaboration.js') }}"></script>
 <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 <script src="{{ url_for('static', filename='js/darkmode.js') }}"></script>
-
 </body>
 </html>

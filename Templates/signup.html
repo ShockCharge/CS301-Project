@@ -3,164 +3,123 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <!-- Page Title -->
-    <title>Study Planner | Sign Up</title>
-
-    <!-- Bootstrap -->
+    <title>Study Planner | Signup</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700;900&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-
-    <!-- CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/signup.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
 </head>
 <body>
-    <div class="signup-container">
-        <div class="signup-header">
-            <h1>Create Account</h1>
-            <p>Join Study Planner today</p>
-        </div>
+<div class="auth-shell">
 
-        <div class="signup-body">
-            {% if error %}
-            <div class="error-message">
-                <i class="bi bi-exclamation-circle"></i> {{ error }}
-            </div>
-            {% endif %}
-
-            <form method="POST" action="{{ url_for('signup') }}" id="signup-form">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="first-name">First Name</label>
-                        <div class="input-group">
-                            <i class="bi bi-person"></i>
-                            <input type="text" id="first-name" name="first_name" class="form-control" placeholder="First" required>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label for="last-name">Last Name</label>
-                        <div class="input-group">
-                            <i class="bi bi-person"></i>
-                            <input type="text" id="last-name" name="last_name" class="form-control" placeholder="Last" required>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label for="email">Email Address</label>
-                    <div class="input-group">
-                        <i class="bi bi-envelope"></i>
-                        <input type="email" id="email" name="email" class="form-control"  required>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <div class="input-group">
-                        <i class="bi bi-lock"></i>
-                        <input type="password" id="password" name="password" class="form-control" placeholder="Enter password" required>
-                        <i class="bi bi-eye password-toggle" id="toggle-password"></i>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label for="confirm-password">Confirm Password</label>
-                    <div class="input-group">
-                        <i class="bi bi-lock"></i>
-                        <input type="password" id="confirm-password" name="confirm_password" class="form-control" placeholder="Confirm password" required>
-                        <i class="bi bi-eye password-toggle" id="toggle-confirm-password"></i>
-                    </div>
-                </div>
-               <div class="form-group">
-                <label for="phone Number">Phone Number</label>
-                <div class="input-group">
-                        <i class="bi bi-telephone" id="telephone"></i> 
-                        <input 
-                        type="tel" 
-                        id="phone" 
-                        name="phone" 
-                        class="form-control" 
-                        placeholder="+64 21 123 4567" 
-                        required>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label for="institution">Institution/University</label>
-                    <div class="input-group">
-                        <i class="bi bi-building"></i>
-                        <input type="text" id="institution" name="institution" class="form-control" placeholder="Your school or university" required>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label for="major">Major/Field of Study</label>
-                    <div class="input-group">
-                        <i class="bi bi-book"></i>
-                        <input type="text" id="major" name="major" class="form-control" placeholder="Your major or field" required>
-                    </div>
-                </div>
-
-                <button type="submit" class="btn-signup">
-                    <i class="bi bi-person-plus"></i> Create Account
-                </button>
-            </form>
-
-            <div class="divider">
-                <span>or sign up with</span>
-            </div>
-
-            <div class="social-signup">
-                <button class="social-btn google-btn">
-                    <i class="bi bi-google"></i>
-                    Google
-                </button>
-                <button class="social-btn facebook-btn">
-                    <i class="bi bi-facebook"></i>
-                    Facebook
-                </button>
-            </div>
-
-            <div class="login-link">
-                Already have an account? <a href="{{ url_for('login') }}">Sign In</a>
-            </div>
-
-            <div class="terms">
-                By signing up, you agree to our <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>
-            </div>
-        </div>
+    <!-- Brand -->
+    <div class="auth-brand">
+        <h1>Study Planner</h1>
+        <p>Your all-in-one student workspace</p>
     </div>
 
-    <script>
-        // Password toggle
-        document.getElementById('toggle-password').addEventListener('click', function() {
-            const passwordInput = document.getElementById('password');
-            const type = passwordInput.type === 'password' ? 'text' : 'password';
-            passwordInput.type = type;
-            this.classList.toggle('bi-eye');
-            this.classList.toggle('bi-eye-slash');
-        });
+    <!-- Card -->
+    <div class="auth-card">
+        <p class="auth-card-title">Create your account</p>
 
-        document.getElementById('toggle-confirm-password').addEventListener('click', function() {
-            const passwordInput = document.getElementById('confirm-password');
-            const type = passwordInput.type === 'password' ? 'text' : 'password';
-            passwordInput.type = type;
-            this.classList.toggle('bi-eye');
-            this.classList.toggle('bi-eye-slash');
-        });
+        {% if error %}
+        <div class="auth-alert auth-alert-error">
+            <i class="bi bi-exclamation-circle-fill"></i>
+            <span>{{ error }}</span>
+        </div>
+        {% endif %}
 
-        // Form validation
-        document.getElementById('signup-form').addEventListener('submit', function(e) {
-            const password = document.getElementById('password').value;
-            const confirmPassword = document.getElementById('confirm-password').value;
+        <form method="POST" action="{{ url_for('signup') }}" id="signup-form" novalidate>
 
-            if (password !== confirmPassword) {
-                e.preventDefault();
-                alert('Passwords do not match!');
-            }
-        });
-    </script>
-    <script src="{{ url_for('static', filename='js/darkmode.js') }}"></script>
+            <!-- Name row -->
+            <div class="field-row-2">
+                <div class="sp-field">
+                    <label for="first-name">First Name</label>
+                    <div class="sp-input-wrap">
+                        <i class="bi bi-person field-icon"></i>
+                        <input type="text" id="first-name" name="first_name" placeholder="First" required autocomplete="given-name">
+                    </div>
+                </div>
+                <div class="sp-field">
+                    <label for="last-name">Last Name</label>
+                    <div class="sp-input-wrap">
+                        <i class="bi bi-person field-icon"></i>
+                        <input type="text" id="last-name" name="last_name" placeholder="Last" required autocomplete="family-name">
+                    </div>
+                </div>
+            </div>
 
+            <div class="sp-field">
+                <label for="email">Email Address</label>
+                <div class="sp-input-wrap">
+                    <i class="bi bi-envelope field-icon"></i>
+                    <input type="email" id="email" name="email" placeholder="you@example.com" required autocomplete="email">
+                </div>
+            </div>
+
+            <div class="sp-field">
+                <label for="password">Password</label>
+                <div class="sp-input-wrap">
+                    <i class="bi bi-lock field-icon"></i>
+                    <input type="password" id="password" name="password" placeholder="Min 8 chars, 1 uppercase, 1 number" required autocomplete="new-password">
+                    <button type="button" class="pw-toggle-btn" id="toggle-password" aria-label="Toggle password visibility">
+                        <i class="bi bi-eye"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="sp-field">
+                <label for="confirm-password">Confirm Password</label>
+                <div class="sp-input-wrap">
+                    <i class="bi bi-lock field-icon"></i>
+                    <input type="password" id="confirm-password" name="confirm_password" placeholder="Repeat your password" required autocomplete="new-password">
+                    <button type="button" class="pw-toggle-btn" id="toggle-confirm" aria-label="Toggle confirm password visibility">
+                        <i class="bi bi-eye"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="sp-field">
+                <label for="phone">Phone Number</label>
+                <div class="sp-input-wrap">
+                    <i class="bi bi-telephone field-icon"></i>
+                    <input type="tel" id="phone" name="phone" placeholder="+64 21 123 4567" autocomplete="tel">
+                </div>
+            </div>
+
+            <div class="auth-divider">Academic details</div>
+
+            <div class="sp-field">
+                <label for="institution">Institution / University</label>
+                <div class="sp-input-wrap">
+                    <i class="bi bi-building field-icon"></i>
+                    <input type="text" id="institution" name="institution" placeholder="Your school or university" required>
+                </div>
+            </div>
+
+            <div class="sp-field">
+                <label for="major">Major / Field of Study</label>
+                <div class="sp-input-wrap">
+                    <i class="bi bi-book field-icon"></i>
+                    <input type="text" id="major" name="major" placeholder="e.g. Computer Science" required>
+                </div>
+            </div>
+
+            <button type="submit" class="sp-submit">
+                <i class="bi bi-person-check-fill"></i>
+                Create Account
+            </button>
+        </form>
+
+        <p class="auth-switch">
+            Already have an account? <a href="{{ url_for('login') }}">Sign in</a>
+        </p>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/signup.js') }}"></script>
 </body>
+</html>

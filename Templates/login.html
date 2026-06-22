@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Study Planner | Welcome</title>
-
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&display=swap" rel="stylesheet">
@@ -71,6 +71,7 @@
                 {% endif %}
 
                 <form method="POST" action="/" class="index-auth-form">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="index-form-group">
                         <label for="login-email">Email address</label>
                         <div class="index-input-wrap">

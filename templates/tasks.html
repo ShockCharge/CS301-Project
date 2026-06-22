@@ -48,13 +48,13 @@
                         </ul>
                     </li>
                     <li><a href="{{ url_for('chatbot') }}" class="nav-link"><i class="bi bi-chat-dots"></i><span>Chatbot</span></a></li>
-                    <li><a href="{{ url_for('collaboration_bp.collaboration') }}" class="nav-link active"><i class="bi bi-people"></i><span>Collaboration</span></a></li>
+                    <li><a href="{{ url_for('collaboration_bp.collaboration') }}" class="nav-link"><i class="bi bi-people"></i><span>Collaboration</span></a></li>
                     <li><a href="{{ url_for('settings') }}" class="nav-link"><i class="bi bi-gear"></i><span>Settings</span></a></li>
                     <li><a href="{{ url_for('profile') }}" class="nav-link"><i class="bi bi-person-circle"></i><span>Profile</span></a></li>
                 </ul>
             </nav>
             <div class="sidebar-footer">
-                <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+                <a href="{{ url_for('logout') }}" class="logout-btn"><i class="bi bi-box-arrow-right"></i><span class="logout-text">Logout</span></a>
             </div>
         </aside>
 
@@ -68,11 +68,33 @@
                 </div>
                 <div class="tab-bar">
                     <button class="tab-btn active" data-tab="current" onclick="switchTab('current')">Current</button>
+                    <button class="tab-btn" data-tab="completed" onclick="switchTab('completed')">Completed</button>
                     <button class="tab-btn" data-tab="past" onclick="switchTab('past')">Past</button>
                     <button class="tab-btn" data-tab="overdue" onclick="switchTab('overdue')">Overdue</button>
                 </div>
+                <p class="page-help-text">
+                    Use <strong>Mark Completed</strong> when you finish a task. Finished work will move to the <strong>Completed</strong> tab, where you can also undo it if needed.
+                </p>
                 <div class="items-list" id="tasks-grid">
-                    <p class="empty-state">No tasks yet. Click "Add Task" to create one.</p>
+                    {% if tasks %}
+                        {% for task in tasks %}
+                            <div class="item-card {% if task.completed %}card-border-done completed{% elif task.priority == 'high' %}card-border-high{% elif task.priority == 'medium' %}card-border-medium{% else %}card-border-low{% endif %}">
+                                <div class="item-card-header">
+                                    <h4>{{ task.name }}</h4>
+                                    <span class="priority-badge priority-{{ task.priority }}">{{ task.priority }}</span>
+                                </div>
+                                <div class="item-card-body">
+                                    <p>{{ task.description or 'No description' }}</p>
+                                    <div class="item-meta">
+                                        {% if task.date %}<span><i class="bi bi-calendar"></i> {{ task.date }}</span>{% endif %}
+                                        {% if task.time %}<span><i class="bi bi-clock"></i> {{ task.time }}</span>{% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="empty-state">No tasks yet. Click "Add Task" to create one.</p>
+                    {% endif %}
                 </div>
                 <footer>&copy; 2025 Study Planner</footer>
             </div>
@@ -80,13 +102,16 @@
     </div>
 </div>
 
-<!-- Add Task Modal -->
+<!-- Add Task Modal — Due DATE (not time) -->
 <div id="addTaskModal" class="modal">
     <div class="modal-content">
         <span class="close" id="modal-close">&times;</span>
         <h2>Add Task</h2>
         <form id="addTaskForm">
-            <div class="form-group"><label>Task Name</label><input type="text" id="taskName" class="form-input" required></div>
+            <div class="form-group">
+                <label>Task Name</label>
+                <input type="text" id="taskName" class="form-input" required>
+            </div>
             <div class="form-group">
                 <label>Priority</label>
                 <select id="taskPriority" class="form-input">
@@ -95,8 +120,18 @@
                     <option value="low">Low</option>
                 </select>
             </div>
-            <div class="form-group"><label>Due Time</label><input type="time" id="taskTime" class="form-input" required></div>
-            <div class="form-group"><label>Description</label><textarea id="taskDescription" class="form-input" rows="3"></textarea></div>
+            <div class="form-group">
+                <label>Due Date</label>
+                <input type="date" id="taskDate" class="form-input" required>
+            </div>
+            <div class="form-group">
+                <label>Due Time</label>
+                <input type="time" id="taskTime" class="form-input" value="23:59" required>
+            </div>
+            <div class="form-group">
+                <label>Description</label>
+                <textarea id="taskDescription" class="form-input" rows="3" placeholder="Optional notes…"></textarea>
+            </div>
             <button type="submit" class="btn-primary">Add Task</button>
         </form>
     </div>
@@ -109,7 +144,10 @@
         <h2>Edit Task</h2>
         <form id="editTaskForm">
             <input type="hidden" id="editTaskId">
-            <div class="form-group"><label>Task Name</label><input type="text" id="editTaskName" class="form-input" required></div>
+            <div class="form-group">
+                <label>Task Name</label>
+                <input type="text" id="editTaskName" class="form-input" required>
+            </div>
             <div class="form-group">
                 <label>Priority</label>
                 <select id="editTaskPriority" class="form-input">
@@ -118,8 +156,18 @@
                     <option value="low">Low</option>
                 </select>
             </div>
-            <div class="form-group"><label>Due Date</label><input type="date" id="editTaskDate" class="form-input"></div>
-            <div class="form-group"><label>Description</label><textarea id="editTaskDescription" class="form-input" rows="3"></textarea></div>
+            <div class="form-group">
+                <label>Due Date</label>
+                <input type="date" id="editTaskDate" class="form-input" required>
+            </div>
+            <div class="form-group">
+                <label>Due Time</label>
+                <input type="time" id="editTaskTime" class="form-input" value="23:59" required>
+            </div>
+            <div class="form-group">
+                <label>Description</label>
+                <textarea id="editTaskDescription" class="form-input" rows="3"></textarea>
+            </div>
             <button type="submit" class="btn-primary">Update Task</button>
         </form>
     </div>
@@ -141,34 +189,7 @@
 </div>
 
 <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+<script src="{{ url_for('static', filename='js/tasks.js') }}"></script>
 <script src="{{ url_for('static', filename='js/darkmode.js') }}"></script>
-<script>
-    // Live clock
-    function updateTime() {
-        const now = new Date();
-        document.getElementById('header-time').textContent = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-        document.getElementById('header-date').textContent = now.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long' });
-    }
-    updateTime(); setInterval(updateTime, 1000);
-
-    // Sidebar toggle
-    const sidebar = document.getElementById('sidebar');
-    const overlay = document.getElementById('sidebar-overlay');
-    document.getElementById('sidebar-toggle').addEventListener('click', function () {
-        sidebar.classList.toggle('collapsed'); overlay.classList.toggle('active');
-    });
-    overlay.addEventListener('click', function () {
-        sidebar.classList.add('collapsed'); overlay.classList.remove('active');
-    });
-
-    // Tab switching — tells filterTasks() which tab is active
-    let currentTab = 'current';
-    function switchTab(tab) {
-        currentTab = tab;
-        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-        document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
-        filterTasks();
-    }
-</script>
 </body>
 </html>

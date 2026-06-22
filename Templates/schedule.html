@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <script src="{{ url_for('static', filename='js/darkmode.js') }}"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -58,7 +59,7 @@
                 </ul>
             </nav>
             <div class="sidebar-footer">
-                <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+                <a href="{{ url_for('logout') }}" class="logout-btn"><i class="bi bi-box-arrow-right"></i><span class="logout-text">Logout</span></a>
             </div>
         </aside>
 
@@ -172,7 +173,14 @@
 
                 <!-- Schedule List -->
                 <div class="sched-list-section">
-                    <h3 class="sched-list-title">Scheduled Items</h3>
+                    <div class="sched-list-header">
+                        <h3 class="sched-list-title">Scheduled Items</h3>
+                        <div class="schedule-status-filters" aria-label="Schedule status filters">
+                            <button type="button" class="schedule-filter-btn active" data-status="current">Current</button>
+                            <button type="button" class="schedule-filter-btn" data-status="outdated">Outdated</button>
+                            <button type="button" class="schedule-filter-btn" data-status="all">All</button>
+                        </div>
+                    </div>
                     <div id="schedule-list-items"></div>
                 </div>
 
@@ -188,6 +196,7 @@
         <span class="close" id="closeAddScheduleModal">&times;</span>
         <h2>Add Schedule</h2>
         <form id="addScheduleForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="form-group">
                 <label>Title <span style="color:#ff8fab">*</span></label>
                 <input type="text" id="scheduleTitle" class="form-input" placeholder="e.g. Study Session" required>
@@ -205,6 +214,39 @@
                 <input type="number" id="scheduleDuration" class="form-input" placeholder="e.g. 60" min="1">
             </div>
             <div class="form-group">
+                <label>Repeat</label>
+                <select id="scheduleRepeat" class="form-input repeat-select">
+                    <option value="never" selected>Never</option>
+                    <option value="daily">Daily</option>
+                    <option value="weekdays">Monday to Friday</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
+                    <option value="yearly">Yearly</option>
+                    <option value="custom">Custom</option>
+                </select>
+                <small class="form-help-text">Choose how often this schedule should appear on the calendar.</small>
+            </div>
+            <div class="repeat-custom-row" id="scheduleCustomRepeatRow" style="display:none;">
+                <div class="form-group">
+                    <label>Every</label>
+                    <input type="number" id="scheduleRepeatInterval" class="form-input" value="1" min="1" max="365">
+                </div>
+                <div class="form-group">
+                    <label>Repeat Unit</label>
+                    <select id="scheduleRepeatUnit" class="form-input">
+                        <option value="days">Day(s)</option>
+                        <option value="weeks" selected>Week(s)</option>
+                        <option value="months">Month(s)</option>
+                        <option value="years">Year(s)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Repeat Until</label>
+                <input type="date" id="scheduleRepeatUntil" class="form-input">
+                <small class="form-help-text">Optional. Leave empty if it should keep repeating.</small>
+            </div>
+            <div class="form-group">
                 <label>Description</label>
                 <textarea id="scheduleDescription" class="form-input" rows="2" placeholder="Optional notes…"></textarea>
             </div>
@@ -219,6 +261,7 @@
         <span class="close" id="closeEditScheduleModal">&times;</span>
         <h2>Edit Schedule</h2>
         <form id="editScheduleForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" id="editScheduleId">
             <div class="form-group">
                 <label>Title <span style="color:#ff8fab">*</span></label>
@@ -235,6 +278,39 @@
             <div class="form-group">
                 <label>Duration (minutes)</label>
                 <input type="number" id="editScheduleDuration" class="form-input" min="1">
+            </div>
+            <div class="form-group">
+                <label>Repeat</label>
+                <select id="editScheduleRepeat" class="form-input repeat-select">
+                    <option value="never">Never</option>
+                    <option value="daily">Daily</option>
+                    <option value="weekdays">Monday to Friday</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
+                    <option value="yearly">Yearly</option>
+                    <option value="custom">Custom</option>
+                </select>
+                <small class="form-help-text">Choose how often this schedule should appear on the calendar.</small>
+            </div>
+            <div class="repeat-custom-row" id="editScheduleCustomRepeatRow" style="display:none;">
+                <div class="form-group">
+                    <label>Every</label>
+                    <input type="number" id="editScheduleRepeatInterval" class="form-input" value="1" min="1" max="365">
+                </div>
+                <div class="form-group">
+                    <label>Repeat Unit</label>
+                    <select id="editScheduleRepeatUnit" class="form-input">
+                        <option value="days">Day(s)</option>
+                        <option value="weeks">Week(s)</option>
+                        <option value="months">Month(s)</option>
+                        <option value="years">Year(s)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Repeat Until</label>
+                <input type="date" id="editScheduleRepeatUntil" class="form-input">
+                <small class="form-help-text">Optional. Leave empty if it should keep repeating.</small>
             </div>
             <div class="form-group">
                 <label>Description</label>
@@ -264,53 +340,7 @@
 <div id="toastContainer" style="position:fixed;bottom:1.5rem;right:1.5rem;z-index:9999;"></div>
 
 <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+<script src="{{ url_for('static', filename='js/schedule.js') }}"></script>
 <script src="{{ url_for('static', filename='js/darkmode.js') }}"></script>
-<script>
-    // Live clock
-    function updateTime() {
-        const now = new Date();
-        document.getElementById('header-time').textContent = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-        document.getElementById('header-date').textContent = now.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long' });
-    }
-    updateTime(); setInterval(updateTime, 1000);
-
-    // Sidebar
-    const sidebar = document.getElementById('sidebar');
-    const overlay = document.getElementById('sidebar-overlay');
-    document.getElementById('sidebar-toggle').addEventListener('click', () => {
-        sidebar.classList.toggle('collapsed'); overlay.classList.toggle('active');
-    });
-    overlay.addEventListener('click', () => {
-        sidebar.classList.add('collapsed'); overlay.classList.remove('active');
-    });
-
-    // Activities submenu
-    /* document.getElementById('activities-toggle').addEventListener('click', function(e) {
-        e.preventDefault();
-        document.getElementById('activities-submenu').classList.toggle('active');
-        document.getElementById('activities-arrow').classList.toggle('rotated');
-    }); */
-
-    // Modal helpers
-    function openModal(id) { document.getElementById(id).classList.add('active'); }
-    function closeModal(id) { document.getElementById(id).classList.remove('active'); }
-
-    document.getElementById('add-schedule-btn').addEventListener('click', () => openModal('addScheduleModal'));
-    document.getElementById('closeAddScheduleModal').addEventListener('click', () => closeModal('addScheduleModal'));
-    document.getElementById('closeEditScheduleModal').addEventListener('click', () => closeModal('editScheduleModal'));
-    document.getElementById('closeDeleteScheduleModal').addEventListener('click', () => closeModal('deleteScheduleModal'));
-    document.getElementById('cancelDeleteSchedule').addEventListener('click', () => closeModal('deleteScheduleModal'));
-
-    document.querySelectorAll('.modal').forEach(m => {
-        m.addEventListener('click', function(e) { if (e.target === this) this.classList.remove('active'); });
-    });
-
-    // Tab switching — uses data-view attribute
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            switchView(this.getAttribute('data-view'));
-        });
-    });
-</script>
 </body>
 </html>

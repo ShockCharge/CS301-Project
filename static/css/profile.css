@@ -1,11 +1,4 @@
-/* ================================================================
-   V2profile.css  —  Profile page styles
-   Uses CSS variables from V2style.css → dark mode automatic
-   ================================================================ */
-
-/* ════════════════════════════════════════════
-   HERO BANNER  (avatar + name + email)
-════════════════════════════════════════════ */
+/* HERO BANNER */
 .profile-hero {
     background: linear-gradient(135deg, var(--header-bg) 0%, var(--brand-light) 100%);
     border-radius: 20px;
@@ -56,7 +49,10 @@
 }
 
 /* Hero text */
-.profile-hero-info { flex: 1; min-width: 0; }
+.profile-hero-info {
+    flex: 1;
+    min-width: 0;
+}
 
 .profile-name {
     color: #ffffff;
@@ -77,11 +73,11 @@
     font-size: 0.85rem;
     margin: 0;
 }
-.profile-institution i { margin-right: 4px; }
+.profile-institution i {
+    margin-right: 4px;
+}
 
-/* ════════════════════════════════════════════
-   STATS ROW  (4 cards — like the reference)
-════════════════════════════════════════════ */
+/* STATS ROW */
 .profile-stats-row {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -110,9 +106,15 @@
     flex-shrink: 0;
     color: var(--brand);
 }
-.profile-stat-icon.success { color: #16a34a; }
-.profile-stat-icon.warning { color: #d97706; }
-.profile-stat-icon.danger  { color: #dc2626; }
+.profile-stat-icon.success {
+    color: #16a34a;
+}
+.profile-stat-icon.warning {
+    color: #d97706;
+}
+.profile-stat-icon.danger {
+    color: #dc2626;
+}
 
 .profile-stat-body {
     display: flex;
@@ -137,9 +139,7 @@
     transition: color 0.25s;
 }
 
-/* ════════════════════════════════════════════
-   PROFILE CARDS  (sections)
-════════════════════════════════════════════ */
+/* PROFILE CARDS */
 .profile-card {
     background: var(--surface);
     border: 1.5px solid var(--border-card);
@@ -174,9 +174,7 @@ body.dark-mode .profile-card-header {
     padding: 1.25rem;
 }
 
-/* ════════════════════════════════════════════
-   FORM GRID LAYOUTS
-════════════════════════════════════════════ */
+/* FORM GRID LAYOUTS */
 .pf-grid-2 {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -204,7 +202,6 @@ body.dark-mode .profile-card-header {
     transition: color 0.25s;
 }
 
-/* form-input is already defined in V2style.css — reuse it */
 .pf-field .form-input[readonly] {
     opacity: 0.65;
     cursor: not-allowed;
@@ -215,9 +212,7 @@ body.dark-mode .profile-card-header {
     min-height: 70px;
 }
 
-/* ════════════════════════════════════════════
-   FORM ACTION BUTTONS
-════════════════════════════════════════════ */
+/* FORM ACTION BUTTONS */
 .pf-actions {
     display: flex;
     gap: 0.75rem;
@@ -240,7 +235,9 @@ body.dark-mode .profile-card-header {
     gap: 0.4rem;
     transition: background 0.2s;
 }
-.pf-btn-save:hover { background: var(--btn-primary-hover); }
+.pf-btn-save:hover {
+    background: var(--btn-primary-hover);
+}
 
 .pf-btn-cancel {
     padding: 0.6rem 1.5rem;
@@ -257,7 +254,9 @@ body.dark-mode .profile-card-header {
     gap: 0.4rem;
     transition: background 0.2s;
 }
-.pf-btn-cancel:hover { background: var(--btn-secondary-hover); }
+.pf-btn-cancel:hover {
+    background: var(--btn-secondary-hover);
+}
 
 /* Error text */
 .pf-error {
@@ -275,9 +274,7 @@ body.dark-mode .pf-error {
     color: #f87171;
 }
 
-/* ════════════════════════════════════════════
-   ACCOUNT ACTION ROWS  (logout / premium / delete)
-════════════════════════════════════════════ */
+/* ACCOUNT ACTION ROWS */
 .profile-action-row {
     display: flex;
     align-items: center;
@@ -287,7 +284,9 @@ body.dark-mode .pf-error {
     border-bottom: 1px solid var(--border-card);
     transition: border-color 0.25s;
 }
-.profile-action-row:last-child { border-bottom: none; }
+.profile-action-row:last-child {
+    border-bottom: none;
+}
 
 .profile-action-left {
     display: flex;
@@ -318,10 +317,14 @@ body.dark-mode .pf-error {
     color: var(--text-secondary);
     transition: color 0.25s;
 }
-.profile-action-icon.warning { color: #d97706; }
-.profile-action-icon.danger  { color: #dc2626; }
+.profile-action-icon.warning {
+    color: #d97706;
+}
+.profile-action-icon.danger {
+    color: #dc2626;
+}
 
-/* Action button (right side of each row) */
+/* Action button */
 .profile-action-btn {
     padding: 0.5rem 1.1rem;
     border-radius: 20px;
@@ -342,19 +345,25 @@ body.dark-mode .pf-error {
     background: var(--btn-secondary-bg);
     color: var(--btn-secondary-fg);
 }
-.profile-action-btn.neutral:hover { background: var(--btn-secondary-hover); }
+.profile-action-btn.neutral:hover {
+    background: var(--btn-secondary-hover);
+}
 
 .profile-action-btn.warning {
     background: var(--btn-warning-bg);
     color: var(--btn-warning-fg);
 }
-.profile-action-btn.warning:hover { background: var(--btn-warning-hover); }
+.profile-action-btn.warning:hover {
+    background: var(--btn-warning-hover);
+}
 
 .profile-action-btn.danger {
     background: var(--btn-danger-bg);
     color: var(--btn-danger-fg);
 }
-.profile-action-btn.danger:hover { background: var(--btn-danger-hover); }
+.profile-action-btn.danger:hover {
+    background: var(--btn-danger-hover);
+}
 
 /* Subtle danger row background */
 .danger-row {
@@ -367,9 +376,7 @@ body.dark-mode .danger-row {
     background: rgba(220, 38, 38, 0.08);
 }
 
-/* ════════════════════════════════════════════
-   RESPONSIVE
-════════════════════════════════════════════ */
+/* RESPONSIVE */
 @media (max-width: 900px) {
     .profile-stats-row {
         grid-template-columns: repeat(2, 1fr);
@@ -393,16 +400,31 @@ body.dark-mode .danger-row {
         grid-template-columns: 1fr;
     }
 
-    .profile-name { font-size: 1.4rem; }
+    .profile-name {
+        font-size: 1.4rem;
+    }
 
-    .pf-actions { flex-direction: column; }
+    .pf-actions {
+        flex-direction: column;
+    }
     .pf-btn-save,
-    .pf-btn-cancel { width: 100%; justify-content: center; }
+    .pf-btn-cancel {
+        width: 100%;
+        justify-content: center;
+    }
 
-    .profile-action-row { flex-wrap: wrap; gap: 0.5rem; }
-    .profile-action-btn { width: 100%; justify-content: center; }
+    .profile-action-row {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    .profile-action-btn {
+        width: 100%;
+        justify-content: center;
+    }
 }
 
 @media (max-width: 400px) {
-    .profile-stats-row { grid-template-columns: 1fr; }
+    .profile-stats-row {
+        grid-template-columns: 1fr;
+    }
 }

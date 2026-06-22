@@ -1,7 +1,7 @@
 from celery import Celery
 import os
 from datetime import datetime
-from common import NZ_TZ, tasks_collection, exams_collection, classes_collection, schedules_collection, chain, get_task_status
+from common import NZ_TZ, users_collection, tasks_collection, exams_collection, classes_collection, schedules_collection, chain, safe_ai_invoke, get_task_status
 from web_aware_ai import answer_with_web_awareness
 from notification import send_task_reminder
 from celery.schedules import crontab
@@ -13,7 +13,7 @@ from bson import ObjectId
 celery_app = Celery(
     'study_planner',
     broker=os.environ.get('CELERY_BROKER_URL', 'redis://localhost:6379/0'),
-    backend=os.environ.get('CELERY_RESULT_BACKEND', 'redis://localhost:6379/0')
+    backend=os.environ.get('CELERY_RESULT_BACKEND', 'redis://localhost:6379/1')
 )
 
 celery_app.conf.update(
@@ -48,17 +48,22 @@ def database_unavailable_response():
     """Return a consistent Celery result when MongoDB did not connect."""
     return {
         "success": False,
-        "error": "Database not connected. Please check MONGO_USER, MONGO_PASS, your MongoDB Atlas network access, and dnspython installation."
+        "error": "Database not connected. Please check MONGO_URI, your MongoDB Atlas network access, and dnspython installation."
     }
 
 
 # ========================= TASKS =========================
 
 @celery_app.task
-def send_reminder_async(email, task_name):
-    from notification import send_task_reminder
-    send_task_reminder(email, task_name)
-
+def send_reminder_async(email, phone_number, task_name, due_datetime, reminder_type):
+    """Send one reminder asynchronously through the shared notification helper."""
+    return send_task_reminder(
+        email=email,
+        phone_number=phone_number,
+        task_name=task_name,
+        due_datetime=due_datetime,
+        reminder_type=reminder_type,
+    )
 
 @celery_app.task
 def get_ai_suggestions_task(user_email):
@@ -85,7 +90,7 @@ def get_ai_suggestions_task(user_email):
             "exams": convert_objectids(exams)
         }
 
-        suggestions = chain.invoke({
+        suggestions = safe_ai_invoke({
             "question": "Suggest new study tasks the student should add to improve their productivity.",
             "user_context": context
         })
@@ -150,7 +155,7 @@ def get_ai_study_plan_task(self, user_email: str):
             "upcoming_classes": convert_objectids(upcoming_classes)
         }
 
-        plan = chain.invoke({
+        plan = safe_ai_invoke({
             "question": question,
             "user_context": user_context
         })
@@ -177,14 +182,17 @@ def get_chatbot_response(user_email: str, user_message: str):
         today = datetime.now(NZ_TZ).strftime('%Y-%m-%d')
 
         user_tasks = list(tasks_collection.find({
-            'user': user_email, 'date': {'$gte': today}, 'completed': {'$ne': True}
+            'user': user_email,
+            'completed': {'$ne': True},
+            '$or': [{'date': {'$gte': today}}, {'date': None}, {'date': ''}, {'date': {'$exists': False}}]
         }))
         user_exams = list(exams_collection.find({
             'user': user_email, 'date': {'$gte': today}, 'completed': {'$ne': True}
         }))
         user_classes = list(classes_collection.find({'user': user_email}))
         user_schedules = list(schedules_collection.find({
-            'user': user_email, 'date': {'$gte': today}
+            'user': user_email,
+            '$or': [{'date': {'$gte': today}}, {'date': None}, {'date': ''}, {'date': {'$exists': False}}]
         }))
 
         convert_objectids(user_tasks)
@@ -216,93 +224,102 @@ def get_chatbot_response(user_email: str, user_message: str):
 # ================= AUTOMATIC TASK REMINDER CHECKER =================
 @celery_app.task
 def check_upcoming_tasks():
-    """Runs every few minutes. 
-    Sends reminders:
-    - Under 12 hours
-    - Under 6 hours"""
+    """Check unfinished tasks and send 12-hour and 6-hour reminders.
+
+    This task must be run by Celery Beat every few minutes. It sends reminders
+    through whatever contact details are available. The user's email is stored
+    in the task's user field, and phone_number is copied from the profile when
+    the task is created.
+    """
 
     try:
+        if tasks_collection is None:
+            print("Reminder checker skipped: tasks_collection is not connected.")
+            return {"success": False, "error": "Database not connected"}
+
         now = datetime.now(NZ_TZ)
-        tasks = list(tasks_collection.find({
-            "completed": {"$ne": True}
-        }))
+        tasks = list(tasks_collection.find({"completed": {"$ne": True}}))
+        checked = 0
+        sent = 0
 
         for task in tasks:
             try:
+                checked += 1
                 task_date = task.get("date")
-                task_time = task.get("time", "23:59")
+                task_time = task.get("time") or "23:59"
 
                 if not task_date:
                     continue
-                # Combine date + time
-                task_datetime = datetime.strptime(
-                    f"{task_date} {task_time}",
-                    "%Y-%m-%d %H:%M"
-                )
 
-                task_datetime = NZ_TZ.localize(task_datetime)
-
-                remaining_time = task_datetime - now
-                remaining_hours = remaining_time.total_seconds() / 3600
-
-                task_name = task.get("title", "Unnamed Task")
-                phone_number = task.get("phone_number")
-
-                if not phone_number:
+                try:
+                    task_datetime = datetime.strptime(
+                        f"{task_date} {task_time}",
+                        "%Y-%m-%d %H:%M"
+                    )
+                except ValueError:
+                    print(f"Reminder skipped: invalid task date/time for {task.get('_id')}: {task_date} {task_time}")
                     continue
 
-                # ================= 12 HOUR REMINDER =================
-                if (
-                    0 < remaining_hours <= 12
-                    and not task.get("reminder_12h_sent", False)
-                ):
+                task_datetime = task_datetime.replace(tzinfo=NZ_TZ)
+                remaining_hours = (task_datetime - now).total_seconds() / 3600
 
+                if remaining_hours <= 0:
+                    continue
+
+                task_name = task.get("name") or task.get("title") or "Unnamed Task"
+                email = task.get("user") or task.get("email") or ""
+                phone_number = task.get("phone_number") or ""
+
+                if not phone_number and users_collection is not None and email:
+                    user_data = users_collection.find_one({"email": email})
+                    if user_data:
+                        phone_number = user_data.get("phone", "")
+
+                if not email and not phone_number:
+                    print(f"Reminder skipped: no email or phone number for task {task.get('_id')}")
+                    continue
+
+                due_text = task_datetime.strftime("%Y-%m-%d %I:%M %p")
+
+                if 0 < remaining_hours <= 12 and not task.get("reminder_12h_sent", False):
                     success = send_task_reminder(
+                        email=email,
                         phone_number=phone_number,
                         task_name=task_name,
-                        due_datetime=task_datetime.strftime("%Y-%m-%d %I:%M %p"),
-                        reminder_type="Task is due within 12 hours"
+                        due_datetime=due_text,
+                        reminder_type="Task is due within 12 hours",
                     )
 
                     if success:
+                        sent += 1
                         tasks_collection.update_one(
                             {"_id": task["_id"]},
-                            {
-                                "$set": {
-                                    "reminder_12h_sent": True
-                                }
-                            }
+                            {"$set": {"reminder_12h_sent": True}}
                         )
+                        print(f"12-hour reminder sent: {task_name}")
 
-                        print(f"Your deadline is in 12-hour: {task_name}")
-
-                # ================= 6 HOUR REMINDER =================
-                if (
-                    0 < remaining_hours <= 6
-                    and not task.get("reminder_6h_sent", False)
-                ):
-
+                if 0 < remaining_hours <= 6 and not task.get("reminder_6h_sent", False):
                     success = send_task_reminder(
+                        email=email,
                         phone_number=phone_number,
                         task_name=task_name,
-                        due_datetime=task_datetime.strftime("%Y-%m-%d %I:%M %p"),
-                        reminder_type="Task is due within 6 hours"
+                        due_datetime=due_text,
+                        reminder_type="Task is due within 6 hours",
                     )
 
                     if success:
+                        sent += 1
                         tasks_collection.update_one(
                             {"_id": task["_id"]},
-                            {
-                                "$set": {
-                                    "reminder_6h_sent": True
-                                }
-                            }
+                            {"$set": {"reminder_6h_sent": True}}
                         )
-
-                        print(f"Your deadline is in 6-hour: {task_name}")
+                        print(f"6-hour reminder sent: {task_name}")
 
             except Exception as inner_error:
                 print(f"Task processing error: {inner_error}")
 
+        return {"success": True, "checked": checked, "sent": sent}
+
     except Exception as error:
         print(f"Reminder checker failed: {error}")
+        return {"success": False, "error": str(error)}

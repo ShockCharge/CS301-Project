@@ -1,7 +1,7 @@
 (function () {
     'use strict';
 
-    /* ── 1. Apply dark-mode class BEFORE paint to avoid flash ── */
+    /* Apply dark mode before/at page load. */
     if (localStorage.getItem('darkMode') === 'true') {
         document.documentElement.classList.add('dark-mode-pre');
         document.addEventListener('DOMContentLoaded', function () {
@@ -10,52 +10,66 @@
         });
     }
 
-    /* ── 2. Sidebar persistence across pages ── */
-    document.addEventListener('DOMContentLoaded', function () {
+    function setSidebarState(sidebar, overlay, open) {
+        var isMobile = window.innerWidth <= 768;
+        sidebar.classList.toggle('collapsed', !open);
+
+        if (overlay) {
+            overlay.classList.toggle('active', Boolean(open && isMobile));
+        }
+
+        localStorage.setItem('sidebarOpen', open ? 'true' : 'false');
+    }
+
+    function initSidebarOnce() {
+        if (window.__studyPlannerSidebarInitialized) return;
+        window.__studyPlannerSidebarInitialized = true;
+
         var sidebar   = document.getElementById('sidebar');
         var overlay   = document.getElementById('sidebar-overlay');
         var toggleBtn = document.getElementById('sidebar-toggle');
+        var actToggle = document.getElementById('activities-toggle');
+        var actSubmenu = document.getElementById('activities-submenu');
+        var actArrow = document.getElementById('activities-arrow');
+
         if (!sidebar) return;
 
-        /* Restore saved state */
-        if (localStorage.getItem('sidebarOpen') === 'true') {
-            sidebar.classList.remove('collapsed');
-            if (overlay) overlay.classList.add('active');
-        } else {
-            sidebar.classList.add('collapsed');
-            if (overlay) overlay.classList.remove('active');
-        }
+        var savedOpen = localStorage.getItem('sidebarOpen') === 'true';
+        setSidebarState(sidebar, overlay, savedOpen);
 
-        /* Toggle button */
         if (toggleBtn) {
-            toggleBtn.addEventListener('click', function () {
+            toggleBtn.addEventListener('click', function (e) {
+                e.preventDefault();
                 var opening = sidebar.classList.contains('collapsed');
-                sidebar.classList.toggle('collapsed', !opening);
-                if (overlay) overlay.classList.toggle('active', opening);
-                localStorage.setItem('sidebarOpen', opening ? 'true' : 'false');
+                setSidebarState(sidebar, overlay, opening);
             });
         }
 
-        /* Close on overlay click */
         if (overlay) {
             overlay.addEventListener('click', function () {
-                sidebar.classList.add('collapsed');
-                overlay.classList.remove('active');
-                localStorage.setItem('sidebarOpen', 'false');
+                setSidebarState(sidebar, overlay, false);
             });
         }
 
-        /* Activities submenu — single clean handler */
-        var actToggle  = document.getElementById('activities-toggle');
-        var actSubmenu = document.getElementById('activities-submenu');
-        var actArrow   = document.getElementById('activities-arrow');
         if (actToggle && actSubmenu) {
             actToggle.addEventListener('click', function (e) {
                 e.preventDefault();
-                e.stopPropagation();
+
+                /* YouTube-style behavior: when the sidebar is icon-only,
+                   clicking the Activities icon first opens the sidebar so
+                   the activity links can be selected. */
+                if (sidebar.classList.contains('collapsed')) {
+                    setSidebarState(sidebar, overlay, true);
+                    actSubmenu.classList.add('active');
+                    if (actArrow) actArrow.classList.add('rotated');
+                    return;
+                }
+
                 actSubmenu.classList.toggle('active');
                 if (actArrow) actArrow.classList.toggle('rotated');
             });
         }
-    });
+    }
+
+    document.addEventListener('DOMContentLoaded', initSidebarOnce);
 })();
